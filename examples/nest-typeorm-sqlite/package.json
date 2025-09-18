@@ -5,7 +5,8 @@
   "scripts": {
     "start": "node dist/main.js",
     "build": "tsc -p tsconfig.json",
-    "dev": "tsx watch src/main.ts"
+    "dev": "tsx watch src/main.ts",
+    "start:dev": "tsx watch src/main.ts"
   },
   "dependencies": {
     "@nestjs/common": "^10",
@@ -16,7 +17,7 @@
     "rxjs": "^7",
     "sqlite3": "^5.1.7",
     "typeorm": "^0.3.20",
-    "crudman-nestjs": "*"
+    "crudman-nestjs": "file:../../"
   },
   "devDependencies": {
     "ts-node": "^10.9.2",
