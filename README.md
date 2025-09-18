@@ -758,3 +758,37 @@ export class ZodValidatorAdapter implements ValidatorAdapter {
 ```
 
 `getFinalValidationRules` works with any adapter: receive generated rules/schema, return the final one.
+
+## Programmatic cross-section calls (callAction)
+Sometimes you need to call another section’s action during a hook (e.g., create a related entity first). Use `CrudmanService.callAction(section, action, req, res, isResponseToBeSent)`.
+
+Signature:
+```ts
+callAction(
+  section: string,
+  action: 'list'|'details'|'create'|'update'|'save'|'delete',
+  req: any,
+  res: any,
+  isResponseToBeSent = false
+): Promise<{ statusCode: number; data: any; headers?: Record<string, any> }>
+```
+
+- When `isResponseToBeSent` is false (default), the method captures the response and returns it without sending to the client.
+- When true, it forwards status/headers/body to the original response.
+
+Example (in onAfterValidate of section A, create in section B first):
+```ts
+onAfterValidate: async (req, res, _errors, _validator, service) => {
+  if (req.body.createRelated === true) {
+    const result = await service.callAction('related-section', 'save', req, res, false)
+    if (result.data?.success === false) {
+      res.status(result.statusCode).send(result.data)
+      return false
+    }
+    // Use created id from related section
+    const created = Array.isArray(result.data?.items) ? result.data.items[0] : result.data?.data
+    if (created?.id) req.body.related_id = created.id
+  }
+  return true
+}
+```

@@ -190,6 +190,43 @@ export class CrudmanService {
     // naive approach: flush all section list keys by flushing all (node-cache has no namespace)
     cache.flush && cache.flush()
   }
+
+  async callAction(section: string, action: 'list'|'details'|'create'|'update'|'save'|'delete', req: any, res: any, isResponseToBeSent = false): Promise<{ statusCode: number; data: any; headers?: Record<string, any> }> {
+    const originalRes = res
+    const capture = createResponseCapture(originalRes, isResponseToBeSent)
+    let data: any
+    switch (action) {
+      case 'list': data = await this.list(section, req, capture); break
+      case 'details': data = await this.details(section, req, capture); break
+      case 'create': data = await this.create(section, req, capture); break
+      case 'update': data = await this.update(section, req, capture); break
+      case 'save': data = await this.save(section, req, capture); break
+      case 'delete': data = await this.delete(section, req, capture); break
+      default: data = { success: false, errors: [{ message: 'Invalid action'}] }
+    }
+    // If the action didn't call res.send, fallback to returned data
+    if (!capture.headersSent && data !== undefined) capture.send(data)
+    return { statusCode: capture.statusCode, data: capture.getResponse(), headers: capture.headers }
+  }
+}
+
+function createResponseCapture(originalRes: any, passThrough: boolean) {
+  const headers: Record<string, any> = {}
+  const capture: any = {
+    headersSent: false,
+    statusCode: 200,
+    headers,
+    setHeader: (k: string, v: any) => { headers[k.toLowerCase()] = v; if (passThrough && originalRes?.setHeader) originalRes.setHeader(k, v) },
+    status: function (code: number) { this.statusCode = code; if (passThrough && originalRes?.status) originalRes.status(code); return this },
+    getResponse: () => capture._data,
+    send: (body: any) => {
+      capture._data = body
+      capture.headersSent = true
+      if (passThrough && originalRes && typeof originalRes.send === 'function') originalRes.send(body)
+      return capture
+    }
+  }
+  return capture
 }
 
  
