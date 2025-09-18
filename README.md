@@ -1,6 +1,6 @@
 # crudman-nestjs
 
-We believe everyone building RESTful services with NestJS—especially CRUD-heavy backends—will find this library helpful. It gives you out‑of‑the‑box CRUD endpoints, a clear configuration model, and the freedom to override anything when you need custom behavior. Inspired by the spirit of libraries like `@nestjsx/crud` while focusing on adapter-based design, validation flexibility, and simple developer ergonomics. See `@nestjsx/crud` for related ideas and background. [Reference](https://github.com/nestjsx/crud)
+We believe everyone building RESTful services with NestJS—especially CRUD‑heavy backends—will find this library helpful. It gives you out‑of‑the‑box CRUD endpoints, a clear configuration model, and the freedom to override anything when you need custom behavior. The design centers on adapters (ORM and validator), safe query handling, and simple developer ergonomics so you can start fast and customize when needed.
 
 ## Features
 
