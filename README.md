@@ -1,13 +1,16 @@
 # crudman-nestjs
 
-A pluggable CRUD library for NestJS with:
-- TypeORM-first ORM adapter (Sequelize-ready via future adapter)
-- fastest-validator validation (validator adapter interface supports Joi/Zod later)
-- relations/getRelations, filters/sorting whitelists
-- standard, configurable response formatter
-- NodeCache caching with per-endpoint control
-- Decorators and auto routes via CrudControllerBase
-- OpenAPI/Swagger friendly with DTO typing per action
+## Overview
+
+crudman-nestjs is a plug-and-play CRUD layer for NestJS. It auto-generates REST endpoints (list, details, create, update, delete) from a simple section config that references your entity model.
+
+- Auto routes: extend `CrudControllerBase('section')` to get CRUD endpoints with zero handler code.
+- Decorator overrides: use `@CrudList`, `@CrudDetails`, `@CrudCreate`, `@CrudUpdate`, `@CrudDelete` to customize any endpoint.
+- TypeORM-first: works with repositories you provide (in `additionalSettings.repo`). A Sequelize adapter can be added later without changing configs.
+- Validation-first: fastest-validator by default; swap validators (Joi/Zod) through a small adapter interface.
+- Safe filtering/sorting: allow-list fields to prevent abuse in public endpoints.
+- Caching: NodeCache with per-endpoint control and global invalidation on writes.
+- OpenAPI-ready: enable/disable swagger globally or per endpoint, pass DTOs to describe `data`.
 
 ## Installation
 
@@ -15,9 +18,31 @@ A pluggable CRUD library for NestJS with:
 npm i crudman-nestjs
 ```
 
-## Quick start
+## Quick start (auto routes)
 
-1) Register module (defaults and cache):
+Minimal controller with auto-generated endpoints:
+```ts
+import { Controller } from '@nestjs/common';
+import { UseCrud, CrudControllerBase } from 'crudman-nestjs';
+import { User } from '../entities/user.entity';
+
+@UseCrud({ sections: { users: { model: User } } })
+@Controller('api/users')
+export class UsersController extends CrudControllerBase('users') {}
+```
+
+Routes available:
+- GET /api/users
+- GET /api/users/:id
+- POST /api/users
+- PUT /api/users/:id
+- DELETE /api/users/:id
+
+To override any one, add your own method and decorate it with `@CrudList`, `@CrudDetails`, etc.
+
+## Module registration
+
+Register the module once with sensible defaults:
 ```ts
 import { Module } from '@nestjs/common';
 import { CrudmanModule, defaultResponseFormatter } from 'crudman-nestjs';
@@ -30,32 +55,34 @@ import { CrudmanModule, defaultResponseFormatter } from 'crudman-nestjs';
       defaultResponseFormatter,
       identityAccessor: (req) => req.identity || req.user || {},
       roleChecker: (identity, roles) => !roles?.length || roles.includes(identity?.role),
+      // defaultOrm, defaultValidator can be supplied to replace built-ins
     }),
   ],
 })
 export class AppModule {}
 ```
 
-2) Minimal controller with auto routes:
-```ts
-import { Controller } from '@nestjs/common';
-import { UseCrud, CrudControllerBase } from 'crudman-nestjs';
-import { User } from '../entities/user.entity';
+Parameters (forRoot):
+- swagger.enabled: boolean. Enables swagger decorators by default. You can disable per endpoint in decorator options.
+- cache: { enabled, stdTTL, checkperiod, maxKeys?, invalidateListsOnWrite }
+  - enabled: turn on/off NodeCache integration.
+  - stdTTL: default TTL (seconds).
+  - checkperiod: cache cleanup interval (seconds).
+  - invalidateListsOnWrite: when true, writes will invalidate list caches globally.
+- defaultResponseFormatter: function to shape API responses (see Response formatter).
+- identityAccessor(req): returns `{ id, role, merchant_id? }` extracted from request.
+- roleChecker(identity, roles): returns boolean; simple role check logic.
+- defaultOrm: override the default ORM adapter (e.g., custom TypeORM adapter).
+- defaultValidator: override the validator adapter (e.g., Joi).
 
-@UseCrud({ sections: { users: { model: User } } })
-@Controller('api/users')
-export class UsersController extends CrudControllerBase('users') {}
-```
+## Section config
 
-Routes: GET /, GET /:id, POST /, PUT /:id, DELETE /:id
-
-## Config options
-
-Section config (minimal):
+Minimal:
 ```ts
 { model: User }
 ```
-Expanded:
+
+Expanded (TypeORM example):
 ```ts
 {
   model: User,
@@ -65,54 +92,112 @@ Expanded:
     filtersWhitelist: ['email','createdAt','role'],
     sortingWhitelist: ['createdAt','email'],
     orderBy: [['createdAt','DESC']],
-    onBeforeQuery: async (qb) => qb,
+    onBeforeQuery: async (opts) => {
+      // opts is a TypeORM FindManyOptions-like object
+      opts.where = { ...(opts.where||{}), isActive: true }
+      return opts
+    },
     onBeforeValidate: async (req, res, rules, validator) => true,
     onAfterValidate: async (req, res, errors, validator) => true,
     enableCache: { ttl: 60 },
+    additionalSettings: { repo: userRepository }, // your TypeORM repository
   },
-  details: { relations: ['profile'], enableCache: true },
-  create: { fieldsForUniquenessValidation: ['email'] },
-  update: { fieldsForUniquenessValidation: ['email'] },
-  delete: {},
+  details: { relations: ['profile'], enableCache: true, additionalSettings: { repo: userRepository } },
+  create: { fieldsForUniquenessValidation: ['email'], additionalSettings: { repo: userRepository } },
+  update: { fieldsForUniquenessValidation: ['email'], additionalSettings: { repo: userRepository } },
+  delete: { additionalSettings: { repo: userRepository } },
   requiredRoles: ['admin'],
   ownership: { field: 'user_id' },
 }
 ```
 
-- relations/getRelations: join related entities.
-- filtersWhitelist/sortingWhitelist: only allow explicit fields from query.
+Keys:
+- model: your entity.
+- relations/getRelations: relation names or function returning them.
+- filtersWhitelist/sortingWhitelist: only allow these fields in request-driven filters/sorting.
 - orderBy: default ordering.
-- onBeforeAction/onAfterAction/onBeforeQuery/afterFetch: lifecycle hooks.
-- onBeforeValidate/onAfterValidate: validation hooks (fastest-validator by default).
-- enableCache: boolean | { ttl, key }. Per-action cache, global cache via module config.
+- recordSelectionField: defaults to `id`.
+- hooks: `onBeforeAction`, `onAfterAction`, `onBeforeQuery`, `afterFetch`, `onBeforeValidate`, `onAfterValidate`.
+- enableCache: boolean | { ttl, key }. Per-action cache; global cache in forRoot.
+- additionalSettings.repo: your TypeORM repository instance (required).
 
-## Response format (default)
+## Response formatter (simple and overridable)
 
-List:
+The library builds a standard envelope and lets you override it globally or per action.
+
+Default for list:
 ```json
 {
   "data": [],
   "errors": [],
   "success": true,
-  "pagination": {
-    "page": 1,
-    "perPage": 20,
-    "totalPagesCount": 0,
-    "totalItemsCount": 0,
-    "isHavingNextPage": false,
-    "isHavingPreviousPage": false
-  },
+  "pagination": { "page": 1, "perPage": 20, "totalPagesCount": 0, "totalItemsCount": 0, "isHavingNextPage": false, "isHavingPreviousPage": false },
   "filters": [],
   "sorting": []
 }
 ```
-Details:
+
+Default for details/create/update/delete/save:
 ```json
 { "data": {}, "errors": [], "success": true }
 ```
-You can override globally with `defaultResponseFormatter` or per action via `responseHandler`.
 
-## Decorator-driven custom handlers
+- list: `data` is an array. Includes `pagination`, `filters`, `sorting`.
+- details: `data` is an object or null.
+- create/update/save: `data` is the saved entity (object).
+- delete: `data` has a small message object by default.
+
+Override globally:
+```ts
+CrudmanModule.forRoot({ defaultResponseFormatter: ({ action, payload, errors, success, meta }) => ({
+  action,
+  ok: success,
+  result: payload,
+  pageInfo: meta?.pagination,
+}) })
+```
+
+Override per action (section config):
+```ts
+list: {
+  responseHandler: (result) => ({ items: result.data, ok: result.success })
+}
+```
+
+## Hooks (what, when, why)
+
+All hooks are optional and async-capable.
+- onBeforeAction(req,res,service): Return false to abort action early.
+- onAfterAction(result,req,service): Mutate/return modified result after action.
+- onBeforeQuery(builderOrOpts, model, req, res, service): Modify repository find options or QueryBuilder before execution.
+- afterFetch(data, req, res, service): Transform records after DB fetch.
+- onBeforeValidate(req, res, rules, validator, service): Change rules or abort (return false).
+- onAfterValidate(req, res, errors, validator, service): Abort on custom conditions (return false).
+
+TypeORM examples:
+```ts
+list: {
+  relations: ['profile'],
+  filtersWhitelist: ['email','createdAt'],
+  sortingWhitelist: ['createdAt'],
+  onBeforeQuery: async (opts) => {
+    opts.where = { ...(opts.where||{}), isActive: true } // enforce active users only
+    return opts
+  },
+  afterFetch: async (items) => items.map(i => ({ ...i, tag: 'USER' }))
+}
+
+create: {
+  onBeforeValidate: async (req, res, rules) => { rules.email = { type: 'email', empty: false }; return true },
+  onAfterValidate: async (_req, _res, errors) => errors.length ? false : true
+}
+
+update: {
+  onBeforeAction: async (req) => !!(req.identity?.id)
+}
+```
+
+## Decorator-driven overrides
 ```ts
 import { Controller, Get } from '@nestjs/common';
 import { UseCrud, CrudList } from 'crudman-nestjs';
@@ -128,16 +213,17 @@ export class UsersController extends CrudControllerBase('users') {
 }
 ```
 
-## Swapping adapters
-- ORM: default TypeORM adapter; add a Sequelize adapter later with same config keys.
-- Validator: default fastest-validator; later swap in Joi via ValidatorAdapter.
-
 ## Caching
 - NodeCache is used by default. Configure at module level and per action (`enableCache`).
-- Writes invalidate cached lists by default (configurable).
+- Writes invalidate cached lists by default (configurable with `invalidateListsOnWrite`).
 
-## Security
-- Provide `identityAccessor` and `roleChecker` in `forRoot`, and per section `requiredRoles` & `ownership` for simple authorization.
+## Swagger / OpenAPI
+- Enabled globally via `forRoot({ swagger: { enabled: true } })` or disable per endpoint in decorator options.
+- Provide a DTO per endpoint to type `data` for the docs.
+
+## Swapping adapters
+- ORM: default TypeORM adapter; a Sequelize adapter can be added later with same config keys.
+- Validator: default fastest-validator; later swap in Joi via `ValidatorAdapter`.
 
 ## Testing
 - Vitest tests included for utils, formatter, validator, and ORM adapter.
