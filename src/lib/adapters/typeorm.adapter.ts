@@ -13,8 +13,16 @@ export const TypeormAdapter: OrmAdapter = {
     const { where, filters } = parseFilters(req.query, cfg.filtersWhitelist || [])
 
     const relations = cfg.getRelations ? await cfg.getRelations(req, null, cfg) : (cfg.relations || [])
-
-    const [items, total] = await repo.findAndCount({ where, relations, order: toTypeormOrder(sorting), skip, take, select: normalizeSelect(cfg.attributes) })
+    let findOptions: any = { where, relations, order: toTypeormOrder(sorting), skip, take, select: normalizeSelect(cfg.attributes) }
+    if (cfg.onBeforeQuery) {
+      const mod = await cfg.onBeforeQuery(findOptions, cfg.model, req, null, cfg.service)
+      if (mod) findOptions = mod
+    }
+    let [items, total] = await repo.findAndCount(findOptions)
+    if (cfg.afterFetch) {
+      const mod = await cfg.afterFetch(items, req, null, cfg.service)
+      if (mod) items = mod
+    }
     const totalPagesCount = take ? Math.ceil(total / take) : 0
     paginationInfo.totalItemsCount = total
     paginationInfo.totalPagesCount = totalPagesCount
@@ -29,7 +37,17 @@ export const TypeormAdapter: OrmAdapter = {
     const field = cfg.recordSelectionField || 'id'
     const value = req.params[field]
     const relations = cfg.getRelations ? await cfg.getRelations(req, null, cfg) : (cfg.relations || [])
-    return await repo.findOne({ where: { [field]: castId(value) } as any, relations, select: normalizeSelect(cfg.attributes) })
+    let findOptions: any = { where: { [field]: castId(value) } as any, relations, select: normalizeSelect(cfg.attributes) }
+    if (cfg.onBeforeQuery) {
+      const mod = await cfg.onBeforeQuery(findOptions, cfg.model, req, null, cfg.service)
+      if (mod) findOptions = mod
+    }
+    let entity = await repo.findOne(findOptions)
+    if (cfg.afterFetch && entity) {
+      const mod = await cfg.afterFetch(entity, req, null, cfg.service)
+      if (mod) entity = mod
+    }
+    return entity
   },
 
   async create(req, cfg) {
