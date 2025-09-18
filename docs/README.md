@@ -170,7 +170,7 @@ All hooks are optional and async-capable.
 
 ### onBeforeAction(req, res, service)
 - Type: `(req: RequestLike, res: ResponseLike, service: CrudmanService) => boolean | void | Promise<boolean | void>`
-- Use: Run before doing the action (list/details/create/update/save/delete). Return `false` to abort.
+- Use: Run before doing the action (list/details/create/update/save/delete). Return `false` to abort (block access early).
 - Returns: `false` to stop; anything else continues.
 - Example:
 ```ts
@@ -178,6 +178,17 @@ onBeforeAction: async (req) => {
   if (!req.identity?.id) return false // block anonymous
 }
 ```
+Blocking access early means: the action will not hit the database or do any work; the service simply stops. You can also send a response yourself:
+```ts
+onBeforeAction: async (req, res) => {
+  if (!req.identity) {
+    res?.send?.({ success: false, errors: [{ message: 'Unauthorized' }] })
+    return false
+  }
+  return true // proceed normally
+}
+```
+If you return `true` (or nothing), the action proceeds. If you return `false`, nothing else runs for that request.
 
 ### onAfterAction(result, req, service)
 - Type: `(result: any, req: RequestLike, service: CrudmanService) => any | void | Promise<any | void>`
@@ -186,6 +197,13 @@ onBeforeAction: async (req) => {
 - Example:
 ```ts
 onAfterAction: async (result) => ({ ...result, servedAt: new Date().toISOString() })
+```
+You can also add metadata per action or enforce a common envelope:
+```ts
+onAfterAction: (result, req) => ({
+  requestId: req.headers?.['x-request-id'] || null,
+  ...result
+})
 ```
 
 ### onBeforeQuery(builderOrOpts, model, req, res, service)
@@ -196,6 +214,27 @@ onAfterAction: async (result) => ({ ...result, servedAt: new Date().toISOString(
 ```ts
 onBeforeQuery: async (opts) => {
   opts.where = { ...(opts.where||{}), isActive: true }
+  return opts
+}
+```
+Other common examples:
+```ts
+// Add tenant scoping
+onBeforeQuery: async (opts, _model, req) => {
+  const tenantId = req.identity?.merchant_id
+  if (tenantId) opts.where = { ...(opts.where||{}), merchant_id: tenantId }
+  return opts
+}
+
+// Force a default order when none is provided
+onBeforeQuery: async (opts) => {
+  opts.order = opts.order || { createdAt: 'DESC' }
+  return opts
+}
+
+// Narrow selected fields for performance
+onBeforeQuery: async (opts) => {
+  if (!opts.select) opts.select = ['id','email','createdAt']
   return opts
 }
 ```
