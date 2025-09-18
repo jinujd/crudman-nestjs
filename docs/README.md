@@ -441,6 +441,142 @@ export class ApiController {
 ## License
 MIT
 
+---
+
+## Example: Simple Companies CRUD (TypeORM)
+
+This end-to-end example shows a minimal TypeORM entity, plus how to configure the CRUD.
+
+### 1) TypeORM entity
+```ts
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn } from 'typeorm'
+
+@Entity('companies')
+export class Company {
+  @PrimaryGeneratedColumn()
+  id!: number
+
+  @Column({ length: 120 })
+  name!: string
+
+  @Column({ nullable: true })
+  website?: string | null
+
+  @Column({ type: 'boolean', default: true })
+  isActive!: boolean
+
+  @CreateDateColumn()
+  createdAt!: Date
+}
+```
+
+### 2) Section configuration (TypeORM repositories)
+
+For the TypeORM adapter, provide the repository via `additionalSettings.repo` for each action.
+
+```ts
+import { Repository } from 'typeorm'
+import { Company } from './company.entity'
+
+export function buildCompaniesSection(companyRepository: Repository<Company>) {
+  return {
+    model: Company,
+    list: {
+      filtersWhitelist: ['name', 'createdAt', 'isActive'],
+      sortingWhitelist: ['createdAt', 'name'],
+      orderBy: [['createdAt', 'DESC']],
+      enableCache: { ttl: 60 },
+      additionalSettings: { repo: companyRepository },
+      // Optional hooks
+      onBeforeQuery: async (opts) => {
+        // Only active companies by default
+        opts.where = { ...(opts.where || {}), isActive: true }
+        return opts
+      },
+      afterFetch: async (items) => items,
+    },
+    details: { additionalSettings: { repo: companyRepository } },
+    create: {
+      additionalSettings: { repo: companyRepository },
+      getFinalValidationRules: (rules) => ({
+        ...rules,
+        name: { type: 'string', min: 2, max: 120 },
+        website: { type: 'string', optional: true }
+      })
+    },
+    update: {
+      additionalSettings: { repo: companyRepository },
+      getFinalValidationRules: (rules) => ({
+        ...rules,
+        name: { type: 'string', min: 2, max: 120, optional: true },
+        website: { type: 'string', optional: true }
+      })
+    },
+    delete: { additionalSettings: { repo: companyRepository } },
+  }
+}
+```
+
+### 3) Controller options
+
+You can use either auto routes via the base controller (single section) or multiple sections with decorators.
+
+Single-section auto routes:
+```ts
+import { Controller } from '@nestjs/common'
+import { UseCrud, CrudControllerBase } from 'crudman-nestjs'
+import { Company } from './company.entity'
+
+// Note: you need to make sure buildCompaniesSection(...) is called with a repository
+// at app composition time. One common approach is to export a constant that holds the
+// built section using a repository created outside DI, or to prefer the decorator pattern below.
+
+@UseCrud({ sections: { companies: { model: Company } } })
+@Controller('api/companies')
+export class CompaniesController extends CrudControllerBase('companies') {}
+```
+
+Multiple sections in one controller (recommended when you need to wire repositories explicitly):
+```ts
+import { Controller, Get, Post, Put, Delete } from '@nestjs/common'
+import { UseCrud, CrudList, CrudDetails, CrudCreate, CrudUpdate, CrudDelete } from 'crudman-nestjs'
+import { Company } from './company.entity'
+
+@UseCrud({
+  sections: {
+    // model is used for rule generation; repository is provided via additionalSettings.repo
+    companies: { model: Company }
+  }
+})
+@Controller('api')
+export class ApiController {
+  @Get('companies')
+  @CrudList('companies')
+  listCompanies() {}
+
+  @Get('companies/:id')
+  @CrudDetails('companies')
+  getCompany() {}
+
+  @Post('companies')
+  @CrudCreate('companies')
+  createCompany() {}
+
+  @Put('companies/:id')
+  @CrudUpdate('companies')
+  updateCompany() {}
+
+  @Delete('companies/:id')
+  @CrudDelete('companies')
+  deleteCompany() {}
+}
+```
+
+Notes:
+- In the TypeORM adapter, `additionalSettings.repo` is required on each action to perform DB operations.
+- Keep filters/sorting whitelists strict for public endpoints.
+- Use `getFinalValidationRules` to strengthen auto-generated rules from your entity.
+
 ## Adapters with other stacks
 
 ### Sequelize (preview)
