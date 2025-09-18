@@ -83,29 +83,78 @@ export const TypeormAdapter: OrmAdapter = {
       whereFinal = { AND: [ where || {}, { OR: keywordWhereOr } ] }
     }
 
-    let findOptions: any = { where: whereFinal, relations, order: toTypeormOrder(sorting), skip, take, select: normalizeSelect(cfg.attributes) }
+    const hasLikeFilter = filters.some((f) => f.op === 'like')
+    let findOptions: any = { where: convertToTypeormWhere(whereFinal), relations, order: toTypeormOrder(sorting), skip, take, select: normalizeSelect(cfg.attributes) }
     if (cfg.onBeforeQuery) {
       const mod = await cfg.onBeforeQuery(findOptions, cfg.model, req, null, cfg.service)
       if (mod) findOptions = mod
     }
     let items: any[] = []
     let total = 0
-    if (paginationDisabled) {
-      items = await repo.find({ where: findOptions.where, relations: findOptions.relations, order: findOptions.order, select: findOptions.select })
-      total = items.length
-      paginationInfo.page = 1
-      paginationInfo.perPage = items.length
-      paginationInfo.totalItemsCount = total
-      paginationInfo.totalPagesCount = 1
-      paginationInfo.isHavingNextPage = false
-      paginationInfo.isHavingPreviousPage = false
+    if (hasLikeFilter) {
+      // Use QueryBuilder for robust LIKE behavior across drivers
+      const qb = repo.createQueryBuilder('t')
+      // Apply simple filters
+      for (const f of filters) {
+        if (f.op === 'like') {
+          const param = `%${String(f.value)}%`.toLowerCase()
+          qb.andWhere(`LOWER(t.${f.field}) LIKE :p_${f.field}`, { [`p_${f.field}`]: param })
+        } else if (f.op === 'eq') {
+          qb.andWhere(`t.${f.field} = :p_${f.field}`, { [`p_${f.field}`]: f.value })
+        } else if (f.op === 'between' && Array.isArray(f.value)) {
+          qb.andWhere(`t.${f.field} BETWEEN :p_${f.field}_a AND :p_${f.field}_b`, { [`p_${f.field}_a`]: f.value[0], [`p_${f.field}_b`]: f.value[1] })
+        } else if (f.op === 'gte') {
+          qb.andWhere(`t.${f.field} >= :p_${f.field}`, { [`p_${f.field}`]: f.value })
+        } else if (f.op === 'lte') {
+          qb.andWhere(`t.${f.field} <= :p_${f.field}`, { [`p_${f.field}`]: f.value })
+        } else if (f.op === 'gt') {
+          qb.andWhere(`t.${f.field} > :p_${f.field}`, { [`p_${f.field}`]: f.value })
+        } else if (f.op === 'lt') {
+          qb.andWhere(`t.${f.field} < :p_${f.field}`, { [`p_${f.field}`]: f.value })
+        }
+      }
+      // Sorting
+      for (const s of sorting) {
+        qb.addOrderBy(`t.${s.field}`, s.order as any)
+      }
+      // Pagination
+      if (!paginationDisabled) {
+        if (typeof skip === 'number') qb.skip(skip)
+        if (typeof take === 'number') qb.take(take)
+      }
+      const resQB = await qb.getManyAndCount()
+      items = resQB[0]; total = resQB[1]
+      if (paginationDisabled) {
+        paginationInfo.page = 1
+        paginationInfo.perPage = items.length
+        paginationInfo.totalItemsCount = total
+        paginationInfo.totalPagesCount = 1
+        paginationInfo.isHavingNextPage = false
+        paginationInfo.isHavingPreviousPage = false
+      } else {
+        const totalPagesCount = take ? Math.ceil(total / take) : 0
+        paginationInfo.totalItemsCount = total
+        paginationInfo.totalPagesCount = totalPagesCount
+        paginationInfo.isHavingNextPage = take ? paginationInfo.page < totalPagesCount : false
+      }
     } else {
-      const res = await repo.findAndCount(findOptions)
-      items = res[0]; total = res[1]
-      const totalPagesCount = take ? Math.ceil(total / take) : 0
-      paginationInfo.totalItemsCount = total
-      paginationInfo.totalPagesCount = totalPagesCount
-      paginationInfo.isHavingNextPage = take ? paginationInfo.page < totalPagesCount : false
+      if (paginationDisabled) {
+        items = await repo.find({ where: findOptions.where, relations: findOptions.relations, order: findOptions.order, select: findOptions.select })
+        total = items.length
+        paginationInfo.page = 1
+        paginationInfo.perPage = items.length
+        paginationInfo.totalItemsCount = total
+        paginationInfo.totalPagesCount = 1
+        paginationInfo.isHavingNextPage = false
+        paginationInfo.isHavingPreviousPage = false
+      } else {
+        const res = await repo.findAndCount(findOptions)
+        items = res[0]; total = res[1]
+        const totalPagesCount = take ? Math.ceil(total / take) : 0
+        paginationInfo.totalItemsCount = total
+        paginationInfo.totalPagesCount = totalPagesCount
+        paginationInfo.isHavingNextPage = take ? paginationInfo.page < totalPagesCount : false
+      }
     }
     if (cfg.afterFetch) {
       const mod = await cfg.afterFetch(items, req, null, cfg.service)
@@ -238,6 +287,82 @@ function buildLikeCondition(relationPath: string, column: string, likeValue: str
   return caseSensitive
     ? { [target]: { like: likeValue } }
     : { [target]: { ilike: likeValue } } // signal case-insensitive intent
+}
+
+// Convert our generic where structure into TypeORM FindOptionsWhere format
+function convertToTypeormWhere(where: any): any {
+  if (!where) return {}
+  // Handle AND/OR composition
+  if (where.AND) {
+    return (where.AND as any[]).map(convertToTypeormWhere)
+  }
+  if (where.OR) {
+    return (where.OR as any[]).map(convertToTypeormWhere)
+  }
+  const out: any = {}
+  for (const key of Object.keys(where)) {
+    const value = where[key]
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      if ('like' in value) {
+        const raw = String((value as any).like)
+        const pattern = raw.includes('%') ? raw : `%${raw}%`
+        out[key] = CaseInsensitiveLike(pattern)
+      } else if ('ilike' in value) {
+        const raw = String((value as any).ilike)
+        const pattern = raw.includes('%') ? raw : `%${raw}%`
+        out[key] = CaseInsensitiveLike(pattern)
+      } else if ('between' in value && Array.isArray((value as any).between)) {
+        const [a, b] = (value as any).between
+        out[key] = Between(a, b)
+      } else if ('gte' in value || 'lte' in value || 'gt' in value || 'lt' in value) {
+        const range: any[] = []
+        if ('gte' in value && 'lte' in value) out[key] = Between((value as any).gte, (value as any).lte)
+        else if ('gt' in value) out[key] = MoreThan((value as any).gt)
+        else if ('gte' in value) out[key] = MoreThanOrEqual((value as any).gte)
+        else if ('lt' in value) out[key] = LessThan((value as any).lt)
+        else if ('lte' in value) out[key] = LessThanOrEqual((value as any).lte)
+      } else {
+        // nested relation path: split by dot
+        if (key.includes('.')) {
+          const [rel, ...rest] = key.split('.')
+          const nestedKey = rest.join('.')
+          out[rel] = out[rel] || {}
+          out[rel][nestedKey] = convertToTypeormWhere({ [nestedKey]: value })[nestedKey]
+        } else {
+          out[key] = convertToTypeormWhere(value)
+        }
+      }
+    } else {
+      out[key] = value
+    }
+  }
+  return out
+}
+
+// Helpers that defer importing from typeorm to runtime to avoid hard deps at import time
+function Like(pattern: string): any { return dynamicTypeormOperator('Like', pattern) }
+function Between(a: any, b: any): any { return dynamicTypeormOperator('Between', a, b) }
+function MoreThan(v: any): any { return dynamicTypeormOperator('MoreThan', v) }
+function MoreThanOrEqual(v: any): any { return dynamicTypeormOperator('MoreThanOrEqual', v) }
+function LessThan(v: any): any { return dynamicTypeormOperator('LessThan', v) }
+function LessThanOrEqual(v: any): any { return dynamicTypeormOperator('LessThanOrEqual', v) }
+function Raw(fn: any): any { return dynamicTypeormOperator('Raw', fn) }
+
+// Case-insensitive like fallback: lower both sides via simple pattern; we map to Like on lowercased input
+function CaseInsensitiveLike(pattern: string): any {
+  // Use a LOWER() based Raw expression for cross-database case-insensitive matching
+  return Raw((alias: string) => `LOWER(${alias}) LIKE LOWER(:pattern)`, { pattern })
+}
+
+function dynamicTypeormOperator(name: string, ...args: any[]): any {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const typeorm = require('typeorm')
+    return (typeorm as any)[name](...args)
+  } catch {
+    // If typeorm isn't available at import time, just return a shape TypeORM understands minimally
+    return { __op: name, __args: args }
+  }
 }
 
 

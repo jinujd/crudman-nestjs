@@ -1,19 +1,16 @@
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { CrudmanModule, UseCrud, CrudControllerBase } from 'crudman-nestjs'
+import { CrudmanModule } from 'crudman-nestjs'
 import { Company } from './company.entity'
-import { Controller } from '@nestjs/common'
-import { DataSource } from 'typeorm'
-
-@UseCrud({ sections: { companies: { model: Company } } })
-@Controller('api/companies')
-class CompaniesController extends CrudControllerBase('companies') {}
+import { User } from './user.entity'
+import { CompaniesController } from './companies.controller'
+import { UsersController } from './users.controller'
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({ type: 'sqlite', database: 'test.sqlite', entities: [Company], synchronize: true }),
+    TypeOrmModule.forRoot({ type: 'sqlite', database: 'test.sqlite', entities: [Company, User], synchronize: true }),
     CrudmanModule.forRoot({}),
   ],
-  controllers: [CompaniesController]
+  controllers: [CompaniesController, UsersController]
 })
 export class AppModule {}

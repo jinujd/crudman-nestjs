@@ -3,6 +3,7 @@ export * from './lib/crudman.service'
 export * from './lib/decorators/crud.decorators'
 export * from './lib/decorators/CrudControllerBase'
 export * from './lib/response/defaultResponseFormatter'
+export { setCrudmanDataSource, getCrudmanDataSource } from './lib/module/dataSource'
 
 export * from './lib/types/CrudActionConfig'
 export * from './lib/types/CrudSectionConfig'

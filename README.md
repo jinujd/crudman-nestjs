@@ -776,6 +776,27 @@ Supported filters (root fields):
 - Numeric/Date ranges: `field.min=value`, `field.max=value`, `field.gt=value`, `field.lt=value`
 - Between (date/number): `field.between=start,end` (encode comma if needed: `%2C`)
 
+#### Filters quick reference
+```text
+# Equals
+?name=Acme
+
+# Like (substring, case-insensitive)
+?name.like=acme
+
+# Numeric/date range shortcuts
+?age.min=18
+?age.max=65
+?price.gt=100
+?price.lt=500
+
+# Between (dates or numbers)
+?createdAt.between=2024-01-01,2024-01-31
+```
+Notes:
+- Field names are camelCase by default; snake_case aliases are also accepted and normalized.
+- Filters apply only to whitelisted fields (`filtersWhitelist`), or all entity columns if a whitelist isn’t provided.
+
 Sorting:
 - `sort.field=asc|desc` (repeat for multi-sort)
 

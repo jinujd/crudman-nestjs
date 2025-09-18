@@ -32,6 +32,7 @@ export class CrudmanRegistry {
   getIdentityAccessor() { return this.options.identityAccessor || ((req: any) => req.identity || req.user || {}) }
   getRoleChecker() { return this.options.roleChecker || ((identity: any, roles?: string[]) => !roles?.length || roles.includes(identity?.role)) }
   getDataSource() { return (this.options as any).dataSource }
+  setDataSource(ds: any) { (this.options as any).dataSource = ds }
 }
 
 

@@ -42,7 +42,9 @@ export class FastestValidatorAdapter implements ValidatorAdapter {
         rules[field] = rule
       }
     }
-    rules.$$strict = true
+    const fieldKeys = Object.keys(rules).filter(k => !k.startsWith('$$'))
+    // If we couldn't infer any concrete rules from the model, don't reject unknown fields
+    rules.$$strict = fieldKeys.length > 0 ? true : false
     return rules
   }
 
