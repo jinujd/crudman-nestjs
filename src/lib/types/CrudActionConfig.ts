@@ -24,8 +24,8 @@ export interface CrudActionConfig {
   // Keyword search config for list action
   keywordParamName?: string // defaults to 'keyword'
   keyword?: {
-    enabled?: boolean
-    caseSensitive?: boolean
+    isEnabled?: boolean
+    isCaseSensitive?: boolean
     minLength?: number
     searchableFields?: string[] // dot paths: 'name', 'user.name', 'user.profile.email' (max 3 levels)
     maxRelationDepth?: 1 | 2 | 3
@@ -47,8 +47,8 @@ export interface CrudActionConfig {
   }
   pagination?: {
     isPaginationEnabled?: boolean // default true
-    allowDisable?: boolean // default true (honor paginate=false or perPage=0)
-    defaultEnabled?: boolean // default true; if false and no page/perPage, return all
+    isDisableAllowed?: boolean // default true (honor paginate=false or perPage=0)
+    isDefaultEnabled?: boolean // default true; if false and no page/perPage, return all
     maxPerPage?: number // optional cap
   }
 

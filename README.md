@@ -199,8 +199,8 @@ Default whitelist behavior:
 Keyword search (list):
 - Query param: `keyword` (rename via `keywordParamName`).
 - Config under the list action:
-  - `keyword.enabled?: boolean` (default true)
-  - `keyword.caseSensitive?: boolean` (default false → case-insensitive)
+  - `keyword.isEnabled?: boolean` (default true)
+  - `keyword.isCaseSensitive?: boolean` (default false → case-insensitive)
   - `keyword.minLength?: number` (default 2)
   - `keyword.searchableFields?: string[]` – dot paths like `['name','user.name','user.profile.email']` (max 3 levels). If omitted, all root columns are searched.
   - `keyword.maxRelationDepth?: 1|2|3` (default 1) – cap relation depth when using dot paths or metadata discovery.
@@ -986,8 +986,8 @@ list: {
 list: {
   pagination: {
     isPaginationEnabled: true,    // set false to always return all
-    allowDisable: true,           // honor paginate=false / perPage=0
-    defaultEnabled: true,         // if false and no page/perPage provided, return all
+    isDisableAllowed: true,       // honor paginate=false / perPage=0
+    isDefaultEnabled: true,       // if false and no page/perPage provided, return all
     maxPerPage: 100               // cap perPage
   }
 }

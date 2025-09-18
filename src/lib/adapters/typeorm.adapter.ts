@@ -33,9 +33,9 @@ export const TypeormAdapter: OrmAdapter = {
     const keywordParam = (qn.keyword || cfg.keywordParamName || 'keyword')
     const kwRaw = (req.query ? req.query[keywordParam] : undefined) as string | undefined
     const kwCfg = cfg.keyword || {}
-    const kwEnabled = kwCfg.enabled !== false
+    const kwEnabled = kwCfg.isEnabled !== false
     const kwMin = kwCfg.minLength ?? 2
-    const kwCaseSensitive = kwCfg.caseSensitive === true
+    const kwCaseSensitive = kwCfg.isCaseSensitive === true
     const kw = (typeof kwRaw === 'string' ? kwRaw.trim() : '')
     let keywordWhereOr: any[] = []
     let requiredRelations: string[] = []

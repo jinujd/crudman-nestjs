@@ -31,10 +31,10 @@ export const parsePagination = (
   const pagVal = String(query[paginateKey] ?? '').toLowerCase()
   const isDisableFlag = pagVal === 'false' || pagVal === '0' || pagVal === 'no'
   const isPerPageZero = String(query[perPageKey] ?? '').toLowerCase() === '0'
-  if (opts?.allowDisable !== false && (isDisableFlag || isPerPageZero)) disabled = true
+  if (opts?.isDisableAllowed !== false && (isDisableFlag || isPerPageZero)) disabled = true
 
   if (opts?.maxPerPage && perPage > opts.maxPerPage) perPage = opts.maxPerPage
-  const defaultEnabled = opts?.defaultEnabled !== undefined ? opts.defaultEnabled : true
+  const defaultEnabled = opts?.isDefaultEnabled !== undefined ? opts.isDefaultEnabled : true
   if (!enabled) disabled = true
   if (enabled && !defaultEnabled && query[pageKey] === undefined && query[perPageKey] === undefined) disabled = true
 
