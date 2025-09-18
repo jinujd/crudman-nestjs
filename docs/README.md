@@ -768,6 +768,58 @@ Notes:
 - Keep filters/sorting whitelists strict for public endpoints.
 - Use `getFinalValidationRules` to strengthen auto-generated rules from your entity.
 
+### Query parameters: filters, sorting, pagination (Companies)
+
+Supported filters (root fields):
+- Equals: `field=value`
+- Like (substring): `field.like=value`
+- Numeric/Date ranges: `field.min=value`, `field.max=value`, `field.gt=value`, `field.lt=value`
+- Between (date/number): `field.between=start,end` (encode comma if needed: `%2C`)
+
+Sorting:
+- `sort.field=asc|desc` (repeat for multi-sort)
+
+Pagination:
+- `page`, `per_page`
+
+Keyword search (if configured):
+- `keyword=substring` (searches configured `searchableFields`, supports nested dot-paths)
+
+Examples:
+```text
+# Active companies only
+GET /api/companies?isActive=1
+
+# Name contains "air" (case-insensitive), most recent first
+GET /api/companies?name.like=air&sort.createdAt=desc
+
+# Created between two dates
+GET /api/companies?createdAt.between=2024-01-01,2024-01-31
+
+# Created from Jan to Dec (inclusive), page 2, 20 per page
+GET /api/companies?createdAt.min=2024-01-01&createdAt.max=2024-12-31&page=2&per_page=20
+
+# Multi-sort: newest, then name ascending
+GET /api/companies?sort.createdAt=desc&sort.name=asc
+
+# Keyword search combined with sort/pagination
+GET /api/companies?keyword=air&sort.createdAt=desc&page=1&per_page=10
+
+# Combined filters and sorting
+GET /api/companies?isActive=1&name.like=tech&sort.createdAt=desc&page=1&per_page=25
+```
+
+cURL examples:
+```bash
+curl "http://localhost:3000/api/companies?isActive=1&sort.createdAt=desc"
+curl "http://localhost:3000/api/companies?createdAt.between=2024-01-01%2C2024-01-31"
+curl "http://localhost:3000/api/companies?keyword=air&sort.name=asc&page=1&per_page=10"
+```
+
+Notes:
+- Filters and sorting apply to root entity fields. Use `filtersWhitelist`/`sortingWhitelist` to control allowed fields.
+- Keyword search supports nested dot-path `searchableFields` and merges required relations automatically.
+
 ## Adapters with other stacks
 
 ### Sequelize (preview)
