@@ -472,6 +472,95 @@ export class ApiController {
 }
 ```
 
+## Organizing sections in separate files
+For better organization, keep each section’s configuration in its own file under a `crud/` directory. Import and compose sections in your controllers (or a factory/provider) instead of inlining all the config.
+
+### Suggested structure
+```text
+src/
+  crud/
+    users.section.ts
+    companies.section.ts
+  controllers/
+    api.controller.ts
+  entities/
+    user.entity.ts
+    company.entity.ts
+```
+
+### users.section.ts (example)
+```ts
+import { Repository } from 'typeorm'
+import { User } from '../entities/user.entity'
+
+export function usersSection(userRepository: Repository<User>) {
+  return {
+    model: User,
+    list: {
+      filtersWhitelist: ['email','createdAt','role'],
+      sortingWhitelist: ['createdAt','email'],
+      additionalSettings: { repo: userRepository },
+      keyword: { searchableFields: ['firstName','lastName','email'] }
+    },
+    details: { additionalSettings: { repo: userRepository } },
+    create: { additionalSettings: { repo: userRepository } },
+    update: { additionalSettings: { repo: userRepository } },
+    delete: { additionalSettings: { repo: userRepository } },
+  }
+}
+```
+
+### companies.section.ts (example)
+```ts
+import { Repository } from 'typeorm'
+import { Company } from '../entities/company.entity'
+
+export function companiesSection(companyRepository: Repository<Company>) {
+  return {
+    model: Company,
+    list: {
+      filtersWhitelist: ['name','isActive','createdAt'],
+      sortingWhitelist: ['createdAt','name'],
+      additionalSettings: { repo: companyRepository },
+      keyword: { searchableFields: ['name','contacts.email','contacts.address.city'], maxRelationDepth: 2 }
+    },
+    details: { additionalSettings: { repo: companyRepository } },
+    create: { additionalSettings: { repo: companyRepository } },
+    update: { additionalSettings: { repo: companyRepository } },
+    delete: { additionalSettings: { repo: companyRepository } },
+  }
+}
+```
+
+### Using the sections
+```ts
+import { Controller, Get } from '@nestjs/common'
+import { UseCrud, CrudList } from 'crudman-nestjs'
+import { usersSection } from '../crud/users.section'
+import { companiesSection } from '../crud/companies.section'
+
+// Assume you obtain repositories from your DI/container or a factory
+const sections = {
+  users: usersSection(userRepository),
+  companies: companiesSection(companyRepository),
+}
+
+@UseCrud({ sections })
+@Controller('api')
+export class ApiController {
+  @Get('users') @CrudList('users') listUsers() {}
+  @Get('companies') @CrudList('companies') listCompanies() {}
+}
+```
+
+### Why this helps
+- Clear separation of concerns: each domain’s CRUD config lives next to its entity logic.
+- Reusability: import the same section into multiple controllers or modules.
+- Scalability: large apps avoid monolithic controller files.
+- Testability: unit-test section configs (hooks, rules) in isolation.
+- Discoverability: IDE-friendly navigation; simpler diffs and code reviews.
+- Flexibility: easy to swap repositories, adapters, or hook behaviors per section.
+
 ## Caching
 - NodeCache is used by default. Configure at module level and per action (`enableCache`).
 - Writes invalidate cached lists by default (configurable with `invalidateListsOnWrite`).
