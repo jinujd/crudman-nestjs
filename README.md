@@ -167,34 +167,90 @@ list: {
 ## Hooks (what, when, why)
 
 All hooks are optional and async-capable.
-- onBeforeAction(req,res,service): Return false to abort action early.
-- onAfterAction(result,req,service): Mutate/return modified result after action.
-- onBeforeQuery(builderOrOpts, model, req, res, service): Modify repository find options or QueryBuilder before execution.
-- afterFetch(data, req, res, service): Transform records after DB fetch.
-- onBeforeValidate(req, res, rules, validator, service): Change rules or abort (return false).
-- onAfterValidate(req, res, errors, validator, service): Abort on custom conditions (return false).
 
-TypeORM examples:
+### onBeforeAction(req, res, service)
+- Type: `(req: RequestLike, res: ResponseLike, service: CrudmanService) => boolean | void | Promise<boolean | void>`
+- Use: Run before doing the action (list/details/create/update/save/delete). Return `false` to abort.
+- Returns: `false` to stop; anything else continues.
+- Example:
 ```ts
-list: {
-  relations: ['profile'],
-  filtersWhitelist: ['email','createdAt'],
-  sortingWhitelist: ['createdAt'],
-  onBeforeQuery: async (opts) => {
-    opts.where = { ...(opts.where||{}), isActive: true } // enforce active users only
-    return opts
-  },
-  afterFetch: async (items) => items.map(i => ({ ...i, tag: 'USER' }))
+onBeforeAction: async (req) => {
+  if (!req.identity?.id) return false // block anonymous
 }
+```
 
-create: {
-  onBeforeValidate: async (req, res, rules) => { rules.email = { type: 'email', empty: false }; return true },
-  onAfterValidate: async (_req, _res, errors) => errors.length ? false : true
-}
+### onAfterAction(result, req, service)
+- Type: `(result: any, req: RequestLike, service: CrudmanService) => any | void | Promise<any | void>`
+- Use: Mutate or replace the formatted response just before sending.
+- Returns: Return a new result to replace, or nothing to keep the original.
+- Example:
+```ts
+onAfterAction: async (result) => ({ ...result, servedAt: new Date().toISOString() })
+```
 
-update: {
-  onBeforeAction: async (req) => !!(req.identity?.id)
+### onBeforeQuery(builderOrOpts, model, req, res, service)
+- Type: `(builderOrOpts: FindOptionsLike | QueryBuilderLike, model: any, req: RequestLike, res: ResponseLike, service: CrudmanService) => any | Promise<any>`
+- Use: Modify repository find options (TypeORM) before executing DB call.
+- Returns: The modified options/builder.
+- Example (TypeORM FindOptions):
+```ts
+onBeforeQuery: async (opts) => {
+  opts.where = { ...(opts.where||{}), isActive: true }
+  return opts
 }
+```
+
+### afterFetch(data, req, res, service)
+- Type: `(data: any[] | any, req: RequestLike, res: ResponseLike, service: CrudmanService) => any[] | any | Promise<any[] | any>`
+- Use: Transform DB results after fetch but before formatting.
+- Returns: Transformed array/object.
+- Example:
+```ts
+afterFetch: async (items) => Array.isArray(items) ? items.map(i => ({ ...i, tag: 'USER' })) : { ...items, tag: 'USER' }
+```
+
+### onBeforeValidate(req, res, rules, validator, service)
+- Type: `(req: RequestLike, res: ResponseLike, rules: any, validator: ValidatorAdapter, service: CrudmanService) => boolean | void | Promise<boolean | void>`
+- Use: Adjust rules just before validation runs.
+- Returns: `false` to abort validation/action.
+- Example:
+```ts
+onBeforeValidate: async (req, _res, rules) => {
+  rules.email = { type: 'email', empty: false }
+  return true
+}
+```
+
+### getFinalValidationRules(generatedRules, req, res, validator)
+- Type: `(generatedRules: any, req: RequestLike, res: ResponseLike, validator: ValidatorAdapter) => any | Promise<any>`
+- Use: Replace or extend the auto-generated rules from the model.
+- Returns: The final rules object/schema used for validation.
+- Example:
+```ts
+getFinalValidationRules: async (rules) => ({
+  ...rules,
+  password: { type: 'string', min: 8 }
+})
+```
+
+### onAfterValidate(req, res, errors, validator, service)
+- Type: `(req: RequestLike, res: ResponseLike, errors: any[], validator: ValidatorAdapter, service: CrudmanService) => boolean | void | Promise<boolean | void>`
+- Use: Inspect validation errors and stop flow on custom conditions.
+- Returns: `false` to abort when errors exist.
+- Example:
+```ts
+onAfterValidate: async (_req, _res, errors) => {
+  if (errors.length) return false
+  return true
+}
+```
+
+Type aliases used above (pseudo):
+```ts
+type RequestLike = { params?: any; query?: any; body?: any; identity?: any }
+type ResponseLike = { headersSent?: boolean; send?: (body: any) => void }
+interface FindOptionsLike { where?: any; relations?: string[]; order?: any; skip?: number; take?: number; select?: any }
+interface QueryBuilderLike { andWhere?: Function; leftJoinAndSelect?: Function; orderBy?: Function }
 ```
 
 ## Decorator-driven overrides
