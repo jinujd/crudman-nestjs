@@ -1,0 +1,26 @@
+{
+  "name": "crudman-nestjs-example",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node dist/main.js",
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/main.ts"
+  },
+  "dependencies": {
+    "@nestjs/common": "^10",
+    "@nestjs/core": "^10",
+    "@nestjs/platform-express": "^10",
+    "@nestjs/typeorm": "^10.0.2",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7",
+    "sqlite3": "^5.1.7",
+    "typeorm": "^0.3.20",
+    "crudman-nestjs": "*"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2"
+  }
+}
