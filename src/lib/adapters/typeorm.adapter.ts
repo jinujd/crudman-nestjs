@@ -19,8 +19,54 @@ export const TypeormAdapter: OrmAdapter = {
     const sorting = parseSorting(req.query, effectiveWhitelist)
     const { where, filters } = parseFilters(req.query, effectiveWhitelist)
 
-    const relations = cfg.getRelations ? await cfg.getRelations(req, null, cfg) : (cfg.relations || [])
-    let findOptions: any = { where, relations, order: toTypeormOrder(sorting), skip, take, select: normalizeSelect(cfg.attributes) }
+    // Keyword search
+    const keywordParam = (cfg.keywordParamName || 'keyword')
+    const kwRaw = (req.query ? req.query[keywordParam] : undefined) as string | undefined
+    const kwCfg = cfg.keyword || {}
+    const kwEnabled = kwCfg.enabled !== false
+    const kwMin = kwCfg.minLength ?? 2
+    const kwCaseSensitive = kwCfg.caseSensitive === true
+    const kw = (typeof kwRaw === 'string' ? kwRaw.trim() : '')
+    let keywordWhereOr: any[] = []
+    let requiredRelations: string[] = []
+    if (kwEnabled && kw && kw.length >= kwMin) {
+      const paths: string[] = Array.isArray(kwCfg.searchableFields) && kwCfg.searchableFields.length
+        ? kwCfg.searchableFields
+        : repoColumns
+      const maxDepth = kwCfg.maxRelationDepth ?? 1
+      const likeValue = `%${kw}%`
+
+      // Build OR conditions for each path
+      for (const path of paths) {
+        const segments = String(path).split('.')
+        if (!segments.length || segments.length > 3) continue
+        if (segments.length === 1) {
+          const col = segments[0]
+          if (!repoColumns.includes(col)) continue
+          keywordWhereOr.push(buildLikeCondition('root', col, likeValue, kwCaseSensitive))
+        } else {
+          // nested: relation[.relation].column
+          if (segments.length - 1 > maxDepth) continue
+          const column = segments.pop() as string
+          const relationPath = segments.join('.')
+          requiredRelations.push(relationPath)
+          keywordWhereOr.push(buildLikeCondition(relationPath, column, likeValue, kwCaseSensitive))
+        }
+      }
+    }
+
+    // Merge relations (existing + required by keyword nested paths)
+    const relationsBase = cfg.getRelations ? await cfg.getRelations(req, null, cfg) : (cfg.relations || [])
+    const relations = Array.from(new Set([ ...(relationsBase || []), ...requiredRelations ]))
+
+    // Combine where with keyword OR block
+    let whereFinal: any = where
+    if (keywordWhereOr.length) {
+      // AND existing where with (OR keyword...) semantics; using a structure our helper understands later
+      whereFinal = { AND: [ where || {}, { OR: keywordWhereOr } ] }
+    }
+
+    let findOptions: any = { where: whereFinal, relations, order: toTypeormOrder(sorting), skip, take, select: normalizeSelect(cfg.attributes) }
     if (cfg.onBeforeQuery) {
       const mod = await cfg.onBeforeQuery(findOptions, cfg.model, req, null, cfg.service)
       if (mod) findOptions = mod
@@ -137,5 +183,14 @@ function normalizeSelect(attrs: any): any {
 }
 
 function castId(v: any) { const n = Number(v); return Number.isNaN(n) ? v : n }
+
+function buildLikeCondition(relationPath: string, column: string, likeValue: string, caseSensitive: boolean) {
+  // We can't access QueryBuilder aliases in find options directly; use a pseudo expression format.
+  // Consumer repos that support advanced where can map LOWER() semantics. Here we store intent.
+  const target = relationPath === 'root' ? column : `${relationPath}.${column}`
+  return caseSensitive
+    ? { [target]: { like: likeValue } }
+    : { [target]: { ilike: likeValue } } // signal case-insensitive intent
+}
 
 

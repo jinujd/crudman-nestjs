@@ -21,6 +21,16 @@ export interface CrudActionConfig {
   filtersWhitelist?: string[]
   sortingWhitelist?: string[]
 
+  // Keyword search config for list action
+  keywordParamName?: string // defaults to 'keyword'
+  keyword?: {
+    enabled?: boolean
+    caseSensitive?: boolean
+    minLength?: number
+    searchableFields?: string[] // dot paths: 'name', 'user.name', 'user.profile.email' (max 3 levels)
+    maxRelationDepth?: 1 | 2 | 3
+  }
+
   responseHandler?: (result: any, req: any, res: any) => any
   customImplementation?: (tag: 'list'|'details'|'create'|'update'|'delete'|'save', params: any, req: any, res: any) => Promise<any> | any
 

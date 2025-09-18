@@ -143,6 +143,33 @@ Keys (per action, unless noted):
 Default whitelist behavior:
 - When `filtersWhitelist` or `sortingWhitelist` are omitted, the library resolves allowed fields from the TypeORM repository’s columns (`repo.metadata.columns`). This enables filter/sort on all fields by default while staying strictly model-scoped. To restrict inputs on public endpoints, set explicit whitelists.
 
+Keyword search (list):
+- Query param: `keyword` (rename via `keywordParamName`).
+- Config under the list action:
+  - `keyword.enabled?: boolean` (default true)
+  - `keyword.caseSensitive?: boolean` (default false → case-insensitive)
+  - `keyword.minLength?: number` (default 2)
+  - `keyword.searchableFields?: string[]` – dot paths like `['name','user.name','user.profile.email']` (max 3 levels). If omitted, all root columns are searched.
+  - `keyword.maxRelationDepth?: 1|2|3` (default 1) – cap relation depth when using dot paths or metadata discovery.
+
+Behavior:
+- If `keyword` provided and passes `minLength`, the adapter adds a single OR group of LIKE conditions across the selected fields.
+- For nested dot paths, required relations are merged into `relations` to enable searching joined targets.
+- Case-insensitive search uses a LOWER/ILIKE intent; behavior may vary by database.
+
+Example:
+```ts
+list: {
+  keyword: {
+    searchableFields: ['name','contacts.email','contacts.address.city'],
+    minLength: 2,
+    caseSensitive: false,
+    maxRelationDepth: 2,
+  },
+  additionalSettings: { repo: companyRepository }
+}
+```
+
 ## Response formatter (simple and overridable)
 
 The library builds a standard envelope and lets you override it globally or per action.
