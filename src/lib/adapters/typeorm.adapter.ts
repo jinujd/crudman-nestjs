@@ -6,8 +6,15 @@ import { OrmAdapter } from '../types/OrmAdapter'
 
 export const TypeormAdapter: OrmAdapter = {
   async list(req, cfg) {
-    const repo = cfg?.additionalSettings?.repo
-    if (!repo) throw new Error('Repository not provided in additionalSettings.repo')
+    let repo = cfg?.additionalSettings?.repo
+    if (!repo) {
+      const ds = (cfg.service && (cfg.service as any).getDataSource?.()) || undefined
+      // fallback to registry (module options)
+      const regDs = (require('../module/CrudmanRegistry') as any).CrudmanRegistry.get().getDataSource()
+      const dataSource = ds || regDs
+      if (dataSource) repo = dataSource.getRepository(cfg.model)
+    }
+    if (!repo) throw new Error('Repository not provided (additionalSettings.repo or module dataSource needed)')
     const qn = cfg.queryParamNames || {}
     const pageNames = { page: qn.page || 'page', perPage: qn.perPage || 'perPage', paginate: qn.paginate || 'paginate' }
     const pagOpts = cfg.pagination || {}
@@ -109,8 +116,12 @@ export const TypeormAdapter: OrmAdapter = {
   },
 
   async details(req, cfg) {
-    const repo = cfg?.additionalSettings?.repo
-    if (!repo) throw new Error('Repository not provided in additionalSettings.repo')
+    let repo = cfg?.additionalSettings?.repo
+    if (!repo) {
+      const regDs = (require('../module/CrudmanRegistry') as any).CrudmanRegistry.get().getDataSource()
+      if (regDs) repo = regDs.getRepository(cfg.model)
+    }
+    if (!repo) throw new Error('Repository not provided (additionalSettings.repo or module dataSource needed)')
     const field = cfg.recordSelectionField || 'id'
     const value = req.params[field]
     const relations = cfg.getRelations ? await cfg.getRelations(req, null, cfg) : (cfg.relations || [])
@@ -128,16 +139,24 @@ export const TypeormAdapter: OrmAdapter = {
   },
 
   async create(req, cfg) {
-    const repo = cfg?.additionalSettings?.repo
-    if (!repo) throw new Error('Repository not provided in additionalSettings.repo')
+    let repo = cfg?.additionalSettings?.repo
+    if (!repo) {
+      const regDs = (require('../module/CrudmanRegistry') as any).CrudmanRegistry.get().getDataSource()
+      if (regDs) repo = regDs.getRepository(cfg.model)
+    }
+    if (!repo) throw new Error('Repository not provided (additionalSettings.repo or module dataSource needed)')
     const input = this.normalizeInput(req.body, cfg.model)
     const entity = repo.create ? repo.create(input) : input
     return await repo.save(entity)
   },
 
   async update(req, cfg) {
-    const repo = cfg?.additionalSettings?.repo
-    if (!repo) throw new Error('Repository not provided in additionalSettings.repo')
+    let repo = cfg?.additionalSettings?.repo
+    if (!repo) {
+      const regDs = (require('../module/CrudmanRegistry') as any).CrudmanRegistry.get().getDataSource()
+      if (regDs) repo = regDs.getRepository(cfg.model)
+    }
+    if (!repo) throw new Error('Repository not provided (additionalSettings.repo or module dataSource needed)')
     const field = cfg.recordSelectionField || 'id'
     const value = castId(req.params[field] ?? req.body[field])
     const input = this.normalizeInput({ ...req.body, [field]: value }, cfg.model)
@@ -152,8 +171,12 @@ export const TypeormAdapter: OrmAdapter = {
   },
 
   async delete(req, cfg) {
-    const repo = cfg?.additionalSettings?.repo
-    if (!repo) throw new Error('Repository not provided in additionalSettings.repo')
+    let repo = cfg?.additionalSettings?.repo
+    if (!repo) {
+      const regDs = (require('../module/CrudmanRegistry') as any).CrudmanRegistry.get().getDataSource()
+      if (regDs) repo = regDs.getRepository(cfg.model)
+    }
+    if (!repo) throw new Error('Repository not provided (additionalSettings.repo or module dataSource needed)')
     const field = cfg.recordSelectionField || 'id'
     const value = castId(req.params[field])
     await repo.delete({ [field]: value } as any)

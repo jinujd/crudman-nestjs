@@ -2,6 +2,7 @@ import { CrudActionConfig } from './CrudActionConfig'
 
 export interface CrudSectionConfig {
   model: any
+  ormType?: 'typeorm' | 'sequelize'
   list?: CrudActionConfig
   details?: CrudActionConfig
   create?: CrudActionConfig

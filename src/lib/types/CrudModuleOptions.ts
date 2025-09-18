@@ -11,6 +11,7 @@ export interface CrudModuleOptions {
   roleChecker?: RoleChecker
   swagger?: { enabled?: boolean }
   cache?: { enabled?: boolean; stdTTL?: number; checkperiod?: number; maxKeys?: number; invalidateListsOnWrite?: boolean }
+  dataSource?: any // optional TypeORM DataSource; used when ormType: 'typeorm' and repo isn't provided
 }
 
 

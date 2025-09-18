@@ -12,7 +12,7 @@ class CompaniesController extends CrudControllerBase('companies') {}
 @Module({
   imports: [
     TypeOrmModule.forRoot({ type: 'sqlite', database: 'test.sqlite', entities: [Company], synchronize: true }),
-    CrudmanModule.forRoot(),
+    CrudmanModule.forRoot({}),
   ],
   controllers: [CompaniesController]
 })

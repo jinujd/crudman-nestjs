@@ -29,6 +29,10 @@ export class CrudmanService {
     return sectionCfg.orm || this.options?.defaultOrm
   }
 
+  getDataSource() {
+    return CrudmanRegistry.get().getDataSource()
+  }
+
   private async applyHooks(cfg: any, hook: string, ...args: any[]) {
     const fn = cfg?.[hook]
     if (!fn) return undefined
