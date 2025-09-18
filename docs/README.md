@@ -253,6 +253,60 @@ interface FindOptionsLike { where?: any; relations?: string[]; order?: any; skip
 interface QueryBuilderLike { andWhere?: Function; leftJoinAndSelect?: Function; orderBy?: Function }
 ```
 
+### Execution order of hooks
+
+The exact order depends on the action. The library also integrates caching on list/details.
+
+- List
+  1) onBeforeAction
+  2) Resolve relations (relations/getRelations)
+  3) Cache check (if enabled) – returns cached result if present
+  4) onBeforeQuery (modify find options)
+  5) DB fetch (repo.findAndCount)
+  6) afterFetch (transform items)
+  7) Format response (defaultResponseFormatter or responseHandler)
+  8) onAfterAction (last chance to mutate response)
+  9) Store in cache (if enabled)
+  10) Send response
+
+- Details
+  1) onBeforeAction
+  2) Resolve relations (relations/getRelations)
+  3) Cache check (if enabled) – returns cached result if present
+  4) onBeforeQuery (modify find options)
+  5) DB fetch (repo.findOne)
+  6) afterFetch (transform entity)
+  7) Format response
+  8) onAfterAction
+  9) Store in cache (if enabled)
+  10) Send response
+
+- Create / Update / Save
+  1) onBeforeAction
+  2) Generate validation rules from model
+  3) getFinalValidationRules (override/extend rules)
+  4) onBeforeValidate (mutate rules or abort)
+  5) Validate
+  6) onAfterValidate (abort if custom checks fail)
+  7) DB write (create/update/save)
+  8) Format response
+  9) onAfterAction
+  10) Invalidate list cache (if configured)
+  11) Send response
+
+- Delete
+  1) onBeforeAction
+  2) DB delete
+  3) Format response
+  4) onAfterAction
+  5) Invalidate list cache (if configured)
+  6) Send response
+
+Notes:
+- onBeforeAction runs before any cache lookup; you can block access early.
+- onAfterAction runs after formatting; if you return a new object, it replaces the final response (and is what gets cached for list/details).
+- onBeforeQuery always receives the current ORM find options (TypeORM style) and should return them.
+
 ## Decorator-driven overrides
 ```ts
 import { Controller, Get } from '@nestjs/common';
