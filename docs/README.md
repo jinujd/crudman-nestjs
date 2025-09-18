@@ -960,3 +960,39 @@ export class CompaniesController {
   saveCompany() {}
 }
 ```
+
+### Parameter naming and camelCase
+- Defaults (camelCase):
+  - page, perPage, paginate (false/0/no disables when allowed)
+  - sort.<field> (e.g., sort.createdAt=desc)
+  - Operators: .min, .max, .gt, .lt, .between, .like
+  - keyword
+- Custom names (per list action):
+```ts
+list: {
+  queryParamNames: {
+    page: 'p', perPage: 'pp', paginate: 'pg',
+    sortPrefix: 'order.',
+    minOp: 'from', maxOp: 'to', betweenOp: 'range', likeOp: 'contains',
+    keyword: 'q'
+  }
+}
+```
+- The adapter normalizes snake_case to camelCase (e.g., per_page → perPage) for compatibility.
+
+### Pagination toggles and limits
+- Per-action config:
+```ts
+list: {
+  pagination: {
+    isPaginationEnabled: true,    // set false to always return all
+    allowDisable: true,           // honor paginate=false / perPage=0
+    defaultEnabled: true,         // if false and no page/perPage provided, return all
+    maxPerPage: 100               // cap perPage
+  }
+}
+```
+- Query examples (with defaults):
+  - Disable: `?paginate=false` or `?perPage=0`
+  - Custom names: `?pg=false` (with paginate renamed to 'pg')
+- When disabled, the response includes all matching items and a minimal pagination snapshot without COUNT overhead.

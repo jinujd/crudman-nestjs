@@ -8,7 +8,10 @@ export const TypeormAdapter: OrmAdapter = {
   async list(req, cfg) {
     const repo = cfg?.additionalSettings?.repo
     if (!repo) throw new Error('Repository not provided in additionalSettings.repo')
-    const { info: paginationInfo, skip, take } = parsePagination(req.query)
+    const qn = cfg.queryParamNames || {}
+    const pageNames = { page: qn.page || 'page', perPage: qn.perPage || 'perPage', paginate: qn.paginate || 'paginate' }
+    const pagOpts = cfg.pagination || {}
+    const { info: paginationInfo, skip, take, disabled: paginationDisabled } = parsePagination(req.query, pageNames, pagOpts)
     // If no whitelist provided, default to all entity columns (safe model-scoped default)
     const repoColumns: string[] = Array.isArray(repo?.metadata?.columns)
       ? repo.metadata.columns.map((c: any) => c.propertyName)
@@ -16,11 +19,18 @@ export const TypeormAdapter: OrmAdapter = {
     const effectiveWhitelist: string[] = (cfg.filtersWhitelist && cfg.filtersWhitelist.length)
       ? cfg.filtersWhitelist
       : repoColumns
-    const sorting = parseSorting(req.query, effectiveWhitelist)
-    const { where, filters } = parseFilters(req.query, effectiveWhitelist)
+    const sorting = parseSorting(req.query, effectiveWhitelist, qn.sortPrefix || 'sort.')
+    const { where, filters } = parseFilters(req.query, effectiveWhitelist, {
+      minOp: qn.minOp || 'min',
+      maxOp: qn.maxOp || 'max',
+      gtOp: qn.gtOp || 'gt',
+      ltOp: qn.ltOp || 'lt',
+      betweenOp: qn.betweenOp || 'between',
+      likeOp: qn.likeOp || 'like'
+    })
 
     // Keyword search
-    const keywordParam = (cfg.keywordParamName || 'keyword')
+    const keywordParam = (qn.keyword || cfg.keywordParamName || 'keyword')
     const kwRaw = (req.query ? req.query[keywordParam] : undefined) as string | undefined
     const kwCfg = cfg.keyword || {}
     const kwEnabled = kwCfg.enabled !== false
@@ -71,15 +81,29 @@ export const TypeormAdapter: OrmAdapter = {
       const mod = await cfg.onBeforeQuery(findOptions, cfg.model, req, null, cfg.service)
       if (mod) findOptions = mod
     }
-    let [items, total] = await repo.findAndCount(findOptions)
+    let items: any[] = []
+    let total = 0
+    if (paginationDisabled) {
+      items = await repo.find({ where: findOptions.where, relations: findOptions.relations, order: findOptions.order, select: findOptions.select })
+      total = items.length
+      paginationInfo.page = 1
+      paginationInfo.perPage = items.length
+      paginationInfo.totalItemsCount = total
+      paginationInfo.totalPagesCount = 1
+      paginationInfo.isHavingNextPage = false
+      paginationInfo.isHavingPreviousPage = false
+    } else {
+      const res = await repo.findAndCount(findOptions)
+      items = res[0]; total = res[1]
+      const totalPagesCount = take ? Math.ceil(total / take) : 0
+      paginationInfo.totalItemsCount = total
+      paginationInfo.totalPagesCount = totalPagesCount
+      paginationInfo.isHavingNextPage = take ? paginationInfo.page < totalPagesCount : false
+    }
     if (cfg.afterFetch) {
       const mod = await cfg.afterFetch(items, req, null, cfg.service)
       if (mod) items = mod
     }
-    const totalPagesCount = take ? Math.ceil(total / take) : 0
-    paginationInfo.totalItemsCount = total
-    paginationInfo.totalPagesCount = totalPagesCount
-    paginationInfo.isHavingNextPage = take ? paginationInfo.page < totalPagesCount : false
 
     return { items, pagination: paginationInfo, filters, sorting }
   },

@@ -31,6 +31,27 @@ export interface CrudActionConfig {
     maxRelationDepth?: 1 | 2 | 3
   }
 
+  // Query param naming and pagination behavior
+  queryParamNames?: {
+    page?: string // default 'page'
+    perPage?: string // default 'perPage'
+    paginate?: string // default 'paginate'
+    sortPrefix?: string // default 'sort.'
+    betweenOp?: string // default 'between'
+    minOp?: string // default 'min'
+    maxOp?: string // default 'max'
+    gtOp?: string // default 'gt'
+    ltOp?: string // default 'lt'
+    likeOp?: string // default 'like'
+    keyword?: string // default 'keyword'
+  }
+  pagination?: {
+    isPaginationEnabled?: boolean // default true
+    allowDisable?: boolean // default true (honor paginate=false or perPage=0)
+    defaultEnabled?: boolean // default true; if false and no page/perPage, return all
+    maxPerPage?: number // optional cap
+  }
+
   responseHandler?: (result: any, req: any, res: any) => any
   customImplementation?: (tag: 'list'|'details'|'create'|'update'|'delete'|'save', params: any, req: any, res: any) => Promise<any> | any
 
