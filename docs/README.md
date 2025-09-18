@@ -1,5 +1,19 @@
 # crudman-nestjs
 
+We believe everyone building RESTful services with NestJS—especially CRUD-heavy backends—will find this library helpful. It gives you out‑of‑the‑box CRUD endpoints, a clear configuration model, and the freedom to override anything when you need custom behavior. Inspired by the spirit of libraries like `@nestjsx/crud` while focusing on adapter-based design, validation flexibility, and simple developer ergonomics. See `@nestjsx/crud` for related ideas and background. [Reference](https://github.com/nestjsx/crud)
+
+## Features
+
+- 🔌 Super easy to install and start using auto‑generated CRUD endpoints
+- 🐙 Adapter‑based and DB/service‑agnostic (TypeORM by default; Sequelize‑ready)
+- 🔎 Rich query handling: filtering, pagination, sorting, relations via safe whitelists
+- 🧪 Validation included by default (fastest‑validator) and pluggable (Joi/Zod via adapters)
+- 🎬 Override controller methods with ease using decorators or custom handlers
+- 🔧 Tiny config: global module options + per‑section settings
+- 🎁 Helper decorators and a base controller for zero‑boilerplate endpoints
+- ✏️ Swagger/OpenAPI friendly (DTOs per action for typed `data`)
+- 🧊 Caching with NodeCache; per‑endpoint TTL and automatic invalidation on writes
+
 ## Overview
 
 crudman-nestjs is a plug-and-play CRUD layer for NestJS. It auto-generates REST endpoints (list, details, create, update, delete) from a simple section config that references your entity model.
