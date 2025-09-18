@@ -52,7 +52,11 @@ export class CrudmanService {
 
   private async validateIfNeeded(actionCfg: any, req: any, res: any, isUpdate: boolean) {
     const validator = this.getValidator(actionCfg)
-    const rules = validator.generateSchemaFromModel(actionCfg.model, isUpdate)
+    let rules = validator.generateSchemaFromModel(actionCfg.model, isUpdate)
+    if (actionCfg.getFinalValidationRules) {
+      const mod = await Promise.resolve(actionCfg.getFinalValidationRules(rules, req, res, validator))
+      if (mod) rules = mod
+    }
     const proceed = await this.applyHooks(actionCfg, 'onBeforeValidate', req, res, rules, validator, this)
     if (proceed === false) return { valid: false, errors: [{ message: 'Validation stopped by onBeforeValidate' }] }
     const input = { ...req.body, ...(req.params || {}) }

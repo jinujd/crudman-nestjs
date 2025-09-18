@@ -7,6 +7,7 @@ export interface CrudActionConfig {
   afterFetch?: (data: any, req: any, res: any, service: any) => Promise<any> | any
   onBeforeValidate?: (req: any, res: any, rules: any, validator: any, service: any) => Promise<boolean | void> | boolean | void
   onAfterValidate?: (req: any, res: any, errors: any[], validator: any, service: any) => Promise<boolean | void> | boolean | void
+  getFinalValidationRules?: (generatedRules: any, req: any, res: any, validator: any) => Promise<any> | any
 
   recordSelectionField?: string
   additionalSettings?: any
