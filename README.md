@@ -213,6 +213,67 @@ export class UsersController extends CrudControllerBase('users') {
 }
 ```
 
+## Multiple sections in the same controller
+When you need multiple sections (e.g., `users` and `posts`) handled by one controller, use the decorator-driven pattern and give each route its own path. The auto-route base (`CrudControllerBase`) is single-section by design.
+
+```ts
+import { Controller, Get, Post, Put, Delete } from '@nestjs/common'
+import { UseCrud, CrudList, CrudDetails, CrudCreate, CrudUpdate, CrudDelete } from 'crudman-nestjs'
+import { User } from '../entities/user.entity'
+import { Post as BlogPost } from '../entities/post.entity'
+
+@UseCrud({
+  sections: {
+    users: { model: User },
+    posts: { model: BlogPost }
+  }
+})
+@Controller('api')
+export class ApiController {
+  // Users endpoints
+  @Get('users')
+  @CrudList('users')
+  listUsers() {}
+
+  @Get('users/:id')
+  @CrudDetails('users')
+  getUser() {}
+
+  @Post('users')
+  @CrudCreate('users')
+  createUser() {}
+
+  @Put('users/:id')
+  @CrudUpdate('users')
+  updateUser() {}
+
+  @Delete('users/:id')
+  @CrudDelete('users')
+  deleteUser() {}
+
+  // Posts endpoints
+  @Get('posts')
+  @CrudList('posts')
+  listPosts() {}
+
+  @Get('posts/:id')
+  @CrudDetails('posts')
+  getPost() {}
+
+  @Post('posts')
+  @CrudCreate('posts')
+  createPost() {}
+
+  @Put('posts/:id')
+  @CrudUpdate('posts')
+  updatePost() {}
+
+  @Delete('posts/:id')
+  @CrudDelete('posts')
+  deletePost() {}
+}
+```
+
 ## Caching
 - NodeCache is used by default. Configure at module level and per action (`enableCache`).
 - Writes invalidate cached lists by default (configurable with `invalidateListsOnWrite`).
