@@ -9,8 +9,15 @@ export const TypeormAdapter: OrmAdapter = {
     const repo = cfg?.additionalSettings?.repo
     if (!repo) throw new Error('Repository not provided in additionalSettings.repo')
     const { info: paginationInfo, skip, take } = parsePagination(req.query)
-    const sorting = parseSorting(req.query, cfg.filtersWhitelist || [])
-    const { where, filters } = parseFilters(req.query, cfg.filtersWhitelist || [])
+    // If no whitelist provided, default to all entity columns (safe model-scoped default)
+    const repoColumns: string[] = Array.isArray(repo?.metadata?.columns)
+      ? repo.metadata.columns.map((c: any) => c.propertyName)
+      : []
+    const effectiveWhitelist: string[] = (cfg.filtersWhitelist && cfg.filtersWhitelist.length)
+      ? cfg.filtersWhitelist
+      : repoColumns
+    const sorting = parseSorting(req.query, effectiveWhitelist)
+    const { where, filters } = parseFilters(req.query, effectiveWhitelist)
 
     const relations = cfg.getRelations ? await cfg.getRelations(req, null, cfg) : (cfg.relations || [])
     let findOptions: any = { where, relations, order: toTypeormOrder(sorting), skip, take, select: normalizeSelect(cfg.attributes) }

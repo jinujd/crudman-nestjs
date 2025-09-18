@@ -125,15 +125,23 @@ Expanded (TypeORM example):
 }
 ```
 
-Keys:
-- model: your entity.
-- relations/getRelations: relation names or function returning them.
-- filtersWhitelist/sortingWhitelist: only allow these fields in request-driven filters/sorting.
-- orderBy: default ordering.
-- recordSelectionField: defaults to `id`.
-- hooks: `onBeforeAction`, `onAfterAction`, `onBeforeQuery`, `afterFetch`, `onBeforeValidate`, `onAfterValidate`.
-- enableCache: boolean | { ttl, key }. Per-action cache; global cache in forRoot.
-- additionalSettings.repo: your TypeORM repository instance (required).
+Keys (per action, unless noted):
+- model (required): Entity class.
+- relations (optional): string[].
+- getRelations(req,res,cfg) (optional): Promise<string[]> | string[].
+- filtersWhitelist (optional): string[]. If not provided, all entity columns are allowed (derived from repository metadata).
+- sortingWhitelist (optional): string[]. If not provided, all entity columns are allowed (derived from repository metadata).
+- orderBy (optional): Array<[field, "ASC"|"DESC"]>.
+- recordSelectionField (optional): string, default "id".
+- fieldsForUniquenessValidation (optional): string[].
+- conditionTypeForUniquenessValidation (optional): "or"|"and".
+- hooks (optional): onBeforeAction, onAfterAction, onBeforeQuery, afterFetch, onBeforeValidate, onAfterValidate.
+- getFinalValidationRules(generatedRules, req, res, validator) (optional): returns new rules.
+- enableCache (optional): boolean | { ttl?: number; key?:(ctx)=>string }.
+- additionalSettings.repo (required for TypeORM adapter): repository instance.
+
+Default whitelist behavior:
+- When `filtersWhitelist` or `sortingWhitelist` are omitted, the library resolves allowed fields from the TypeORM repository’s columns (`repo.metadata.columns`). This enables filter/sort on all fields by default while staying strictly model-scoped. To restrict inputs on public endpoints, set explicit whitelists.
 
 ## Response formatter (simple and overridable)
 
