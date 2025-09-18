@@ -140,6 +140,59 @@ Keys (per action, unless noted):
 - enableCache (optional): boolean | { ttl?: number; key?:(ctx)=>string }.
 - additionalSettings.repo (required for TypeORM adapter): repository instance.
 
+Parameter details:
+- model (required)
+  - Type: Entity class (TypeORM). Used to infer validation rules and as a semantic marker for the section.
+- relations (optional)
+  - Type: string[] (e.g., ['profile','roles']). Included in list/details queries for joins and field selection.
+  - Tip: Only add relations you need; over-joining impacts performance.
+- getRelations(req,res,cfg) (optional)
+  - Type: (req, res, cfg) => Promise<string[]> | string[]
+  - Use: Compute relations dynamically (e.g., ?withRoles=1). Return an array merged with static relations.
+- filtersWhitelist (optional)
+  - Type: string[] of root entity fields allowed for request-driven filtering (e.g., 'status', 'createdAt.min').
+  - Default: all root columns, derived from repository metadata.
+  - Use: Restrict for public endpoints to avoid unexpected filters.
+- sortingWhitelist (optional)
+  - Type: string[] of root entity fields allowed for request-driven sorting (?sort.field=asc|desc).
+  - Default: all root columns, derived from repository metadata.
+  - Use: Restrict for public endpoints to avoid expensive sorts.
+- orderBy (optional)
+  - Type: Array<[field, 'ASC'|'DESC']>
+  - Use: Default ordering when the request does not specify any sort.
+- recordSelectionField (optional)
+  - Type: string; default 'id'.
+  - Use: The logical identifier used by details/update/delete/save to select a record.
+    - details: reads from `req.params[recordSelectionField]`.
+    - update/delete: reads from `req.params[recordSelectionField]`.
+    - save (upsert): if `recordSelectionField` exists in `req.params` or `req.body`, it behaves like update; otherwise create.
+  - Examples:
+    - Use 'slug' to address records by slug: GET /posts/:slug → details uses slug.
+    - Use composite behavior by mapping external ids into body/params before calling save.
+  - Recommendation: back the selection field with an index/unique constraint for fast lookups.
+- fieldsForUniquenessValidation (optional)
+  - Type: string[]; fields checked for uniqueness during create/update/save.
+  - Use: The service composes OR/AND conditions (see next) and rejects when duplicates exist.
+- conditionTypeForUniquenessValidation (optional)
+  - Type: 'or'|'and'; default 'or'.
+  - Use: Controls whether multiple uniqueness fields must be unique together ('and') or any of them ('or').
+- hooks (optional)
+  - onBeforeAction(req,res,service): early allow/deny; return false to abort.
+  - onAfterAction(result,req,service): mutate/replace formatted response before sending/caching.
+  - onBeforeQuery(opts, model, req, res, service): adjust TypeORM find options; return modified options.
+  - afterFetch(data, req, res, service): transform DB results before formatting.
+  - onBeforeValidate(req, res, rules, validator, service): adjust rules or return false to abort.
+  - onAfterValidate(req, res, errors, validator, service): return false to abort when custom checks fail.
+- getFinalValidationRules(generatedRules, req, res, validator) (optional)
+  - Type: function returning final rules/schema.
+  - Use: Replace/extend auto-generated rules from the model (e.g., add Joi/Zod/fastest-validator constraints).
+- enableCache (optional)
+  - Type: boolean | { ttl?: number; key?:(ctx)=>string }.
+  - Use: Per-action toggle; when enabled for list/details, read-through cache is applied; writes invalidate list cache globally if configured.
+- additionalSettings.repo (TypeORM adapter)
+  - Type: Repository instance used for list/details/create/update/delete/save.
+  - Required for TypeORM operations; supply the correct repository per section/action.
+
 Default whitelist behavior:
 - When `filtersWhitelist` or `sortingWhitelist` are omitted, the library resolves allowed fields from the TypeORM repository’s columns (`repo.metadata.columns`). This enables filter/sort on all fields by default while staying strictly model-scoped. To restrict inputs on public endpoints, set explicit whitelists.
 
