@@ -820,6 +820,30 @@ Notes:
 - Filters and sorting apply to root entity fields. Use `filtersWhitelist`/`sortingWhitelist` to control allowed fields.
 - Keyword search supports nested dot-path `searchableFields` and merges required relations automatically.
 
+#### Pagination examples
+- Defaults: `page=1`, `per_page=30` (if not provided)
+- Example: page 3, 50 per page
+```text
+GET /api/companies?page=3&per_page=50
+```
+- Example: combine with filters and multi-sort
+```text
+GET /api/companies?isActive=1&sort.createdAt=desc&sort.name=asc&page=2&per_page=25
+```
+- Expected response pagination meta:
+```json
+{
+  "pagination": {
+    "page": 2,
+    "perPage": 25,
+    "totalItemsCount": 137,
+    "totalPagesCount": 6,
+    "isHavingNextPage": true,
+    "isHavingPreviousPage": true
+  }
+}
+```
+
 ## Adapters with other stacks
 
 ### Sequelize (preview)
