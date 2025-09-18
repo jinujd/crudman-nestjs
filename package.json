@@ -1,0 +1,68 @@
+{
+  "name": "crudman-nestjs",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.cjs",
+  "scripts": {
+    "test": "vitest run",
+    "build": "tsup src/index.ts --format esm,cjs --dts --sourcemap --clean",
+    "clean": "rimraf dist",
+    "lint": "eslint \"src/**/*.{ts}\"",
+    "prepublishOnly": "npm run build",
+    "test:watch": "vitest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jinujd/crudman-nestjs.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jinujd/crudman-nestjs/issues"
+  },
+  "homepage": "https://github.com/jinujd/crudman-nestjs#readme",
+  "type": "module",
+  "devDependencies": {
+    "@nestjs/common": "^10",
+    "@nestjs/core": "^10",
+    "@types/node": "^24.5.2",
+    "eslint": "^9.35.0",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.4",
+    "prettier": "^3.6.2",
+    "rimraf": "^6.0.1",
+    "rxjs": "^7",
+    "ts-node": "^10.9.2",
+    "tsup": "^8.5.0",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  },
+  "sideEffects": false,
+  "peerDependencies": {
+    "@nestjs/common": "^10",
+    "@nestjs/core": "^10",
+    "rxjs": "^7"
+  },
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "fastest-validator": "^1.19.1",
+    "node-cache": "^5.1.2",
+    "reflect-metadata": "^0.2.2"
+  }
+}
