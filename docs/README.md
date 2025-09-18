@@ -792,3 +792,42 @@ onAfterValidate: async (req, res, _errors, _validator, service) => {
   return true
 }
 ```
+
+## Save (upsert) action
+Save lets you use a single endpoint/handler to create or update a record.
+
+Behavior:
+- If `recordSelectionField` (default `id`) is present in `req.params` or `req.body` → update.
+- Otherwise → create.
+- Follows the same validation flow as create/update:
+  - generate rules → getFinalValidationRules → onBeforeValidate → validate → onAfterValidate.
+- Respects `fieldsForUniquenessValidation` and `conditionTypeForUniquenessValidation`.
+- Response: same envelope as create/update; `data` contains the saved entity.
+
+Examples
+- Service style:
+```ts
+await crud.save('companies', req, res)
+```
+
+- Programmatic (inside a hook or another service):
+```ts
+const { data, statusCode } = await crud.callAction('companies', 'save', req, res, false)
+if (!data?.success) return res.status(statusCode).send(data)
+```
+
+- Decorator-driven:
+```ts
+import { Controller, Post } from '@nestjs/common'
+import { UseCrud, CrudSave } from 'crudman-nestjs'
+import { Company } from '../entities/company.entity'
+
+@UseCrud({ sections: { companies: { model: Company } } })
+@Controller('api/companies')
+export class CompaniesController {
+  // POST /api/companies (create) or POST with id in body (update)
+  @Post()
+  @CrudSave('companies')
+  saveCompany() {}
+}
+```

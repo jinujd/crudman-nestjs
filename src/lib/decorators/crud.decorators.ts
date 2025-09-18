@@ -14,6 +14,7 @@ export const CrudDetails = (section: string, opts?: any) => applyDecorators(SetM
 export const CrudCreate = (section: string, opts?: any) => applyDecorators(SetMetadata('crudman:action', { section, action: 'create', opts }), Post())
 export const CrudUpdate = (section: string, opts?: any) => applyDecorators(SetMetadata('crudman:action', { section, action: 'update', opts }), Put(':id'))
 export const CrudDelete = (section: string, opts?: any) => applyDecorators(SetMetadata('crudman:action', { section, action: 'delete', opts }), Delete(':id'))
+export const CrudSave = (section: string, opts?: any) => applyDecorators(SetMetadata('crudman:action', { section, action: 'save', opts }), Post())
 
 export const getCrudMeta = (target: any) => Reflect.getMetadata(CRD_META, target.constructor || target)
 
