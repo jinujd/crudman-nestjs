@@ -230,3 +230,47 @@ export class UsersController extends CrudControllerBase('users') {
 
 ## License
 MIT
+
+## Adapters with other stacks
+
+### Sequelize (preview)
+You can create a Sequelize adapter that implements the same `OrmAdapter` interface. Keep your section config the same (model, relations/getRelations, hooks). Only `additionalSettings` will carry the sequelize-specific handles.
+
+Example list implementation outline:
+```ts
+const SequelizeAdapter: OrmAdapter = {
+  async list(req, cfg) {
+    const { Model } = cfg.additionalSettings // your sequelize model
+    // Build where/order/limit from req using same whitelists
+    // return { items, pagination, filters, sorting }
+  },
+  // details/create/update/delete...
+}
+```
+
+### Joi validator
+Implement `ValidatorAdapter` with Joi:
+```ts
+export class JoiValidatorAdapter implements ValidatorAdapter {
+  generateSchemaFromModel(model: any, isUpdate: boolean) { /* build Joi schema */ return schema }
+  validate(input: any, schema: any) {
+    const { error } = schema.validate(input, { abortEarly: false })
+    return error ? { valid: false, errors: error.details } : { valid: true, errors: [] }
+  }
+}
+```
+Register in module: `forRoot({ defaultValidator: new JoiValidatorAdapter() })`.
+
+### Zod validator
+Implement `ValidatorAdapter` with Zod:
+```ts
+export class ZodValidatorAdapter implements ValidatorAdapter {
+  generateSchemaFromModel(model: any, isUpdate: boolean) { return schema }
+  validate(input: any, schema: any) {
+    const res = schema.safeParse(input)
+    return res.success ? { valid: true, errors: [] } : { valid: false, errors: res.error.issues }
+  }
+}
+```
+
+`getFinalValidationRules` works with any adapter: receive generated rules/schema, return the final one.
