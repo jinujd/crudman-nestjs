@@ -128,6 +128,118 @@ How it links together:
 - The library reads that config inside `CrudmanService` and the ORM adapter to resolve repositories, relations, attributes, filters, etc.
 - Decorators like `@CrudList('companies')` or the base `CrudControllerBase('companies')` tell the library which section’s settings to apply for a given route.
 
+## Shorthand: UseCrud({ models })
+
+Create CRUD endpoints for multiple models in one controller without writing section objects. This plays nicely with everything else (validation, swagger, caching, relations/attributes, updateMethod, etc.).
+
+Minimal usage (entities):
+
+```ts
+@UseCrud({
+  models: [User, Company, State],
+  defaults: {
+    pathStyle: 'kebab',         // 'kebab'|'snake'|'camel'|'pascal'; default 'kebab'
+    updateMethod: 'patch',      // override module default if needed
+    attributes: { read: '*', write: '*' },
+    relations: '*'
+  }
+})
+@Controller('api')
+export class ApiController extends CrudControllerBase('*') {} // '*' mounts all sections in this controller
+```
+
+Routes generated:
+- User → `/api/users`
+- Company → `/api/companies`
+- State → `/api/states`
+
+Per-model overrides (tuple form):
+
+```ts
+@UseCrud({
+  models: [
+    User,
+    [Company, { attributes: { read: { exclude: ['secret'] }, write: { exclude: ['id','createdAt'] } } }],
+    [State,   { relations: { include: ['country'] }, filtersWhitelist: ['name','countryId'] }],
+  ]
+})
+@Controller('api')
+export class ApiController extends CrudControllerBase('*') {}
+```
+
+Per-model overrides (map form):
+
+```ts
+@UseCrud({
+  models: {
+    User: {},
+    Company: { attributes: { write: { exclude: ['id','createdAt'] } } },
+    State: { relations: { exclude: ['country'] } }
+  }
+})
+```
+
+Model-first (no entity class):
+
+```ts
+@UseCrud({
+  models: [
+    {
+      name: 'FeatureFlag',
+      fields: {
+        key: { type: 'string', primary: true },
+        enabled: { type: 'boolean' },
+        createdAt: { type: 'date', readonly: true }
+      },
+      attributes: { read: '*', write: { exclude: ['createdAt'] } },
+    }
+  ]
+})
+```
+
+Notes:
+- Section/route naming derives from `model.name` (pluralized); can be overridden per model.
+- Explicit `sections` and decorator methods always override the shorthand.
+- For TypeORM, repositories resolve by entity. For model specs, provide `additionalSettings.repo` or a custom adapter.
+
+## Attributes: read vs write
+
+You can control which fields are returned to clients (read) and which fields clients can send (write). Defaults include all fields `'*'`.
+
+Where to configure:
+- Shared: `defaults.attributes` (applied to all actions unless overridden)
+- Per action: `list.details.create.update.delete.attributes`
+
+Shapes:
+```ts
+attributes: {
+  read:  '*' | { include?: string[]; exclude?: string[] },
+  write: '*' | { include?: string[]; exclude?: string[] }
+}
+```
+
+Examples:
+
+Return fewer fields in list, allow only safe fields on create:
+```ts
+list:   { attributes: { read:  { exclude: ['internalNotes'] } } },
+create: { attributes: { write: { include: ['name','email','role'] } } }
+```
+
+Keep all fields readable, but prevent writes to system fields:
+```ts
+defaults: { attributes: { read: '*', write: { exclude: ['id','createdAt','updatedAt'] } } }
+```
+
+With shorthand models:
+```ts
+@UseCrud({
+  models: [
+    [Company, { attributes: { read: { exclude: ['secret'] }, write: { exclude: ['id','createdAt'] } } }]
+  ]
+})
+```
+
 ## CrudControllerBase explained
 
 `CrudControllerBase(sectionName: string)` is a tiny base class that auto-binds the five standard routes for a single section:
