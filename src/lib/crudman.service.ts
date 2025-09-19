@@ -81,14 +81,16 @@ export class CrudmanService {
       res?.req?.headers?.['x-content-type'] || res?.req?.headers?.['X-Content-Type'] || res?.req?.headers?.accept ||
       ''
     ).toString().toLowerCase()
+    const rawQuery = (req?.query?.['x-content-type'] || req?.query?.['x_content_type'] || req?.query?.format || '').toString().toLowerCase()
     const allowed = CrudmanRegistry.get().getExportContentTypes()
     // normalize aliases and mime types
     const normalized = (() => {
-      if (!rawHeader) return ''
-      if (rawHeader.includes('excel') || rawHeader.includes('xlsx') || rawHeader.includes('sheet')) return 'excel'
-      if (rawHeader.includes('csv') || rawHeader.includes('text/csv')) return 'csv'
-      if (rawHeader.includes('json') || rawHeader.includes('application/json')) return 'json'
-      return rawHeader
+      const source = rawHeader || rawQuery
+      if (!source) return ''
+      if (source.includes('excel') || source.includes('xlsx') || source.includes('sheet')) return 'excel'
+      if (source.includes('csv') || source.includes('text/csv')) return 'csv'
+      if (source.includes('json') || source.includes('application/json')) return 'json'
+      return source
     })()
     const requested = normalized || 'json'
     const type = allowed.includes(requested as any) ? requested : 'json'

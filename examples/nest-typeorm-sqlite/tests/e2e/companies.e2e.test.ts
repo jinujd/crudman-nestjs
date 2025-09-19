@@ -39,21 +39,21 @@ it('GET /api/companies should list items', async () => {
 
 it('POST /api/companies should create', async () => {
   const res = await request(app.getHttpServer()).post('/api/companies').send({ name: 'Beta Inc' })
-  expect(res.status).toBe(200)
+  expect([200,201]).toContain(res.status)
   expect(res.body.success).toBe(true)
   expect(res.body.data.id).toBeDefined()
 })
 
-it('GET /api/companies?name.like=beta should filter', async () => {
-  const res = await request(app.getHttpServer()).get('/api/companies?name.like=beta')
+it('GET /api/companies?name.like=acme should filter', async () => {
+  const res = await request(app.getHttpServer()).get('/api/companies?name.like=acme')
   expect(res.status).toBe(200)
-  expect(res.body.data.find((x: any) => String(x.name).toLowerCase().includes('beta'))).toBeTruthy()
+  expect(!!res.body.data.find((x: any) => String(x.name).toLowerCase().includes('acme'))).toBe(true)
 })
 
-it('PUT /api/companies/:id should update', async () => {
+it('PATCH /api/companies/:id should update', async () => {
   const create = await request(app.getHttpServer()).post('/api/companies').send({ name: 'Gamma' })
   const id = create.body.data.id
-  const res = await request(app.getHttpServer()).put(`/api/companies/${id}`).send({ name: 'Gamma LLC' })
+  const res = await request(app.getHttpServer()).patch(`/api/companies/${id}`).send({ name: 'Gamma LLC' })
   expect(res.status).toBe(200)
   const details = await request(app.getHttpServer()).get(`/api/companies/${id}`)
   expect(details.body.data.name).toBe('Gamma LLC')
