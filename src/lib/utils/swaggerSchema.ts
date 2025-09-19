@@ -147,9 +147,8 @@ export function enhanceCrudSwaggerDocument(document: any) {
       item.get.responses = item.get.responses || {}
       item.get.responses['200'] = item.get.responses['200'] || {}
       item.get.responses['200'].content = {
-        'application/json': {
-          schema: buildListEnvelopeSchema(ref)
-        }
+        'application/json': { schema: buildListEnvelopeSchema(ref) },
+        'text/csv': { schema: { type: 'string', description: 'CSV of data array. Pagination meta in headers.' } }
       }
 
       // Inject query params: pagination, sorting, filters, keyword
@@ -199,6 +198,8 @@ export function enhanceCrudSwaggerDocument(document: any) {
       const kwCfg = listCfg.keyword || {}
       const kwEnabled = kwCfg.isEnabled !== false
       if (kwEnabled) pushParam({ in: 'query', name: keywordName, required: false, schema: { type: 'string' } })
+      // x-content-type header
+      pushParam({ in: 'header', name: 'x-content-type', required: false, description: 'Response content type (default json)', schema: { type: 'string', enum: ['json','csv','excel'], default: 'json' } })
       item.get.parameters = params
     }
     // Details: ensure param name matches selectionField and add param definition
@@ -206,10 +207,13 @@ export function enhanceCrudSwaggerDocument(document: any) {
       item.get.responses = item.get.responses || {}
       item.get.responses['200'] = item.get.responses['200'] || {}
       item.get.responses['200'].content = {
-        'application/json': {
-          schema: buildDetailEnvelopeSchema(ref)
-        }
+        'application/json': { schema: buildDetailEnvelopeSchema(ref) },
+        'text/csv': { schema: { type: 'string', description: 'CSV single row' } }
       }
+      // x-content-type header for details
+      const paramsD: any[] = item.get.parameters || []
+      if (!paramsD.some((p) => p.in === 'header' && p.name === 'x-content-type')) paramsD.push({ in: 'header', name: 'x-content-type', required: false, description: 'Response content type (default json)', schema: { type: 'string', enum: ['json','csv','excel'], default: 'json' } })
+      item.get.parameters = paramsD
       item.get.parameters = item.get.parameters || []
       const hasParam = (item.get.parameters as any[]).some((p) => p.name === selectionField)
       if (!hasParam) (item.get.parameters as any[]).push({ in: 'path', name: selectionField, required: true, schema: { type: 'string' } })

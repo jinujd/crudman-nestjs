@@ -1,6 +1,6 @@
 import 'reflect-metadata'
 import { applyDecorators, Get, Post, Put, Patch, Delete, SetMetadata, HttpCode } from '@nestjs/common'
-import { ApiOperation, ApiParam, ApiOkResponse } from '../utils/safeSwagger'
+import { ApiOperation, ApiParam, ApiOkResponse, ApiBody } from '../utils/safeSwagger'
 import { TypeormAdapter } from '../adapters/typeorm.adapter'
 import { CrudmanRegistry } from '../module/CrudmanRegistry'
 
@@ -66,5 +66,24 @@ export const CrudSave = (section: string, opts?: any) => applyDecorators(
 )
 
 export const getCrudMeta = (target: any) => Reflect.getMetadata(CRD_META, target.constructor || target)
+
+// Bulk operations
+export const CrudBulkImport = (section: string, opts?: any) => applyDecorators(
+  SetMetadata('crudman:action', { section, action: 'bulkImport', opts }),
+  ApiOperation({ summary: `${section}: bulk import` }),
+  ApiBody({ description: 'Array of JSON records or CSV text when x-content-type=csv', required: true }),
+  ApiOkResponse({ description: 'Bulk import summary' }),
+  Post('bulk/import'),
+  HttpCode(200)
+)
+
+export const CrudBulkDelete = (section: string, opts?: any) => applyDecorators(
+  SetMetadata('crudman:action', { section, action: 'bulkDelete', opts }),
+  ApiOperation({ summary: `${section}: bulk delete` }),
+  ApiBody({ description: 'Body: { ids: [] } or CSV when x-content-type=csv', required: true }),
+  ApiOkResponse({ description: 'Bulk delete summary' }),
+  Post('bulk/delete'),
+  HttpCode(200)
+)
 
 

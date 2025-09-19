@@ -73,6 +73,42 @@ export class CrudmanService {
   }
 
   private send(res: any, body: any) { if (res && !res.headersSent) res.send(body); return body }
+  private sendNegotiated(res: any, action: 'list'|'details', result: any) {
+    if (!res || res.headersSent) return result
+    const headerType = (res.req?.headers?.['x-content-type'] || res.req?.headers?.['X-Content-Type'] || '').toString().toLowerCase()
+    const type = headerType || 'json'
+    if (type === 'csv') {
+      try {
+        // Lazy import to avoid overhead
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const csv = require('./utils/csv')
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+        if (action === 'list') {
+          const items = Array.isArray(result?.data) ? result.data : []
+          // echo pagination/meta in headers
+          const p = result?.pagination || {}
+          if (p.totalItemsCount !== undefined) res.setHeader('X-Pagination-Total', String(p.totalItemsCount))
+          if (p.page !== undefined) res.setHeader('X-Pagination-Page', String(p.page))
+          if (p.perPage !== undefined) res.setHeader('X-Pagination-PerPage', String(p.perPage))
+          if (result?.filters) res.setHeader('X-Filters', encodeURIComponent(JSON.stringify(result.filters)))
+          if (result?.sorting) res.setHeader('X-Sorting', encodeURIComponent(JSON.stringify(result.sorting)))
+          const csvText = csv.toCsvFromArray(items, { flattenDepth: 1 })
+          return this.send(res, csvText)
+        } else {
+          const obj = result?.data || {}
+          const csvText = csv.toCsvFromObject(obj, { flattenDepth: 1 })
+          return this.send(res, csvText)
+        }
+      } catch {
+        // Fallback json if csv module not available
+        res.setHeader('Content-Type', 'application/json; charset=utf-8')
+        return this.send(res, result)
+      }
+    }
+    // Default JSON
+    res.setHeader('Content-Type', 'application/json; charset=utf-8')
+    return this.send(res, result)
+  }
 
   async list(section: string, req: any, res: any) {
     const sectionCfg = this.getSection(section)
@@ -102,7 +138,7 @@ export class CrudmanService {
     const fmt = this.getResponseFormatter()
     const body = fmt({ action: 'list', payload, errors: [], success: true, meta: { pagination: payload.pagination, filters: payload.filters, sorting: payload.sorting }, req, res })
     await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
-    return this.send(res, body)
+    return this.sendNegotiated(res, 'list', body)
   }
 
   async details(section: string, req: any, res: any) {
@@ -131,7 +167,7 @@ export class CrudmanService {
     const fmt = this.getResponseFormatter()
     const body = fmt({ action: 'details', payload: entity, errors: [], success: !!entity, meta: {}, req, res })
     await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
-    return this.send(res, body)
+    return this.sendNegotiated(res, 'details', body)
   }
 
   async create(section: string, req: any, res: any) {

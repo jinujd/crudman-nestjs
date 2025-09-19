@@ -717,6 +717,25 @@ enhanceCrudSwaggerDocument(doc)
 SwaggerModule.setup('docs', app, doc)
 ```
 
+### Import / Export
+
+- Export via x-content-type:
+  - Set header `x-content-type: csv` on list or details GET to receive CSV.
+  - For list, only the `data` array is included in CSV. Pagination/meta are provided in headers:
+    - `X-Pagination-Total`, `X-Pagination-Page`, `X-Pagination-PerPage`, `X-Filters`, `X-Sorting`.
+  - Default when header not provided: JSON.
+
+- Bulk operations (preview):
+  - `POST /{section}/bulk/import` – accepts JSON array or CSV (when `x-content-type: csv`). Options include:
+    - `recordSelectionField` (default from section or `id`)
+    - `policy`: `upsert` (default) | `insert_only` | `update_only` | `ignore_on_conflict` | `replace`
+    - `batchSize`, `dryRun`, `stopOnError`
+  - `POST /{section}/bulk/delete` – accepts `{ ids: [] }` JSON or CSV list of ids.
+  - Responses include summary `{ inserted, updated, deleted, skipped, errorsCount }` and per-row CSV (when requested).
+
+Swagger header parameter:
+- `x-content-type` enum: `json` (default), `csv`, `excel` (optional/if enabled).
+
 Notes:
 - Schemas reflect entity column types, `nullable`, and length (maxLength).
 - For full control, DTOs still work and take precedence when provided on endpoints.
