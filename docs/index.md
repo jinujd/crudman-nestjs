@@ -39,9 +39,29 @@ title: CRUDMan NestJS
   .card { animation: fadeUp .6s ease-out both; }
   .card:nth-child(2) { animation-delay: .1s }
   .card:nth-child(3) { animation-delay: .2s }
+  /* Header */
+  .site-header { position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,0.92); backdrop-filter: saturate(180%) blur(8px); border-bottom: 1px solid #eee7d0; }
+  .site-header .nav { display:flex; align-items:center; justify-content:space-between; max-width:1060px; margin:0 auto; padding: 10px 20px; }
+  .site-header .brand { display:flex; align-items:center; gap:10px; color: var(--royal-purple); font-weight: 700; }
+  .site-header .brand img { width: 28px; height: 28px; }
+  .site-header .links { display:flex; gap: 16px; }
+  .site-header .links a { color: var(--royal-navy); padding: 8px 10px; border-radius: 8px; }
+  .site-header .links a:hover { background:#f3efe0 }
 </style>
 
-<section class="hero">
+<header class="site-header">
+  <div class="nav">
+    <div class="brand"><img src="assets/crudman-logo.svg" alt="logo" /> crudman-nestjs</div>
+    <nav class="links">
+      <a href="#home">Home</a>
+      <a href="#features">Features</a>
+      <a href="#readme">Readme</a>
+      <a href="#about">About</a>
+    </nav>
+  </div>
+</header>
+
+<section id="home" class="hero">
   <div class="container">
     <h1>crudman-nestjs</h1>
     <p>Ship production-grade CRUD APIs for NestJS in minutes: adapter-driven, validation-first, cache-aware, and Swagger-friendly out of the box.</p>
@@ -56,7 +76,7 @@ title: CRUDMan NestJS
 </section>
 
 <div class="container">
-  <h2 style="color:var(--royal-purple)">Why crudman?</h2>
+  <h2 id="features" style="color:var(--royal-purple)">Why crudman?</h2>
   <div class="grid">
     <div class="card">
       <h3>Plug-and-play</h3>
@@ -99,8 +119,17 @@ title: CRUDMan NestJS
 @Controller('api/users')
 export class UsersController extends CrudControllerBase('users') {}</code></pre>
 
-  <h2 style="color:var(--royal-purple)">README</h2>
+  <h2 id="readme" style="color:var(--royal-purple)">README</h2>
   <iframe src="https://github.com/jinujd/crudman-nestjs/raw/main/README.md" style="width:100%; height:60vh; border:1px solid #e9e6da; border-radius: 12px; background:white"></iframe>
+
+  <h2 id="about" style="color:var(--royal-purple)">About</h2>
+  <div class="card">
+    <p class="muted" style="margin:0 0 8px">Maintained by</p>
+    <div style="font-weight:700; color:var(--royal-navy); margin-bottom:8px">Jinu Joseph Daniel</div>
+    <div>Email: <a href="mailto:jinujosephdaniel@gmail.com">jinujosephdaniel@gmail.com</a></div>
+    <div>Phone: <a href="tel:+918157811122">+91 81578 111 22</a></div>
+    <div>LinkedIn: <a href="https://in.linkedin.com/in/jinujosephdaniel" target="_blank" rel="noopener">in.linkedin.com/in/jinujosephdaniel</a></div>
+  </div>
 
   <div class="footer">Made with care · MIT License</div>
 </div>
