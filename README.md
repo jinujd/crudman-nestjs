@@ -743,6 +743,11 @@ curl -H "x-content-type: csv" -i "http://localhost:3001/api/states"
 # Look at headers for pagination/meta and body for CSV rows
 ```
 
+Optional Excel (.xlsx):
+- Install at app level: `npm i exceljs`
+- Request with `x-content-type: excel` to download an .xlsx file.
+- If not installed, the API responds with a JSON error explaining to install `exceljs`.
+
 - Bulk operations (preview):
   - `POST /{section}/bulk/import` – accepts JSON array or CSV (when `x-content-type: csv`). Options include:
     - `recordSelectionField` (default from section or `id`)

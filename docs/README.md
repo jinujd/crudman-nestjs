@@ -642,6 +642,11 @@ Swagger header parameter:
 CrudmanModule.forRoot({ exportContentTypes: ['json','csv'] })
 ```
 
+Optional Excel (.xlsx):
+- Install at app level: `npm i exceljs`
+- Request with `x-content-type: excel` to download an .xlsx file.
+- If not installed, the API responds with a JSON error instructing to install `exceljs`.
+
 ## Swapping adapters
 - ORM: default TypeORM adapter; a Sequelize adapter can be added later with same config keys.
 - Validator: default fastest-validator; later swap in Joi via `ValidatorAdapter`.

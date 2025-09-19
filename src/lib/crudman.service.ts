@@ -99,6 +99,77 @@ export class CrudmanService {
         return this.send(res, csvText)
       }
     }
+
+    if (type === 'excel') {
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const ExcelJS = require('exceljs')
+        const workbook = new ExcelJS.Workbook()
+        const sheet = workbook.addWorksheet('data')
+        const flatten = (input: any, depth = 1, prefix = ''): Record<string, any> => {
+          if (!input || typeof input !== 'object') return { [prefix || 'value']: input }
+          const out: Record<string, any> = {}
+          for (const [k, v] of Object.entries(input)) {
+            const key = prefix ? `${prefix}.${k}` : k
+            if (v && typeof v === 'object' && depth > 0) Object.assign(out, flatten(v, depth - 1, key))
+            else out[key] = v
+          }
+          return out
+        }
+
+        if (action === 'list') {
+          const items = Array.isArray(result?.data) ? result.data : []
+          const flattened = items.map((i: any) => flatten(i, 1))
+          const headersSet = new Set<string>()
+          for (const it of flattened) Object.keys(it).forEach((h) => headersSet.add(h))
+          const headers = Array.from(headersSet)
+          sheet.columns = headers.map((h) => ({ header: h, key: h }))
+          for (const it of flattened) {
+            const row: Record<string, any> = {}
+            for (const h of headers) row[h] = (it as any)[h]
+            sheet.addRow(row)
+          }
+          const p = result?.pagination || {}
+          if (p.totalItemsCount !== undefined) res.setHeader('X-Pagination-Total', String(p.totalItemsCount))
+          if (p.page !== undefined) res.setHeader('X-Pagination-Page', String(p.page))
+          if (p.perPage !== undefined) res.setHeader('X-Pagination-PerPage', String(p.perPage))
+          if (result?.filters) res.setHeader('X-Filters', encodeURIComponent(JSON.stringify(result.filters)))
+          if (result?.sorting) res.setHeader('X-Sorting', encodeURIComponent(JSON.stringify(result.sorting)))
+        } else {
+          const obj = result?.data || {}
+          const flattened = flatten(obj, 1)
+          const headers = Object.keys(flattened)
+          sheet.columns = headers.map((h) => ({ header: h, key: h }))
+          const row: Record<string, any> = {}
+          for (const h of headers) row[h] = (flattened as any)[h]
+          sheet.addRow(row)
+        }
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        res.setHeader('Content-Disposition', 'attachment; filename="data.xlsx"')
+        try {
+          const buffer: Buffer = await workbook.xlsx.writeBuffer()
+          return this.send(res, buffer)
+        } catch {
+          await workbook.xlsx.write(res)
+          return res
+        }
+      } catch (err) {
+        // exceljs not installed or failed → inform user clearly
+        res.setHeader('Content-Type', 'application/json; charset=utf-8')
+        const fmt = this.getResponseFormatter()
+        const body = fmt({
+          action,
+          payload: null,
+          errors: [{ message: 'Excel export requires optional dependency "exceljs". Install with: npm i exceljs' }],
+          success: false,
+          meta: {},
+          req: res?.req,
+          res
+        })
+        return this.send(res, body)
+      }
+    }
     // Default JSON
     res.setHeader('Content-Type', 'application/json; charset=utf-8')
     return this.send(res, result)

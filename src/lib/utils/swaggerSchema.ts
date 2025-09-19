@@ -147,10 +147,11 @@ export function enhanceCrudSwaggerDocument(document: any) {
     if (item.get && !isDetailsPath(path)) {
       item.get.responses = item.get.responses || {}
       item.get.responses['200'] = item.get.responses['200'] || {}
-      item.get.responses['200'].content = {
-        'application/json': { schema: buildListEnvelopeSchema(ref) },
-        'text/csv': { schema: { type: 'string', description: 'CSV of data array. Pagination meta in headers.' } }
-      }
+      const regList = CrudmanRegistry.get(); const allowedList = regList.getExportContentTypes();
+      const listContent: any = { 'application/json': { schema: buildListEnvelopeSchema(ref) } }
+      if (allowedList.includes('csv' as any)) listContent['text/csv'] = { schema: { type: 'string', description: 'CSV of data array. Pagination meta in headers.' } }
+      if (allowedList.includes('excel' as any)) listContent['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'] = { schema: { type: 'string', format: 'binary', description: 'Excel (.xlsx) of data array. Pagination meta in headers.' } }
+      item.get.responses['200'].content = listContent
 
       // Inject query params: pagination, sorting, filters, keyword
       const sectionKey = section as string
@@ -209,10 +210,11 @@ export function enhanceCrudSwaggerDocument(document: any) {
     if (item.get && isDetailsPath(path)) {
       item.get.responses = item.get.responses || {}
       item.get.responses['200'] = item.get.responses['200'] || {}
-      item.get.responses['200'].content = {
-        'application/json': { schema: buildDetailEnvelopeSchema(ref) },
-        'text/csv': { schema: { type: 'string', description: 'CSV single row' } }
-      }
+      const regDet = CrudmanRegistry.get(); const allowedDet = regDet.getExportContentTypes();
+      const detContent: any = { 'application/json': { schema: buildDetailEnvelopeSchema(ref) } }
+      if (allowedDet.includes('csv' as any)) detContent['text/csv'] = { schema: { type: 'string', description: 'CSV single row' } }
+      if (allowedDet.includes('excel' as any)) detContent['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'] = { schema: { type: 'string', format: 'binary', description: 'Excel (.xlsx) single row' } }
+      item.get.responses['200'].content = detContent
       // x-content-type header for details
       const paramsD: any[] = item.get.parameters || []
       if (!paramsD.some((p) => p.in === 'header' && p.name === 'x-content-type')) {
