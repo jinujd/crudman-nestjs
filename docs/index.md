@@ -54,6 +54,15 @@ title: CRUDMan NestJS
   .icon, .ticon { stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round }
   .icon-badge { width: 28px; height: 28px; vertical-align: -6px; margin-right: 8px }
   .footer { text-align:center; padding: 36px 24px; color: #ffffff; background: linear-gradient(160deg, var(--royal-crimson), var(--royal-navy)); border-top: 1px solid rgba(255,255,255,.12); margin-top: 48px; }
+  /* Author card */
+  .author-card { background: linear-gradient(135deg, var(--royal-navy), var(--royal-purple)); color: #fff; border-radius: 14px; padding: 18px; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 10px 28px rgba(0,17,58,.25); }
+  .author-header { display:flex; align-items:center; gap: 12px; margin-bottom: 10px }
+  .author-avatar { width: 42px; height: 42px; border-radius: 8px; background: #fff; padding: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.2) }
+  .author-name { font-weight: 800; letter-spacing: .2px }
+  .author-contacts { display:grid; grid-template-columns: 1fr; gap: 8px; }
+  .author-row { display:flex; align-items:center; gap: 10px; }
+  .author-row a { color: var(--royal-gold) }
+  .aicon { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round }
   /* Animations */
   @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes float { 0% { transform: translateY(0) } 50% { transform: translateY(-6px) } 100% { transform: translateY(0) } }
@@ -190,12 +199,19 @@ export class UsersController extends CrudControllerBase('users') {}</code></pre>
   <div id="readme-container" class="card" style="overflow:auto; max-height: 60vh"></div>
 
   <h2 id="about" style="color:#2a225f">About</h2>
-  <div class="card">
-    <p class="muted" style="margin:0 0 8px">Author</p>
-    <div style="font-weight:700; color:var(--royal-navy); margin-bottom:8px">Jinu Joseph Daniel</div>
-    <div>Email: <a href="mailto:jinujosephdaniel@gmail.com">jinujosephdaniel@gmail.com</a></div>
-    <div>Phone: <a href="tel:+918157811122">+91 81578 111 22</a></div>
-    <div>LinkedIn: <a href="https://in.linkedin.com/in/jinujosephdaniel" target="_blank" rel="noopener">in.linkedin.com/in/jinujosephdaniel</a></div>
+  <div class="author-card">
+    <div class="author-header">
+      <div class="author-avatar"><img src="assets/crudman-logo.svg" alt="logo" style="width:100%; height:100%"/></div>
+      <div>
+        <div class="author-name">Jinu Joseph Daniel</div>
+        <div class="muted" style="color:#e8e5c3">Author</div>
+      </div>
+    </div>
+    <div class="author-contacts">
+      <div class="author-row"><svg class="aicon" viewBox="0 0 24 24"><path d="M4 4h16v16H4z"/><path d="M4 7l8 6 8-6"/></svg><a href="mailto:jinujosephdaniel@gmail.com">jinujosephdaniel@gmail.com</a></div>
+      <div class="author-row"><svg class="aicon" viewBox="0 0 24 24"><path d="M6.6 10.8a15 15 0 006.6 6.6l2.2-2.2a1 1 0 011.1-.2 11.6 11.6 0 003.5 1.1 1 1 0 011 .99V20a2 2 0 01-2 2A18 18 0 014 6a2 2 0 012-2h1.8a1 1 0 01.99 1 11.6 11.6 0 001.1 3.5 1 1 0 01-.2 1.1l-2.2 2.2z"/></svg><a href="tel:+918157811122">+91 81578 111 22</a></div>
+      <div class="author-row"><svg class="aicon" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 17v-7l5 3 5-3v7"/></svg><a href="https://in.linkedin.com/in/jinujosephdaniel" target="_blank" rel="noopener">in.linkedin.com/in/jinujosephdaniel</a></div>
+    </div>
   </div>
 
   <div class="footer">Made with care · MIT License</div>
