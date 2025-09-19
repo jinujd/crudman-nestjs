@@ -131,6 +131,11 @@ Keys (per action, unless noted):
 - model (required): Entity class.
 - relations (optional): '*' | string[] | { include?: string[]; exclude?: string[] }.
 - getRelations(req,res,cfg) (optional): Promise<string[] | { include?: string[]; exclude?: string[] } | '*' | undefined> | (string[] | { include?: string[]; exclude?: string[] } | '*' | undefined).
+  - Semantics:
+    - '*' → include all relations by default.
+    - string[] → include only the listed relations.
+    - { include } → include only the listed relations.
+    - { exclude } → include all except the listed relations.
 - filtersWhitelist (optional): string[]. If not provided, all entity columns are allowed (derived from repository metadata).
 - sortingWhitelist (optional): string[]. If not provided, all entity columns are allowed (derived from repository metadata).
 - orderBy (optional): Array<[field, "ASC"|"DESC"]>.
@@ -142,6 +147,11 @@ Keys (per action, unless noted):
 - enableCache (optional): boolean | { ttl?: number; key?:(ctx)=>string }.
 - additionalSettings.repo (required for TypeORM adapter): repository instance.
  - attributes (optional): '*' | string[] | { include?: string[]; exclude?: string[] }. Defaults to all columns. Narrow for performance or privacy.
+   - Semantics:
+     - '*' → include all columns by default.
+     - string[] → include only the listed columns.
+     - { include } → include only the listed columns.
+     - { exclude } → include all except the listed columns.
 
 Parameter details:
 - model (required)
@@ -198,7 +208,9 @@ Parameter details:
 
 Default relations/attributes behavior:
 - Relations default to all entity relations (`relations: '*'`). Use `relations: { exclude: [...] }` to drop heavy joins or `relations: ['relA','relB']` to be explicit.
+- You can also use `relations: { include: ['relA','relB'] }` to include only specific relations.
 - Attributes default to all columns. Use `attributes: { exclude: [...] }` or an explicit list to narrow select.
+- You can also use `attributes: { include: ['id','name'] }` (or `['id','name']`) to include only specific columns.
 - When `filtersWhitelist` or `sortingWhitelist` are omitted, the library resolves allowed fields from the TypeORM repository’s columns (`repo.metadata.columns`). This enables filter/sort on all fields by default while staying strictly model-scoped.
 
 Keyword search (list):
