@@ -20,7 +20,8 @@ title: CRUDMan NestJS
   .btn.primary { background: var(--royal-gold); color: var(--royal-navy); border-color: var(--royal-gold); font-weight: 600; }
   .container { max-width: 1060px; margin: 0 auto; padding: 0 20px; }
   .logo-wrap { display:flex; justify-content:center; }
-  .logo { width: 180px; filter: drop-shadow(0 6px 18px rgba(0,0,0,.25)); }
+  .logo-badge { background: #fff; border-radius: 999px; padding: 12px; box-shadow: 0 6px 22px rgba(0,0,0,.25); display:inline-block; }
+  .logo { width: 180px; filter: drop-shadow(0 6px 18px rgba(0,0,0,.2)); }
   .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
   .card { background: white; border-radius: 14px; padding: 18px; border: 1px solid #e9e6da; box-shadow: 0 6px 20px rgba(11,31,58,.06); }
   .muted { color: #4c5670; }
@@ -50,7 +51,7 @@ title: CRUDMan NestJS
     </div>
   </div>
   <div class="logo-wrap">
-    <img class="logo" src="assets/crudman-logo.svg" alt="CRUD Man Logo" />
+    <span class="logo-badge"><img class="logo" src="assets/crudman-logo.svg" alt="CRUD Man Logo" /></span>
   </div>
 </section>
 
@@ -85,6 +86,9 @@ title: CRUDMan NestJS
     <tr><td>Swagger enhancer</td><td>Auto envelopes for list/details/create/update/delete; entity schemas derived from metadata.</td></tr>
     <tr><td>Save (upsert)</td><td>Single endpoint to create or update based on presence of an id.</td></tr>
     <tr><td>Programmatic calls</td><td>Call other sections’ actions safely within hooks or services.</td></tr>
+    <tr><td>CSV/Excel export</td><td>One header switch away—deliver CSV or Excel without code changes.</td></tr>
+    <tr><td>Bulk import</td><td>Effortless data onramp with conflict policies, batching, and dry runs.</td></tr>
+    <tr><td>Bulk delete</td><td>Clear data at scale with safety valves and transparent reporting.</td></tr>
   </table>
 
   <h2 style="color:var(--royal-purple)">Install</h2>
@@ -94,6 +98,9 @@ title: CRUDMan NestJS
   <pre><code>@UseCrud({ sections: { users: { model: User } } })
 @Controller('api/users')
 export class UsersController extends CrudControllerBase('users') {}</code></pre>
+
+  <h2 style="color:var(--royal-purple)">README</h2>
+  <iframe src="https://github.com/jinujd/crudman-nestjs/raw/main/README.md" style="width:100%; height:60vh; border:1px solid #e9e6da; border-radius: 12px; background:white"></iframe>
 
   <div class="footer">Made with care · MIT License</div>
 </div>
