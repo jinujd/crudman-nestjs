@@ -8,7 +8,7 @@
   <!-- Hat (slanted, taller crown, narrower brim) -->
   <g transform="rotate(-12 128 82)">
     <ellipse cx="128" cy="86" rx="66" ry="12" fill="#000" />
-    <rect x="90" y="56" width="76" height="26" rx="8" fill="#000" />
+    <rect x="90" y="42" width="76" height="44" rx="10" fill="#000" />
   </g>
 
   <!-- Monkey face silhouette -->
