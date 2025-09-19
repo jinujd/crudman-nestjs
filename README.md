@@ -1,5 +1,14 @@
 # crudman-nestjs
 
+<p align="center">
+  <img src="docs/assets/crudman-logo.svg" alt="CRUD Man Logo" width="140" />
+  <br/>
+  <sub>Minimal, adapter-driven CRUD layer for NestJS.</sub>
+  <br/>
+  <a href="https://jinujd.github.io/crudman-nestjs">Website</a> · <a href="https://github.com/jinujd/crudman-nestjs">GitHub</a>
+  <br/>
+</p>
+
 We believe everyone building RESTful services with NestJS—especially CRUD‑heavy backends—will find this library helpful. It gives you out‑of‑the‑box CRUD endpoints, a clear configuration model, and the freedom to override anything when you need custom behavior. The design centers on adapters (ORM and validator), safe query handling, and simple developer ergonomics so you can start fast and customize when needed.
 
 ## Features

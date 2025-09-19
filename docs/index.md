@@ -3,6 +3,10 @@ layout: default
 title: CRUDMan NestJS
 ---
 
+<p align="center">
+  <img src="assets/crudman-logo.svg" alt="CRUD Man Logo" width="140" />
+</p>
+
 # crudman-nestjs
 
 Pluggable CRUD for NestJS with adapters, validation, caching, and auto routes.

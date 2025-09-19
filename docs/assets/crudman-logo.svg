@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">CRUD Man Logo</title>
+  <desc id="desc">Minimalist black-and-white head-and-shoulders silhouette inside a circle.</desc>
+
+  <!-- Outer ring -->
+  <circle cx="128" cy="128" r="112" fill="none" stroke="#000" stroke-width="12" />
+
+  <!-- Head -->
+  <circle cx="128" cy="96" r="36" fill="#fff" stroke="#000" stroke-width="8" />
+
+  <!-- Shoulders / torso -->
+  <path d="M64 176c0-26.51 28.65-48 64-48s64 21.49 64 48v16H64v-16z" fill="#fff" stroke="#000" stroke-width="8" stroke-linejoin="round" />
+
+  <!-- Subtle code brackets hint -->
+  <path d="M38 96c0-10 8-18 18-18" fill="none" stroke="#000" stroke-width="6" stroke-linecap="round"/>
+  <path d="M200 78c10 0 18 8 18 18" fill="none" stroke="#000" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- Accessibility-friendly contrast rectangle for white fills when shown on white pages (invisible stroke) -->
+  <rect x="0" y="0" width="256" height="256" fill="none" stroke="none" />
+</svg>
+
