@@ -35,6 +35,10 @@ export class CrudmanRegistry {
   setDataSource(ds: any) { (this.options as any).dataSource = ds }
   getUpdateMethod() { return this.options.updateMethod || 'patch' }
   getSwaggerMeta() { return (this.options as any).swaggerMeta || {} }
+  getExportContentTypes(): Array<'json'|'csv'|'excel'> {
+    const list = (this.options as any).exportContentTypes
+    return Array.isArray(list) && list.length ? list : ['json','csv','excel']
+  }
 }
 
 

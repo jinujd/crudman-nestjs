@@ -19,4 +19,5 @@ export * from './lib/types/CrudModuleOptions'
 
 // Utilities
 export * from './lib/utils/swaggerSchema'
+export { ApiHeader } from './lib/utils/safeSwagger'
 

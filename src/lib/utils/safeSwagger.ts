@@ -19,6 +19,7 @@ export const ApiBody: AnyDecorator = swagger?.ApiBody || noOp()
 export const ApiOkResponse: AnyDecorator = swagger?.ApiOkResponse || noOp()
 export const ApiTags: AnyDecorator = swagger?.ApiTags || noOp()
 export const ApiQuery: AnyDecorator = swagger?.ApiQuery || noOp()
+export const ApiHeader: AnyDecorator = swagger?.ApiHeader || noOp()
 
 
 

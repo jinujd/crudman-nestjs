@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import * as csv from './utils/csv'
 import { CrudmanRegistry } from './module/CrudmanRegistry'
 import { defaultResponseFormatter } from './response/defaultResponseFormatter'
 
@@ -76,33 +77,26 @@ export class CrudmanService {
   private sendNegotiated(res: any, action: 'list'|'details', result: any) {
     if (!res || res.headersSent) return result
     const headerType = (res.req?.headers?.['x-content-type'] || res.req?.headers?.['X-Content-Type'] || '').toString().toLowerCase()
-    const type = headerType || 'json'
+    const allowed = CrudmanRegistry.get().getExportContentTypes()
+    const requested = headerType || 'json'
+    const type = allowed.includes(requested as any) ? requested : 'json'
     if (type === 'csv') {
-      try {
-        // Lazy import to avoid overhead
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const csv = require('./utils/csv')
-        res.setHeader('Content-Type', 'text/csv; charset=utf-8')
-        if (action === 'list') {
-          const items = Array.isArray(result?.data) ? result.data : []
-          // echo pagination/meta in headers
-          const p = result?.pagination || {}
-          if (p.totalItemsCount !== undefined) res.setHeader('X-Pagination-Total', String(p.totalItemsCount))
-          if (p.page !== undefined) res.setHeader('X-Pagination-Page', String(p.page))
-          if (p.perPage !== undefined) res.setHeader('X-Pagination-PerPage', String(p.perPage))
-          if (result?.filters) res.setHeader('X-Filters', encodeURIComponent(JSON.stringify(result.filters)))
-          if (result?.sorting) res.setHeader('X-Sorting', encodeURIComponent(JSON.stringify(result.sorting)))
-          const csvText = csv.toCsvFromArray(items, { flattenDepth: 1 })
-          return this.send(res, csvText)
-        } else {
-          const obj = result?.data || {}
-          const csvText = csv.toCsvFromObject(obj, { flattenDepth: 1 })
-          return this.send(res, csvText)
-        }
-      } catch {
-        // Fallback json if csv module not available
-        res.setHeader('Content-Type', 'application/json; charset=utf-8')
-        return this.send(res, result)
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+      if (action === 'list') {
+        const items = Array.isArray(result?.data) ? result.data : []
+        // echo pagination/meta in headers
+        const p = result?.pagination || {}
+        if (p.totalItemsCount !== undefined) res.setHeader('X-Pagination-Total', String(p.totalItemsCount))
+        if (p.page !== undefined) res.setHeader('X-Pagination-Page', String(p.page))
+        if (p.perPage !== undefined) res.setHeader('X-Pagination-PerPage', String(p.perPage))
+        if (result?.filters) res.setHeader('X-Filters', encodeURIComponent(JSON.stringify(result.filters)))
+        if (result?.sorting) res.setHeader('X-Sorting', encodeURIComponent(JSON.stringify(result.sorting)))
+        const csvText = csv.toCsvFromArray(items, { flattenDepth: 1 })
+        return this.send(res, csvText)
+      } else {
+        const obj = result?.data || {}
+        const csvText = csv.toCsvFromObject(obj, { flattenDepth: 1 })
+        return this.send(res, csvText)
       }
     }
     // Default JSON
@@ -126,13 +120,13 @@ export class CrudmanService {
     if (cache && cacheCfg) {
       const key = this.cacheKey(section, 'list', req, relations)
       const hit = cache.get<any>(key)
-      if (hit) return this.send(res, hit)
+      if (hit) return this.sendNegotiated(res, 'list', hit)
       const payload = await orm.list(req, { ...actionCfg, relations, service: this })
       const fmt = this.getResponseFormatter()
       const body = fmt({ action: 'list', payload, errors: [], success: true, meta: { pagination: payload.pagination, filters: payload.filters, sorting: payload.sorting }, req, res })
       await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
       cache.set(key, body, typeof cacheCfg === 'object' ? cacheCfg.ttl : undefined)
-      return this.send(res, body)
+      return this.sendNegotiated(res, 'list', body)
     }
     const payload = await orm.list(req, { ...actionCfg, relations, service: this })
     const fmt = this.getResponseFormatter()
@@ -155,13 +149,13 @@ export class CrudmanService {
     if (cache && cacheCfg) {
       const key = this.cacheKey(section, 'details', req, relations)
       const hit = cache.get<any>(key)
-      if (hit) return this.send(res, hit)
+      if (hit) return this.sendNegotiated(res, 'details', hit)
       const entity = await orm.details(req, { ...actionCfg, relations, service: this })
       const fmt = this.getResponseFormatter()
       const body = fmt({ action: 'details', payload: entity, errors: [], success: !!entity, meta: {}, req, res })
       await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
       cache.set(key, body, typeof cacheCfg === 'object' ? cacheCfg.ttl : undefined)
-      return this.send(res, body)
+      return this.sendNegotiated(res, 'details', body)
     }
     const entity = await orm.details(req, { ...actionCfg, relations, service: this })
     const fmt = this.getResponseFormatter()

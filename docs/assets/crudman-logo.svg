@@ -15,10 +15,15 @@
   <ellipse cx="72" cy="138" rx="18" ry="22" fill="#fff" stroke="#000" stroke-width="6" />
   <ellipse cx="184" cy="138" rx="18" ry="22" fill="#fff" stroke="#000" stroke-width="6" />
 
-  <!-- Sunglasses (taller, stroke only) -->
+  <!-- Sunglasses (taller, stroke only) with popping eyes -->
   <rect x="84" y="116" width="42" height="26" rx="6" fill="none" stroke="#000" stroke-width="4" />
   <rect x="132" y="116" width="42" height="26" rx="6" fill="none" stroke="#000" stroke-width="4" />
   <line x1="126" y1="129" x2="130" y2="129" stroke="#000" stroke-width="4" stroke-linecap="round" />
+  <!-- Eyes popping out above frames -->
+  <circle cx="105" cy="110" r="6" fill="#fff" stroke="#000" stroke-width="3" />
+  <circle cx="149" cy="110" r="6" fill="#fff" stroke="#000" stroke-width="3" />
+  <circle cx="105" cy="110" r="2" fill="#000" />
+  <circle cx="149" cy="110" r="2" fill="#000" />
 
   <!-- Snout and big teeth -->
   <ellipse cx="128" cy="154" rx="26" ry="18" fill="#fff" stroke="#000" stroke-width="4" />

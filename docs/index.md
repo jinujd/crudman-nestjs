@@ -20,7 +20,7 @@ Pluggable CRUD for NestJS with adapters, validation, caching, and auto routes.
 
 ## Quick links
 - [GitHub](https://github.com/jinujd/crudman-nestjs)
-- [README](../README.md)
+- [README on GitHub](https://github.com/jinujd/crudman-nestjs#readme)
 
 ## Install
 ```bash

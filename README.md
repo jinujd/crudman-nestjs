@@ -83,6 +83,18 @@ Example project (from `examples/nest-typeorm-sqlite/src/app.module.ts`):
 CrudmanModule.forRoot({ swaggerMeta: { title: 'Example API', version: '1.2.3' } })
 ```
 
+### Export content types (global)
+
+Control which response content types are available for list/details via the `x-content-type` header. Defaults to all three.
+
+```ts
+CrudmanModule.forRoot({
+  swagger: { enabled: true },
+  exportContentTypes: ['json','csv'] // disable excel globally
+})
+```
+The Swagger docs will only show the allowed values in the header enum.
+
 ## Quick start (auto routes)
 
 Minimal controller with auto-generated endpoints:
@@ -721,9 +733,15 @@ SwaggerModule.setup('docs', app, doc)
 
 - Export via x-content-type:
   - Set header `x-content-type: csv` on list or details GET to receive CSV.
-  - For list, only the `data` array is included in CSV. Pagination/meta are provided in headers:
+  - For list, only the `data` array is included in CSV. Pagination/meta are provided in response headers:
     - `X-Pagination-Total`, `X-Pagination-Page`, `X-Pagination-PerPage`, `X-Filters`, `X-Sorting`.
   - Default when header not provided: JSON.
+
+Example (cURL):
+```bash
+curl -H "x-content-type: csv" -i "http://localhost:3001/api/states"
+# Look at headers for pagination/meta and body for CSV rows
+```
 
 - Bulk operations (preview):
   - `POST /{section}/bulk/import` – accepts JSON array or CSV (when `x-content-type: csv`). Options include:

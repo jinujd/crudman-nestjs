@@ -622,6 +622,26 @@ export class ApiController {
 - Enabled globally via `forRoot({ swagger: { enabled: true } })` or disable per endpoint in decorator options.
 - Provide a DTO per endpoint to type `data` for the docs.
 
+### Import / Export
+
+- Export via x-content-type:
+  - Set header `x-content-type: csv` on list or details GET to receive CSV.
+  - For list, only the `data` array is included in CSV. Pagination/meta are provided in headers:
+    - `X-Pagination-Total`, `X-Pagination-Page`, `X-Pagination-PerPage`, `X-Filters`, `X-Sorting`.
+  - Default when header not provided: JSON.
+
+Example (cURL):
+```bash
+curl -H "x-content-type: csv" -i "http://localhost:3001/api/states"
+# Inspect headers for pagination/meta; body contains CSV rows only
+```
+
+Swagger header parameter:
+- `x-content-type` enum reflects allowed types. To restrict globally:
+```ts
+CrudmanModule.forRoot({ exportContentTypes: ['json','csv'] })
+```
+
 ## Swapping adapters
 - ORM: default TypeORM adapter; a Sequelize adapter can be added later with same config keys.
 - Validator: default fastest-validator; later swap in Joi via `ValidatorAdapter`.
