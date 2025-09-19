@@ -194,12 +194,27 @@ $ DELETE /api/companies/:id</pre>
   </div>
 
   <h2 style="color:#2a225f">Install</h2>
-  <pre><code>npm i crudman-nestjs</code></pre>
+  <div class="terminal" style="margin-bottom:16px">
+    <div class="tbar"><span class="dot red"></span><span class="dot amber"></span><span class="dot green"></span></div>
+    <div class="tbody">
+      <pre class="prompt">$ npm i crudman-nestjs</pre>
+    </div>
+  </div>
 
   <h2 style="color:#2a225f">One-minute setup</h2>
-  <pre><code>@UseCrud({ sections: { users: { model: User } } })
+  <div class="terminal">
+    <div class="tbar"><span class="dot red"></span><span class="dot amber"></span><span class="dot green"></span></div>
+    <div class="tbody">
+      <pre><code>// users.controller.ts
+import { Controller } from '@nestjs/common'
+import { UseCrud, CrudControllerBase } from 'crudman-nestjs'
+import { User } from './user.entity'
+
+@UseCrud({ sections: { users: { model: User } } })
 @Controller('api/users')
 export class UsersController extends CrudControllerBase('users') {}</code></pre>
+    </div>
+  </div>
 
   <h2 id="readme" style="color:#2a225f">README</h2>
   <div id="readme-container" class="card" style="overflow:auto; max-height: 60vh"></div>
