@@ -34,6 +34,9 @@ title: CRUDMan NestJS
   .terminal pre { margin: 0 0 12px; white-space: pre-wrap; }
   .terminal code, .terminal kbd { color: #c7d2ff }
   .terminal .prompt { color: #9ca8ff }
+  /* Floating terminal animation */
+  @keyframes gentleFloat { 0% { transform: translateY(0) } 50% { transform: translateY(-10px) } 100% { transform: translateY(0) } }
+  .terminal { animation: gentleFloat 8s ease-in-out infinite; }
   .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
   .card { background: white; border-radius: 14px; padding: 18px; border: 1px solid #e9e6da; box-shadow: 0 6px 20px rgba(11,31,58,.06); }
   .muted { color: #4c5670; }
@@ -109,7 +112,7 @@ $ DELETE /api/companies/:id</pre>
 </section>
 
 <div class="container">
-  <h2 id="features" style="color:var(--royal-purple)">Why crudman?</h2>
+  <h2 id="features" style="color:#2a225f">Why crudman?</h2>
   <div class="grid">
     <div class="card">
       <h3>Plug-and-play</h3>
@@ -125,7 +128,7 @@ $ DELETE /api/companies/:id</pre>
     </div>
   </div>
 
-  <h2 style="color:var(--royal-purple)">Features</h2>
+  <h2 style="color:#2a225f">Features</h2>
   <table class="features">
     <tr><th>Capability</th><th>What you get</th></tr>
     <tr><td>Auto CRUD endpoints</td><td>Spin up list, details, create, update, delete—in a single decorator or base class.</td></tr>
@@ -144,18 +147,18 @@ $ DELETE /api/companies/:id</pre>
     <tr><td>Bulk delete</td><td>Clear data at scale with safety valves and transparent reporting.</td></tr>
   </table>
 
-  <h2 style="color:var(--royal-purple)">Install</h2>
+  <h2 style="color:#2a225f">Install</h2>
   <pre><code>npm i crudman-nestjs</code></pre>
 
-  <h2 style="color:var(--royal-purple)">One-minute setup</h2>
+  <h2 style="color:#2a225f">One-minute setup</h2>
   <pre><code>@UseCrud({ sections: { users: { model: User } } })
 @Controller('api/users')
 export class UsersController extends CrudControllerBase('users') {}</code></pre>
 
-  <h2 id="readme" style="color:var(--royal-purple)">README</h2>
+  <h2 id="readme" style="color:#2a225f">README</h2>
   <div id="readme-container" class="card" style="overflow:auto; max-height: 60vh"></div>
 
-  <h2 id="about" style="color:var(--royal-purple)">About</h2>
+  <h2 id="about" style="color:#2a225f">About</h2>
   <div class="card">
     <p class="muted" style="margin:0 0 8px">Maintained by</p>
     <div style="font-weight:700; color:var(--royal-navy); margin-bottom:8px">Jinu Joseph Daniel</div>

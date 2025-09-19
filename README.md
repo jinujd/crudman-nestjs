@@ -128,6 +128,32 @@ How it links together:
 - The library reads that config inside `CrudmanService` and the ORM adapter to resolve repositories, relations, attributes, filters, etc.
 - Decorators like `@CrudList('companies')` or the base `CrudControllerBase('companies')` tell the library which section’s settings to apply for a given route.
 
+## CrudControllerBase explained
+
+`CrudControllerBase(sectionName: string)` is a tiny base class that auto-binds the five standard routes for a single section:
+
+- `GET /` → list
+- `GET /:id` → details
+- `POST /` → create
+- `PATCH /:id` (default) → update (verb configurable via `updateMethod`)
+- `DELETE /:id` → delete
+
+You pass the section name you registered in `UseCrud`:
+
+```ts
+@UseCrud({ sections: { users: { model: User } } })
+@Controller('api/users')
+export class UsersController extends CrudControllerBase('users') {}
+```
+
+This is ideal when one controller maps to one resource (section) and you don’t need custom method bodies. If you later need to override one route, you can add a method and use the decorator variant, e.g.:
+
+```ts
+@Get(':id')
+@CrudDetails('users')
+details(@Req() req) { /* custom logic */ }
+```
+
 ## Overview
 
 crudman-nestjs is a plug-and-play CRUD layer for NestJS. It auto-generates REST endpoints (list, details, create, update, delete) from a simple section config that references your entity model.
