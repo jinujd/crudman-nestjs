@@ -10,7 +10,34 @@ export const UseCrud = (config: any, options?: any): ClassDecorator => {
   return (target: any) => {
     const opts = { defaultOrm: TypeormAdapter, ...(options || {}) }
     const existing = (global as any).__crudman_global_meta || { config: { sections: {} }, options: {} }
-    const mergedSections = { ...(existing.config?.sections || {}), ...(config?.sections || {}) }
+    // Shorthand: models → sections
+    const shorthandToSections = (): Record<string, any> => {
+      const out: Record<string, any> = {}
+      const models = config?.models
+      const shared = config?.defaults || {}
+      const toPlural = (s: string) => {
+        const lower = String(s || '').toLowerCase()
+        if (/(s|x|z|ch|sh)$/.test(lower)) return lower + 'es'
+        if (/y$/.test(lower) && !/[aeiou]y$/.test(lower)) return lower.replace(/y$/, 'ies')
+        return lower + 's'
+      }
+      const apply = (model: any, overrides?: any) => {
+        const name = model?.name || model?.model?.name || 'resource'
+        const section = overrides?.section || toPlural(name)
+        out[section] = { model, ...shared, ...(overrides || {}) }
+      }
+      if (!models) return out
+      if (Array.isArray(models)) {
+        for (const m of models) {
+          if (Array.isArray(m)) apply(m[0], m[1] || {})
+          else apply(m)
+        }
+      } else if (typeof models === 'object') {
+        for (const key of Object.keys(models)) apply({ name: key }, models[key])
+      }
+      return out
+    }
+    const mergedSections = { ...(existing.config?.sections || {}), ...(config?.sections || {}), ...shorthandToSections() }
     const mergedConfig = { ...existing.config, ...config, sections: mergedSections }
     const mergedOptions = { ...existing.options, ...opts }
     const meta = { config: mergedConfig, options: mergedOptions }

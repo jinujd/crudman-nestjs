@@ -198,6 +198,10 @@ $ DELETE /api/companies/:id</pre>
   </div>
 
   <h2 style="color:#2a225f">Features</h2>
+  <div class="feat-card" style="margin-bottom:12px">
+    <div class="feat-head"><svg class="feat-icon" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg><div class="feat-title">Models shorthand</div></div>
+    <div class="feat-desc">Generate CRUD for multiple models in one controller with <code>@UseCrud({ models: [...] })</code>. See README for overrides, include/exclude, and model-first usage.</div>
+  </div>
   <div class="feat-grid">
     <div class="feat-card"><div class="feat-head"><svg class="feat-icon" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg><div class="feat-title">Auto CRUD endpoints</div></div><div class="feat-desc">Spin up list, details, create, update, delete—in a single decorator or base class.</div></div>
     <div class="feat-card"><div class="feat-head"><svg class="feat-icon" viewBox="0 0 24 24"><path d="M4 12h16M4 7h10M4 17h10"/></svg><div class="feat-title">PATCH-first updates</div></div><div class="feat-desc">Modern partial updates by default (configurable to PUT).</div></div>
