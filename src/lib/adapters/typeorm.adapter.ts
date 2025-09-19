@@ -95,6 +95,9 @@ export const TypeormAdapter: OrmAdapter = {
     if (hasLikeFilter || hasRangeFilter) {
       // Use QueryBuilder for robust LIKE behavior across drivers
       const qb = repo.createQueryBuilder('t')
+      // Ensure default relations are included (left join + select) when using QB path
+      const relsForJoin: string[] = Array.isArray(relations) ? relations : []
+      if (relsForJoin.length) joinRelationsIntoQueryBuilder(qb, relsForJoin)
       // Apply simple filters
       for (const f of filters) {
         if (f.op === 'like') {
@@ -315,6 +318,25 @@ function buildLikeCondition(relationPath: string, column: string, likeValue: str
   return caseSensitive
     ? { [target]: { like: likeValue } }
     : { [target]: { ilike: likeValue } } // signal case-insensitive intent
+}
+
+function joinRelationsIntoQueryBuilder(qb: any, relations: string[]) {
+  const added: Set<string> = new Set()
+  for (const path of relations) {
+    const segments = String(path).split('.')
+    let prevAlias = 't'
+    let relPath = ''
+    for (const seg of segments) {
+      relPath = relPath ? `${relPath}.${seg}` : seg
+      const alias = `t_${relPath.replace(/\./g, '_')}`
+      const joinKey = `${prevAlias}.${seg}__${alias}`
+      if (!added.has(joinKey)) {
+        qb.leftJoinAndSelect(`${prevAlias}.${seg}`, alias)
+        added.add(joinKey)
+      }
+      prevAlias = alias
+    }
+  }
 }
 
 // Convert our generic where structure into TypeORM FindOptionsWhere format

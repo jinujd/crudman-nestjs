@@ -20,6 +20,15 @@ export function generateOpenApiSchemaFromEntity(entity: any): any | null {
       properties[name] = prop
       if (col.isNullable === false && !col.isPrimary && !col.isGenerated && !col.isCreateDate && !col.isUpdateDate) required.push(name)
     }
+    // Add relation objects by default (document shape as object refs when possible)
+    for (const rel of meta.relations || []) {
+      const relName = rel.propertyName
+      const target = rel.type
+      const relEntity = typeof target === 'function' ? target() : target
+      const relSchemaName = relEntity?.name || 'Entity'
+      properties[relName] = { $ref: `#/components/schemas/${relSchemaName}` }
+    }
+
     return { type: 'object', properties, required: required.length ? required : undefined }
   } catch { return null }
 }
@@ -51,10 +60,22 @@ export function enhanceCrudSwaggerDocument(document: any) {
     if (!ent) continue
     const name = ent.name || 'Entity'
     sectionToEntityName[sectionKey] = name
+    // Register main entity schema
     const schema = generateOpenApiSchemaFromEntity(ent)
-    if (schema) {
-      document.components.schemas[name] = schema
-    }
+    if (schema) document.components.schemas[name] = schema
+    // Also register direct relation target schemas
+    try {
+      const ds = CrudmanRegistry.get().getDataSource?.()
+      const meta = ds ? safeGetMetadata(ds, ent) : null
+      const relTargets: any[] = meta?.relations?.map((r: any) => (typeof r.type === 'function' ? r.type() : r.type)).filter(Boolean) || []
+      for (const tgt of relTargets) {
+        const tgtName = tgt.name || 'Entity'
+        if (!document.components.schemas[tgtName]) {
+          const tgtSchema = generateOpenApiSchemaFromEntity(tgt)
+          if (tgtSchema) document.components.schemas[tgtName] = tgtSchema
+        }
+      }
+    } catch {}
   }
 
   const isDetailsPath = (p: string) => /\{id\}$/.test(p)
