@@ -1,5 +1,12 @@
 plugins:
   - jekyll-remote-theme
+  - jekyll-include-cache
+  - jekyll-gist
+  - jekyll-seo-tag
+  - jekyll-sitemap
+  - jekyll-feed
+  - jemoji
+# Note: GitHub Pages supports a limited set of plugins; site also ships client-side README renderer as fallback.
 title: CRUDMan NestJS
 description: Pluggable CRUD for NestJS
 show_downloads: false

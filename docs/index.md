@@ -120,7 +120,7 @@ title: CRUDMan NestJS
 export class UsersController extends CrudControllerBase('users') {}</code></pre>
 
   <h2 id="readme" style="color:var(--royal-purple)">README</h2>
-  <iframe src="https://github.com/jinujd/crudman-nestjs/raw/main/README.md" style="width:100%; height:60vh; border:1px solid #e9e6da; border-radius: 12px; background:white"></iframe>
+  <div id="readme-container" class="card" style="overflow:auto; max-height: 60vh"></div>
 
   <h2 id="about" style="color:var(--royal-purple)">About</h2>
   <div class="card">
@@ -133,3 +133,28 @@ export class UsersController extends CrudControllerBase('users') {}</code></pre>
 
   <div class="footer">Made with care · MIT License</div>
 </div>
+
+<script>
+  // Lightweight README fetch & render fallback if served via GitHub Pages without Jekyll plugins
+  (async function() {
+    try {
+      const res = await fetch('https://raw.githubusercontent.com/jinujd/crudman-nestjs/main/README.md')
+      if (!res.ok) return
+      const md = await res.text()
+      // Very light markdown to HTML fallback; GitHub Pages may sanitize, so keep minimal
+      const escape = (s) => s.replace(/[&<>]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))
+      const toHtml = (m) => escape(m)
+        .replace(/^###\s+(.*)$/gm, '<h3>$1</h3>')
+        .replace(/^##\s+(.*)$/gm, '<h2>$1</h2>')
+        .replace(/^#\s+(.*)$/gm, '<h1>$1</h1>')
+        .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/^\-\s+(.*)$/gm, '<li>$1</li>')
+        .replace(/(<li>.*<\/li>\n?)+/g, (block) => `<ul>${block}</ul>`)
+        .replace(/\n\n/g, '<br/><br/>')
+      const html = toHtml(md)
+      const el = document.getElementById('readme-container')
+      if (el) el.innerHTML = html
+    } catch {}
+  })()
+</script>
