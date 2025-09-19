@@ -25,6 +25,7 @@ title: CRUDMan NestJS
   .btn.primary { background: var(--royal-gold); color: var(--royal-navy); border-color: var(--royal-gold); font-weight: 600; }
   .btn { border-color: rgba(248,242,191,.4) }
   .container { max-width: 1060px; margin: 0 auto; padding: 0 20px; }
+  .badge-nest { display:inline-block; margin-left: 10px; padding: 4px 8px; font-size: 12px; border-radius: 999px; background: rgba(248,242,191,.2); color: var(--royal-gold); border: 1px solid rgba(248,242,191,.4); font-weight: 700 }
   .logo-wrap { display:flex; justify-content:center; }
   .logo-badge { background: #fff; border-radius: 999px; padding: 12px; box-shadow: 0 6px 22px rgba(0,0,0,.25); display:inline-block; }
   .logo { width: 180px; filter: drop-shadow(0 6px 18px rgba(0,0,0,.2)); }
@@ -91,6 +92,15 @@ title: CRUDMan NestJS
   .site-header .links a.active { background: var(--royal-gold); color: var(--royal-navy); border-color: #e2dfc6; box-shadow: 0 2px 8px rgba(0,17,58,.12) }
   .site-header .links .cta-gh { background: var(--royal-crimson); color: #fff; border-color: var(--royal-crimson); box-shadow: 0 6px 24px rgba(137,3,4,.25); }
   .site-header .links .cta-gh:hover { filter: brightness(1.05) }
+  /* Trust row */
+  .trust { display:flex; align-items:center; justify-content:center; gap: 16px; padding: 12px 16px; background: rgba(232,229,195,.6); border-top: 1px solid #e2dfc6; border-bottom: 1px solid #e2dfc6 }
+  .trust img { height: 22px }
+  /* Copy buttons and toast */
+  .copy-btn { position: absolute; top: 8px; right: 8px; font-size: 12px; background: rgba(248,242,191,.95); color: #00113a; border: 1px solid #e2dfc6; border-radius: 2px; padding: 4px 8px; cursor: pointer }
+  .copy-btn:hover { filter: brightness(0.98) }
+  pre { position: relative }
+  .toast { position: fixed; right: 16px; bottom: 16px; background: linear-gradient(135deg, var(--royal-purple), var(--royal-navy)); color: #fff; padding: 10px 14px; border-radius: 8px; box-shadow: 0 10px 28px rgba(0,17,58,.25); opacity: 0; transform: translateY(8px); transition: all .2s ease; pointer-events: none; z-index: 80 }
+  .toast.show { opacity: 1; transform: translateY(0) }
 </style>
 
 <header class="site-header">
@@ -108,7 +118,7 @@ title: CRUDMan NestJS
 
 <section id="home" class="hero">
   <div class="container">
-    <h1>crudman-nestjs</h1>
+    <h1>crudman-nestjs <span class="badge-nest">for NestJS</span></h1>
     <p>A minimal, adapter-driven CRUD layer for <strong>NestJS</strong>. From zero to production in minutes—no boilerplate, no fuss. Decorate, ship, scale.</p>
     <div class="cta">
       <a class="btn primary" href="https://github.com/jinujd/crudman-nestjs#readme">Get Started</a>
@@ -137,6 +147,14 @@ $ DELETE /api/companies/:id</pre>
     </div>
   </div>
 </section>
+
+<div class="trust">
+  <a href="https://github.com/jinujd/crudman-nestjs" target="_blank" rel="noopener"><img alt="GitHub stars" src="https://img.shields.io/github/stars/jinujd/crudman-nestjs?style=flat&color=00113a&labelColor=f8f2bf&label=stars"></a>
+  <a href="https://www.npmjs.com/package/crudman-nestjs" target="_blank" rel="noopener"><img alt="NPM downloads" src="https://img.shields.io/npm/dm/crudman-nestjs.svg?logo=npm&logoColor=white&color=00113a&labelColor=f8f2bf&label=downloads"></a>
+  <a href="https://github.com/jinujd/crudman-nestjs/actions" target="_blank" rel="noopener"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/jinujd/crudman-nestjs/node.js.yml?branch=main&label=CI&color=00113a&labelColor=f8f2bf"></a>
+  <a href="https://github.com/jinujd/crudman-nestjs/discussions" target="_blank" rel="noopener"><img alt="Chat" src="https://img.shields.io/badge/Chat-Discussions-00113a.svg?labelColor=f8f2bf"></a>
+  <img alt="License" src="https://img.shields.io/badge/license-MIT-00113a.svg?labelColor=f8f2bf">
+ </div>
 
 <div class="container">
   <h2 id="features" style="color:#2a225f">Why crudman?</h2>
@@ -217,7 +235,7 @@ export class UsersController extends CrudControllerBase('users') {}</code></pre>
   </div>
 
   <h2 id="readme" style="color:#2a225f">README</h2>
-  <div id="readme-container" class="card" style="overflow:auto; max-height: 60vh"></div>
+  <div id="readme-container" class="card" style="overflow:auto; max-height: 80vh"></div>
 
   <h2 id="about" style="color:#2a225f">About</h2>
   <div class="author-card">
@@ -261,11 +279,13 @@ export class UsersController extends CrudControllerBase('users') {}</code></pre>
         .replace(/(<li>[^<]*<\/li>\n?)+/g, (block) => `<ul>${block}</ul>`)
         .replace(/`([^`]+)`/g, '<code>$1</code>')
         .replace(/\n\n/g, '<br/><br/>')
-      // Restore fenced code blocks with escaped HTML inside
+      // Restore fenced code blocks with escaped HTML inside and add copy buttons
       html = html.replace(/@@CODEBLOCK_(\d+)@@/g, (_m, idx) => {
         const i = Number(idx)
-        const esc = String(codeBlocks[i]).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
-        return `<pre><code>${esc}</code></pre>`
+        const raw = String(codeBlocks[i])
+        const esc = raw.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
+        const btn = `<button class=\"copy-btn\" data-code=\"${raw.replace(/"/g, '&quot;').replace(/`/g, '\\`')}\">Copy</button>`
+        return `<pre><code>${esc}</code>${btn}</pre>`
       })
       const el = document.getElementById('readme-container')
       if (el) {
@@ -316,5 +336,21 @@ export class UsersController extends CrudControllerBase('users') {}</code></pre>
     links.forEach(a => a.addEventListener('click', () => {
       setTimeout(() => setActive(a), 100)
     }))
+  })()
+
+  // Copy handling + toast
+  (function() {
+    const toast = document.createElement('div')
+    toast.className = 'toast'
+    toast.textContent = 'Copied to clipboard'
+    document.body.appendChild(toast)
+    const showToast = () => { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 1200) }
+    document.addEventListener('click', async (e) => {
+      const t = e.target
+      if (t && t.classList && t.classList.contains('copy-btn')) {
+        const code = t.getAttribute('data-code') || ''
+        try { await navigator.clipboard.writeText(code); showToast() } catch {}
+      }
+    })
   })()
 </script>
