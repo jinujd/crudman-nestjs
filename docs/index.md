@@ -6,13 +6,14 @@ title: CRUDMan NestJS
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
   :root {
-    --royal-navy: #0b1f3a;
-    --royal-purple: #352D77;
-    --royal-gold: #c9a227;
-    --royal-cream: #f6f3ea;
-    --accent-a: #ff6b6b;
-    --accent-b: #22c55e;
-    --accent-c: #f59e0b;
+    --royal-crimson: #890304;
+    --royal-navy: #00113a;
+    --royal-purple: #002263;
+    --royal-gold: #f8f2bf;
+    --royal-cream: #e8e5c3;
+    --accent-a: #890304; /* crimson */
+    --accent-b: #002263; /* royal blue */
+    --accent-c: #f8f2bf; /* soft gold */
   }
   html, body { margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: var(--royal-cream); color: var(--royal-navy); scroll-behavior: smooth; }
   a { color: var(--royal-gold); text-decoration: none; }
@@ -22,6 +23,7 @@ title: CRUDMan NestJS
   .hero .cta { margin-top: 18px; display: flex; gap: 12px; }
   .btn { padding: 12px 16px; border-radius: 2px; border: 2px solid rgba(255,255,255,.2); color: white; }
   .btn.primary { background: var(--royal-gold); color: var(--royal-navy); border-color: var(--royal-gold); font-weight: 600; }
+  .btn { border-color: rgba(248,242,191,.4) }
   .container { max-width: 1060px; margin: 0 auto; padding: 0 20px; }
   .logo-wrap { display:flex; justify-content:center; }
   .logo-badge { background: #fff; border-radius: 999px; padding: 12px; box-shadow: 0 6px 22px rgba(0,0,0,.25); display:inline-block; }
@@ -51,7 +53,7 @@ title: CRUDMan NestJS
   .ticon { width: 16px; height: 16px; vertical-align: -2px; margin-right: 6px; opacity: 0.9 }
   .icon, .ticon { stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round }
   .icon-badge { width: 28px; height: 28px; vertical-align: -6px; margin-right: 8px }
-  .footer { text-align:center; padding: 36px 24px; color: #ffffff; background: linear-gradient(160deg, var(--royal-purple), var(--royal-navy)); border-top: 1px solid rgba(255,255,255,.12); margin-top: 48px; }
+  .footer { text-align:center; padding: 36px 24px; color: #ffffff; background: linear-gradient(160deg, var(--royal-crimson), var(--royal-navy)); border-top: 1px solid rgba(255,255,255,.12); margin-top: 48px; }
   /* Animations */
   @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes float { 0% { transform: translateY(0) } 50% { transform: translateY(-6px) } 100% { transform: translateY(0) } }
@@ -63,14 +65,14 @@ title: CRUDMan NestJS
   .card:nth-child(2) { animation-delay: .1s }
   .card:nth-child(3) { animation-delay: .2s }
   /* Header */
-  .site-header { position: sticky; top: 0; z-index: 60; background: rgba(255,255,255,0.75); backdrop-filter: saturate(180%) blur(14px); border-bottom: 1px solid #eee7d0; box-shadow: 0 6px 24px rgba(11,31,58,0.06); }
+  .site-header { position: sticky; top: 0; z-index: 60; background: rgba(232,229,195,0.75); backdrop-filter: saturate(180%) blur(14px); border-bottom: 1px solid #e2dfc6; box-shadow: 0 6px 24px rgba(0,17,58,0.08); }
   .site-header .nav { display:flex; align-items:center; justify-content:space-between; max-width:1060px; margin:0 auto; padding: 12px 20px; }
   .site-header .brand { display:flex; align-items:center; gap:12px; color: var(--royal-purple); font-weight: 800; letter-spacing: .2px; font-size: 18px; }
   .site-header .brand img { width: 36px; height: 36px; filter: drop-shadow(0 2px 8px rgba(11,31,58,.2)); }
   .site-header .links { display:flex; gap: 10px; align-items:center; }
   .site-header .links a { color: var(--royal-navy); padding: 8px 12px; border-radius: 2px; border: 1px solid transparent; transition: all .2s ease; font-weight: 600; }
   .site-header .links a:hover { background:#f3efe0; border-color: #e8dfc4; transform: translateY(-1px) }
-  .site-header .links .cta-gh { background: var(--royal-purple); color: #fff; border-color: var(--royal-purple); box-shadow: 0 6px 24px rgba(53,45,119,.25); }
+  .site-header .links .cta-gh { background: var(--royal-crimson); color: #fff; border-color: var(--royal-crimson); box-shadow: 0 6px 24px rgba(137,3,4,.25); }
   .site-header .links .cta-gh:hover { filter: brightness(1.05) }
 </style>
 
