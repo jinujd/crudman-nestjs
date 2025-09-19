@@ -5,9 +5,9 @@
   <!-- Outer ring -->
   <circle cx="128" cy="128" r="116" fill="none" stroke="#000" stroke-width="8" />
 
-  <!-- Hat (simple Red Hat–style: wide brim + tilted crown) -->
-  <ellipse cx="128" cy="84" rx="85" ry="14" fill="#000" />
-  <path d="M82 58c22-10 92-8 104 6 2 3-2 10-6 12-26-6-60-5-92 2-6-3-8-10-6-13z" fill="#000" transform="rotate(-8 128 72)" />
+  <!-- Hat (smaller, tilted) -->
+  <ellipse cx="128" cy="86" rx="70" ry="10" fill="#000" />
+  <path d="M90 64c18-8 76-6 86 5 2 3-2 9-5 10-23-5-54-4-82 2-5-2-7-9-5-11z" fill="#000" transform="rotate(-8 128 76)" />
 
   <!-- Monkey face silhouette -->
   <ellipse cx="128" cy="138" rx="56" ry="46" fill="#fff" stroke="#000" stroke-width="6" />
@@ -15,14 +15,14 @@
   <ellipse cx="72" cy="138" rx="18" ry="22" fill="#fff" stroke="#000" stroke-width="6" />
   <ellipse cx="184" cy="138" rx="18" ry="22" fill="#fff" stroke="#000" stroke-width="6" />
 
-  <!-- Sunglasses (cooling glass) -->
-  <rect x="92" y="124" width="30" height="14" rx="4" fill="#000" />
-  <rect x="134" y="124" width="30" height="14" rx="4" fill="#000" />
-  <rect x="122" y="129" width="12" height="4" fill="#000" />
+  <!-- Sunglasses (bigger) -->
+  <rect x="86" y="122" width="38" height="18" rx="5" fill="#000" />
+  <rect x="132" y="122" width="38" height="18" rx="5" fill="#000" />
+  <rect x="124" y="130" width="16" height="5" fill="#000" />
 
-  <!-- Snout and mouth -->
-  <ellipse cx="128" cy="152" rx="26" ry="18" fill="#fff" stroke="#000" stroke-width="4" />
-  <path d="M116 158c6 6 18 6 24 0" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round" />
+  <!-- Snout and smiling mouth -->
+  <ellipse cx="128" cy="154" rx="26" ry="18" fill="#fff" stroke="#000" stroke-width="4" />
+  <path d="M110 154 Q 128 172 146 154" fill="none" stroke="#000" stroke-width="3.5" stroke-linecap="round" />
 
   <!-- Subtle code brackets hint -->
   <path d="M34 98c0-10 8-18 18-18" fill="none" stroke="#000" stroke-width="6" stroke-linecap="round"/>
