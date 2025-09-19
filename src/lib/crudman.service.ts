@@ -76,9 +76,17 @@ export class CrudmanService {
   private send(res: any, body: any) { if (res && !res.headersSent) res.send(body); return body }
   private sendNegotiated(res: any, action: 'list'|'details', result: any) {
     if (!res || res.headersSent) return result
-    const headerType = (res.req?.headers?.['x-content-type'] || res.req?.headers?.['X-Content-Type'] || '').toString().toLowerCase()
+    const rawHeader = (res.req?.headers?.['x-content-type'] || res.req?.headers?.['X-Content-Type'] || res.req?.headers?.accept || '').toString().toLowerCase()
     const allowed = CrudmanRegistry.get().getExportContentTypes()
-    const requested = headerType || 'json'
+    // normalize aliases and mime types
+    const normalized = (() => {
+      if (!rawHeader) return ''
+      if (rawHeader.includes('excel') || rawHeader.includes('xlsx') || rawHeader.includes('sheet')) return 'excel'
+      if (rawHeader.includes('csv') || rawHeader.includes('text/csv')) return 'csv'
+      if (rawHeader.includes('json') || rawHeader.includes('application/json')) return 'json'
+      return rawHeader
+    })()
+    const requested = normalized || 'json'
     const type = allowed.includes(requested as any) ? requested : 'json'
     if (type === 'csv') {
       res.setHeader('Content-Type', 'text/csv; charset=utf-8')

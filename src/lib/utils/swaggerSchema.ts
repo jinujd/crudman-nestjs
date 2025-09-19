@@ -203,7 +203,7 @@ export function enhanceCrudSwaggerDocument(document: any) {
       // x-content-type header (respect configured allowed types)
       const reg = CrudmanRegistry.get()
       const allowed = reg.getExportContentTypes()
-      pushParam({ in: 'header', name: 'x-content-type', required: false, description: 'Response content type (default json)', schema: { type: 'string', enum: allowed, default: 'json' } })
+      pushParam({ in: 'header', name: 'x-content-type', required: false, description: 'Response content type (default json). Aliases: xlsx→excel', schema: { type: 'string', enum: allowed, default: 'json' } })
       item.get.parameters = params
     }
     // Details: ensure param name matches selectionField and add param definition
