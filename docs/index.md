@@ -28,6 +28,16 @@ title: CRUDMan NestJS
   table.features th, table.features td { padding: 12px 14px; border-bottom: 1px solid #eee7d0; vertical-align: top; }
   table.features th { background: #f9f6eb; color: var(--royal-purple); text-align: left; font-weight: 700; }
   .footer { text-align:center; padding: 24px; color: #6c7390; }
+  /* Animations */
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes float { 0% { transform: translateY(0) } 50% { transform: translateY(-6px) } 100% { transform: translateY(0) } }
+  .hero h1 { animation: fadeUp .6s ease-out both; }
+  .hero p { animation: fadeUp .7s ease-out both; }
+  .hero .cta { animation: fadeUp .8s ease-out both; }
+  .logo { animation: float 4s ease-in-out infinite; }
+  .card { animation: fadeUp .6s ease-out both; }
+  .card:nth-child(2) { animation-delay: .1s }
+  .card:nth-child(3) { animation-delay: .2s }
 </style>
 
 <section class="hero">
