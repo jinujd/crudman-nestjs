@@ -15,14 +15,19 @@
   <ellipse cx="72" cy="138" rx="18" ry="22" fill="#fff" stroke="#000" stroke-width="6" />
   <ellipse cx="184" cy="138" rx="18" ry="22" fill="#fff" stroke="#000" stroke-width="6" />
 
-  <!-- Sunglasses (bigger) -->
-  <rect x="86" y="122" width="38" height="18" rx="5" fill="#000" />
-  <rect x="132" y="122" width="38" height="18" rx="5" fill="#000" />
-  <rect x="124" y="130" width="16" height="5" fill="#000" />
+  <!-- Sunglasses (taller, stroke only) -->
+  <rect x="84" y="116" width="42" height="26" rx="6" fill="none" stroke="#000" stroke-width="4" />
+  <rect x="132" y="116" width="42" height="26" rx="6" fill="none" stroke="#000" stroke-width="4" />
+  <line x1="126" y1="129" x2="130" y2="129" stroke="#000" stroke-width="4" stroke-linecap="round" />
 
-  <!-- Snout and smiling mouth -->
+  <!-- Snout and big teeth -->
   <ellipse cx="128" cy="154" rx="26" ry="18" fill="#fff" stroke="#000" stroke-width="4" />
-  <path d="M110 154 Q 128 172 146 154" fill="none" stroke="#000" stroke-width="3.5" stroke-linecap="round" />
+  <!-- Teeth box (stroke only) -->
+  <rect x="110" y="152" width="36" height="12" rx="2" fill="none" stroke="#000" stroke-width="3" />
+  <!-- Teeth separators -->
+  <line x1="118" y1="152" x2="118" y2="164" stroke="#000" stroke-width="3" />
+  <line x1="128" y1="152" x2="128" y2="164" stroke="#000" stroke-width="3" />
+  <line x1="138" y1="152" x2="138" y2="164" stroke="#000" stroke-width="3" />
 
   <!-- Subtle code brackets hint -->
   <path d="M34 98c0-10 8-18 18-18" fill="none" stroke="#000" stroke-width="6" stroke-linecap="round"/>
