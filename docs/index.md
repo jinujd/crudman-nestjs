@@ -160,7 +160,7 @@ export class UsersController extends CrudControllerBase('users') {}</code></pre>
 
   <h2 id="about" style="color:#2a225f">About</h2>
   <div class="card">
-    <p class="muted" style="margin:0 0 8px">Maintained by</p>
+    <p class="muted" style="margin:0 0 8px">Author</p>
     <div style="font-weight:700; color:var(--royal-navy); margin-bottom:8px">Jinu Joseph Daniel</div>
     <div>Email: <a href="mailto:jinujosephdaniel@gmail.com">jinujosephdaniel@gmail.com</a></div>
     <div>Phone: <a href="tel:+918157811122">+91 81578 111 22</a></div>
@@ -183,11 +183,12 @@ export class UsersController extends CrudControllerBase('users') {}</code></pre>
         codeBlocks.push(code)
         return `@@CODEBLOCK_${codeBlocks.length - 1}@@`
       })
-      // Headings, lists, inline code (keep existing HTML intact)
+      // Headings, lists, quotes, inline code (keep existing HTML intact)
       let html = tmp
         .replace(/^###\s+(.*)$/gm, '<h3>$1</h3>')
         .replace(/^##\s+(.*)$/gm, '<h2>$1</h2>')
         .replace(/^#\s+(.*)$/gm, '<h1>$1</h1>')
+        .replace(/^>\s?(.*)$/gm, '<blockquote>$1</blockquote>')
         .replace(/^\-\s+(.*)$/gm, '<li>$1</li>')
         .replace(/(<li>[^<]*<\/li>\n?)+/g, (block) => `<ul>${block}</ul>`)
         .replace(/`([^`]+)`/g, '<code>$1</code>')
@@ -205,10 +206,12 @@ export class UsersController extends CrudControllerBase('users') {}</code></pre>
         const imgs = el.querySelectorAll('img')
         imgs.forEach((img) => {
           const src = img.getAttribute('src') || ''
-          if (/^\/?docs\//.test(src)) {
+          if (/^\/?docs\//.test(src) || /^\.\/docs\//.test(src)) {
             img.setAttribute('src', src.replace(/^\/?docs\//, 'assets/'))
           } else if (src.includes('docs/assets/')) {
             img.setAttribute('src', src.replace(/.*docs\/assets\//, 'assets/'))
+          } else if (/^\.\/?docs\/assets\//.test(src)) {
+            img.setAttribute('src', src.replace(/^\.\/?docs\/assets\//, 'assets/'))
           }
         })
       }
