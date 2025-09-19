@@ -44,8 +44,9 @@ title: CRUDMan NestJS
   table.features th, table.features td { padding: 12px 14px; border-bottom: 1px solid #eee7d0; vertical-align: top; }
   table.features th { background: #f9f6eb; color: var(--royal-purple); text-align: left; font-weight: 700; }
   /* Icons */
-  .icon { width: 20px; height: 20px; vertical-align: -4px; margin-right: 8px; fill: currentColor }
-  .ticon { width: 16px; height: 16px; vertical-align: -2px; margin-right: 6px; fill: currentColor; opacity: 0.9 }
+  .icon { width: 20px; height: 20px; vertical-align: -4px; margin-right: 8px; }
+  .ticon { width: 16px; height: 16px; vertical-align: -2px; margin-right: 6px; opacity: 0.9 }
+  .icon, .ticon { stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round }
   .footer { text-align:center; padding: 36px 24px; color: #ffffff; background: linear-gradient(160deg, var(--royal-purple), var(--royal-navy)); border-top: 1px solid rgba(255,255,255,.12); margin-top: 48px; }
   /* Animations */
   @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
@@ -118,15 +119,15 @@ $ DELETE /api/companies/:id</pre>
   <h2 id="features" style="color:#2a225f">Why crudman?</h2>
   <div class="grid">
     <div class="card">
-      <h3><svg class="icon" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z"/></svg>Plug-and-play</h3>
+      <h3><svg class="icon" viewBox="0 0 24 24"><path d="M13 2L3 15h7l-2 7 10-13h-7z"/></svg>Plug-and-play</h3>
       <p class="muted">Drop-in module, instant CRUD routes, and elegant overrides when you need full control.</p>
     </div>
     <div class="card">
-      <h3><svg class="icon" viewBox="0 0 24 24"><path d="M12 2l4 4-4 4-4-4 4-4zm0 8l4 4-4 4-4-4 4-4z"/></svg>Adapter-first</h3>
+      <h3><svg class="icon" viewBox="0 0 24 24"><path d="M4 12l8-5 8 5-8 5-8-5z"/><path d="M4 16l8 5 8-5"/></svg>Adapter-first</h3>
       <p class="muted">TypeORM today, Sequelize-ready tomorrow—swap ORM or validators without upheaval.</p>
     </div>
     <div class="card">
-      <h3><svg class="icon" viewBox="0 0 24 24"><path d="M3 4h18v4H3V4zm0 6h12v10H3V10zm14 0h4v10h-4V10z"/></svg>Swagger-native</h3>
+      <h3><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>Swagger-native</h3>
       <p class="muted">Entity-driven schemas with polished response envelopes for list, details, create, update, delete.</p>
     </div>
   </div>
@@ -134,20 +135,20 @@ $ DELETE /api/companies/:id</pre>
   <h2 style="color:#2a225f">Features</h2>
   <table class="features">
     <tr><th>Capability</th><th>What you get</th></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M3 6h18v2H3zM3 11h18v2H3zM3 16h18v2H3z"/></svg>Auto CRUD endpoints</td><td>Spin up list, details, create, update, delete—in a single decorator or base class.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M5 12h14v2H5zM5 7h9v2H5zM5 17h9v2H5z"/></svg>PATCH-first updates</td><td>Modern partial updates by default (configurable to PUT).</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M4 7h6v10H4zM14 7h6v10h-6z"/></svg>Relations by default</td><td>Include all relations automatically; fine-tune with include/exclude patterns.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M12 4l8 8-8 8-8-8 8-8z"/></svg>Attributes selection</td><td>All columns by default, plus include/exclude to shape payloads.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M3 5h18v4H3zM3 11h12v8H3zM17 11h4v8h-4z"/></svg>Powerful querying</td><td>Clean filtering, sorting, pagination, and keyword search with safe whitelists.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20zm1 5h-2v6h6v-2h-4z"/></svg>Validation built-in</td><td>Fastest-validator out of the box; swap to Joi/Zod via adapters.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M4 6h16v12H4zM6 8h12v8H6z"/></svg>Caching</td><td>Per-endpoint NodeCache with smart invalidation after writes.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M4 10h16v4H4zM4 6h10v2H4zM4 16h10v2H4z"/></svg>Hooks everywhere</td><td>Before/after action, query, and validation—extend without forking.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M2 6h20v2H2zM2 11h14v2H2zM2 16h20v2H2z"/></svg>Swagger enhancer</td><td>Auto envelopes for list/details/create/update/delete; entity schemas derived from metadata.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M12 7l5 5-5 5-5-5 5-5z"/></svg>Save (upsert)</td><td>Single endpoint to create or update based on presence of an id.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M5 4h14v4H5zM5 10h9v4H5zM5 16h9v4H5z"/></svg>Programmatic calls</td><td>Call other sections’ actions safely within hooks or services.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M4 6h16v2H4zM4 10h16v2H4zM4 14h10v2H4z"/></svg>CSV/Excel export</td><td>One header switch away—deliver CSV or Excel without code changes.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M4 4h16v6H4zM4 12h16v8H4z"/></svg>Bulk import</td><td>Effortless data onramp with conflict policies, batching, and dry runs.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M6 6h12v2H6zM6 10h12v2H6zM6 14h8v2H6z"/></svg>Bulk delete</td><td>Clear data at scale with safety valves and transparent reporting.</td></tr>
+    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Auto CRUD endpoints</td><td>Spin up list, details, create, update, delete—in a single decorator or base class.</td></tr>
+    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M4 12h16M4 7h10M4 17h10"/></svg>PATCH-first updates</td><td>Modern partial updates by default (configurable to PUT).</td></tr>
+    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M7 7h4v10H7zM13 7h4v10h-4z"/></svg>Relations by default</td><td>Include all relations automatically; fine-tune with include/exclude patterns.</td></tr>
+    <tr><td><svg class="ticon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Attributes selection</td><td>All columns by default, plus include/exclude to shape payloads.</td></tr>
+    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M4 4h16v6H4zM4 12h10v8H4zM16 12h4v8h-4z"/></svg>Powerful querying</td><td>Clean filtering, sorting, pagination, and keyword search with safe whitelists.</td></tr>
+    <tr><td><svg class="ticon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 7v6h5"/></svg>Validation built-in</td><td>Fastest-validator out of the box; swap to Joi/Zod via adapters.</td></tr>
+    <tr><td><svg class="ticon" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12"/><rect x="6" y="8" width="12" height="8"/></svg>Caching</td><td>Per-endpoint NodeCache with smart invalidation after writes.</td></tr>
+    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M4 6h10M4 10h16M4 14h16M4 18h10"/></svg>Hooks everywhere</td><td>Before/after action, query, and validation—extend without forking.</td></tr>
+    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>Swagger enhancer</td><td>Auto envelopes for list/details/create/update/delete; entity schemas derived from metadata.</td></tr>
+    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M12 5l6 6H6l6-6zM6 15h12"/></svg>Save (upsert)</td><td>Single endpoint to create or update based on presence of an id.</td></tr>
+    <tr><td><svg class="ticon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M7 8h10M7 12h6"/></svg>Programmatic calls</td><td>Call other sections’ actions safely within hooks or services.</td></tr>
+    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><rect x="4" y="18" width="16" height="2"/></svg>CSV/Excel export</td><td>One header switch away—deliver CSV or Excel without code changes.</td></tr>
+    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><rect x="4" y="3" width="16" height="4"/></svg>Bulk import</td><td>Effortless data onramp with conflict policies, batching, and dry runs.</td></tr>
+    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M3 6h18M6 6v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Bulk delete</td><td>Clear data at scale with safety valves and transparent reporting.</td></tr>
   </table>
 
   <h2 style="color:#2a225f">Install</h2>
