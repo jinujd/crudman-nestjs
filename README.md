@@ -3,7 +3,7 @@
 <p align="center">
   <img src="docs/assets/crudman-logo.svg" alt="CRUD Man Logo" width="140" />
   <br/>
-  <sub style="color:#3F4C70">Minimal, adapter-driven CRUD layer for NestJS.</sub>
+<sub style="color:#3F4C70">Minimal, adapter-driven CRUD layer for <strong>NestJS</strong>.</sub>
   <br/>
   <a href="https://jinujd.github.io/crudman-nestjs">Website</a> · <a href="https://github.com/jinujd/crudman-nestjs">GitHub</a>
   <br/>

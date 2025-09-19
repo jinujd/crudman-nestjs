@@ -102,7 +102,7 @@ title: CRUDMan NestJS
 <section id="home" class="hero">
   <div class="container">
     <h1>crudman-nestjs</h1>
-    <p>From zero to production-grade CRUD in minutes—no boilerplate, no fuss. Decorate, ship, scale.</p>
+    <p>A minimal, adapter-driven CRUD layer for <strong>NestJS</strong>. From zero to production in minutes—no boilerplate, no fuss. Decorate, ship, scale.</p>
     <div class="cta">
       <a class="btn primary" href="https://github.com/jinujd/crudman-nestjs#readme">Get Started</a>
       <a class="btn" href="https://github.com/jinujd/crudman-nestjs">GitHub</a>
