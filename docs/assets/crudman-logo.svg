@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
   <title id="title">CRUD Man Logo</title>
-  <desc id="desc">Minimal black-and-white monkey face with a tilted hat and sunglasses.</desc>
+  <desc id="desc">Minimal black-and-white monkey face with a taller hat, sunglasses, eyes inside frames, and a magic wand.</desc>
 
   <!-- Outer ring -->
   <circle cx="128" cy="128" r="116" fill="none" stroke="#000" stroke-width="8" />
 
-  <!-- Hat (smaller, tilted) -->
-  <ellipse cx="128" cy="86" rx="70" ry="10" fill="#000" />
-  <path d="M90 64c18-8 76-6 86 5 2 3-2 9-5 10-23-5-54-4-82 2-5-2-7-9-5-11z" fill="#000" transform="rotate(-8 128 76)" />
+  <!-- Hat (taller top, tilted) -->
+  <ellipse cx="128" cy="82" rx="82" ry="14" fill="#000" />
+  <path d="M88 46c18-10 96-8 108 6 3 4-2 12-6 13-30-6-76-5-104 2-6-3-9-12-8-15z" fill="#000" transform="rotate(-8 128 70)" />
 
   <!-- Monkey face silhouette -->
   <ellipse cx="128" cy="138" rx="56" ry="46" fill="#fff" stroke="#000" stroke-width="6" />
@@ -15,15 +15,16 @@
   <ellipse cx="72" cy="138" rx="18" ry="22" fill="#fff" stroke="#000" stroke-width="6" />
   <ellipse cx="184" cy="138" rx="18" ry="22" fill="#fff" stroke="#000" stroke-width="6" />
 
-  <!-- Sunglasses (taller, stroke only) with popping eyes -->
+  <!-- Sunglasses (taller, stroke only) -->
   <rect x="84" y="116" width="42" height="26" rx="6" fill="none" stroke="#000" stroke-width="4" />
   <rect x="132" y="116" width="42" height="26" rx="6" fill="none" stroke="#000" stroke-width="4" />
   <line x1="126" y1="129" x2="130" y2="129" stroke="#000" stroke-width="4" stroke-linecap="round" />
-  <!-- Eyes popping out above frames -->
-  <circle cx="105" cy="110" r="6" fill="#fff" stroke="#000" stroke-width="3" />
-  <circle cx="149" cy="110" r="6" fill="#fff" stroke="#000" stroke-width="3" />
-  <circle cx="105" cy="110" r="2" fill="#000" />
-  <circle cx="149" cy="110" r="2" fill="#000" />
+
+  <!-- Eyes inside frames, slightly below center (not perfectly centered) -->
+  <circle cx="105" cy="130" r="5" fill="#fff" stroke="#000" stroke-width="2" />
+  <circle cx="149" cy="132" r="5" fill="#fff" stroke="#000" stroke-width="2" />
+  <circle cx="105" cy="130" r="2" fill="#000" />
+  <circle cx="149" cy="132" r="2" fill="#000" />
 
   <!-- Snout and big teeth -->
   <ellipse cx="128" cy="154" rx="26" ry="18" fill="#fff" stroke="#000" stroke-width="4" />
@@ -37,6 +38,12 @@
   <!-- Subtle code brackets hint -->
   <path d="M34 98c0-10 8-18 18-18" fill="none" stroke="#000" stroke-width="6" stroke-linecap="round"/>
   <path d="M204 80c10 0 18 8 18 18" fill="none" stroke="#000" stroke-width="6" stroke-linecap="round"/>
+
+  <!-- Magic wand (star + stick) at lower right -->
+  <g transform="translate(180,190) rotate(-20)">
+    <line x1="0" y1="0" x2="36" y2="-12" stroke="#000" stroke-width="4" stroke-linecap="round" />
+    <polygon points="40,-14 44,-6 52,-4 44,-2 40,6 36,-2 28,-4 36,-6" fill="none" stroke="#000" stroke-width="3" />
+  </g>
 
   <!-- Accessibility-friendly contrast rectangle for white fills when shown on white pages (invisible stroke) -->
   <rect x="0" y="0" width="256" height="256" fill="none" stroke="none" />
