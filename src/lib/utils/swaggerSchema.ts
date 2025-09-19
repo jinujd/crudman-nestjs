@@ -96,6 +96,48 @@ export function enhanceCrudSwaggerDocument(document: any) {
         }
       }
     }
+
+    // Create/Save: POST (collection path)
+    if (item.post) {
+      item.post.responses = item.post.responses || {}
+      item.post.responses['200'] = item.post.responses['200'] || {}
+      item.post.responses['200'].content = {
+        'application/json': {
+          schema: buildDetailEnvelopeSchema(ref)
+        }
+      }
+    }
+
+    // Update: PATCH/PUT (id path)
+    if (item.patch) {
+      item.patch.responses = item.patch.responses || {}
+      item.patch.responses['200'] = item.patch.responses['200'] || {}
+      item.patch.responses['200'].content = {
+        'application/json': {
+          schema: buildDetailEnvelopeSchema(ref)
+        }
+      }
+    }
+    if (item.put) {
+      item.put.responses = item.put.responses || {}
+      item.put.responses['200'] = item.put.responses['200'] || {}
+      item.put.responses['200'].content = {
+        'application/json': {
+          schema: buildDetailEnvelopeSchema(ref)
+        }
+      }
+    }
+
+    // Delete: DELETE (id path)
+    if (item.delete) {
+      item.delete.responses = item.delete.responses || {}
+      item.delete.responses['200'] = item.delete.responses['200'] || {}
+      item.delete.responses['200'].content = {
+        'application/json': {
+          schema: buildDeleteEnvelopeSchema()
+        }
+      }
+    }
   }
 }
 
@@ -147,6 +189,22 @@ function buildDetailEnvelopeSchema(itemRef: any) {
     type: 'object',
     properties: {
       data: itemRef,
+      errors: { type: 'array', items: {} },
+      success: { type: 'boolean' }
+    }
+  }
+}
+
+function buildDeleteEnvelopeSchema() {
+  return {
+    type: 'object',
+    properties: {
+      data: {
+        type: 'object',
+        properties: {
+          message: { type: 'string' }
+        }
+      },
       errors: { type: 'array', items: {} },
       success: { type: 'boolean' }
     }
