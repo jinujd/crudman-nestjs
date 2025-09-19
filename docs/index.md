@@ -10,6 +10,9 @@ title: CRUDMan NestJS
     --royal-purple: #352D77;
     --royal-gold: #c9a227;
     --royal-cream: #f6f3ea;
+    --accent-a: #ff6b6b;
+    --accent-b: #22c55e;
+    --accent-c: #f59e0b;
   }
   html, body { margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: var(--royal-cream); color: var(--royal-navy); scroll-behavior: smooth; }
   a { color: var(--royal-gold); text-decoration: none; }
@@ -47,6 +50,7 @@ title: CRUDMan NestJS
   .icon { width: 20px; height: 20px; vertical-align: -4px; margin-right: 8px; }
   .ticon { width: 16px; height: 16px; vertical-align: -2px; margin-right: 6px; opacity: 0.9 }
   .icon, .ticon { stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round }
+  .icon-badge { width: 28px; height: 28px; vertical-align: -6px; margin-right: 8px }
   .footer { text-align:center; padding: 36px 24px; color: #ffffff; background: linear-gradient(160deg, var(--royal-purple), var(--royal-navy)); border-top: 1px solid rgba(255,255,255,.12); margin-top: 48px; }
   /* Animations */
   @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
@@ -119,15 +123,35 @@ $ DELETE /api/companies/:id</pre>
   <h2 id="features" style="color:#2a225f">Why crudman?</h2>
   <div class="grid">
     <div class="card">
-      <h3><svg class="icon" viewBox="0 0 24 24"><path d="M13 2L3 15h7l-2 7 10-13h-7z"/></svg>Plug-and-play</h3>
+      <h3>
+        <svg class="icon-badge" viewBox="0 0 24 24" style="color:var(--accent-a)">
+          <circle cx="12" cy="12" r="10" fill="currentColor" opacity=".12"/>
+          <path d="M13 2L3 15h7l-2 7 10-13h-7z" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Plug-and-play
+      </h3>
       <p class="muted">Drop-in module, instant CRUD routes, and elegant overrides when you need full control.</p>
     </div>
     <div class="card">
-      <h3><svg class="icon" viewBox="0 0 24 24"><path d="M4 12l8-5 8 5-8 5-8-5z"/><path d="M4 16l8 5 8-5"/></svg>Adapter-first</h3>
+      <h3>
+        <svg class="icon-badge" viewBox="0 0 24 24" style="color:var(--accent-b)">
+          <circle cx="12" cy="12" r="10" fill="currentColor" opacity=".12"/>
+          <path d="M4 12l8-5 8 5-8 5-8-5z" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M4 16l8 5 8-5" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Adapter-first
+      </h3>
       <p class="muted">TypeORM today, Sequelize-ready tomorrow—swap ORM or validators without upheaval.</p>
     </div>
     <div class="card">
-      <h3><svg class="icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>Swagger-native</h3>
+      <h3>
+        <svg class="icon-badge" viewBox="0 0 24 24" style="color:var(--accent-c)">
+          <circle cx="12" cy="12" r="10" fill="currentColor" opacity=".12"/>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M14 2v6h6" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Swagger-native
+      </h3>
       <p class="muted">Entity-driven schemas with polished response envelopes for list, details, create, update, delete.</p>
     </div>
   </div>
