@@ -6,9 +6,9 @@
   <circle cx="128" cy="128" r="116" fill="none" stroke="#000" stroke-width="8" />
 
   <!-- Hat (slanted, taller crown, narrower brim) -->
-  <g transform="rotate(-12 128 82)">
-    <ellipse cx="128" cy="86" rx="66" ry="12" fill="#000" />
-    <rect x="90" y="42" width="76" height="44" rx="10" fill="#000" />
+  <g transform="rotate(12 128 92)">
+    <ellipse cx="128" cy="92" rx="64" ry="12" fill="#000" />
+    <rect x="92" y="40" width="72" height="48" rx="10" fill="#000" />
   </g>
 
   <!-- Monkey face silhouette -->
