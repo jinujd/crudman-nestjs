@@ -26,7 +26,23 @@ export const TypeormAdapter: OrmAdapter = {
     const effectiveWhitelist: string[] = (cfg.filtersWhitelist && cfg.filtersWhitelist.length)
       ? cfg.filtersWhitelist
       : repoColumns
-    const sorting = parseSorting(req.query, effectiveWhitelist, qn.sortPrefix || 'sort.')
+    const sortingRequested = parseSorting(req.query, effectiveWhitelist, qn.sortPrefix || 'sort.')
+    // Default sort: createdAt DESC if present, else primary key DESC (fallback to id)
+    const hasCreatedAt = repoColumns.includes('createdAt')
+    const primaryField = Array.isArray((repo as any)?.metadata?.primaryColumns) && (repo as any).metadata.primaryColumns[0]
+      ? (repo as any).metadata.primaryColumns[0].propertyName
+      : 'id'
+    const effectiveSorting = sortingRequested.length
+      ? sortingRequested
+      : (
+        hasCreatedAt
+          ? (
+            primaryField && primaryField !== 'createdAt'
+              ? [ { field: 'createdAt', order: 'DESC' as const }, { field: primaryField, order: 'DESC' as const } ]
+              : [ { field: 'createdAt', order: 'DESC' as const } ]
+          )
+          : [ { field: primaryField, order: 'DESC' as const } ]
+      )
     const { where, filters } = parseFilters(req.query, effectiveWhitelist, {
       minOp: qn.minOp || 'min',
       maxOp: qn.maxOp || 'max',
@@ -85,7 +101,7 @@ export const TypeormAdapter: OrmAdapter = {
 
     const hasLikeFilter = filters.some((f) => f.op === 'like')
     const hasRangeFilter = filters.some((f) => f.op === 'gte' || f.op === 'lte' || f.op === 'gt' || f.op === 'lt' || f.op === 'between')
-    let findOptions: any = { where: convertToTypeormWhere(whereFinal), relations, order: toTypeormOrder(sorting), skip, take, select: normalizeSelect(cfg.attributes, repo) }
+    let findOptions: any = { where: convertToTypeormWhere(whereFinal), relations, order: toTypeormOrder(effectiveSorting), skip, take, select: normalizeSelect(cfg.attributes, repo) }
     if (cfg.onBeforeQuery) {
       const mod = await cfg.onBeforeQuery(findOptions, cfg.model, req, null, cfg.service)
       if (mod) findOptions = mod
@@ -117,8 +133,8 @@ export const TypeormAdapter: OrmAdapter = {
           qb.andWhere(`t.${f.field} < :p_${f.field}`, { [`p_${f.field}`]: f.value })
         }
       }
-      // Sorting
-      for (const s of sorting) {
+      // Sorting (apply default when none specified)
+      for (const s of effectiveSorting) {
         qb.addOrderBy(`t.${s.field}`, s.order as any)
       }
       // Pagination
@@ -165,7 +181,7 @@ export const TypeormAdapter: OrmAdapter = {
       if (mod) items = mod
     }
 
-    return { items, pagination: paginationInfo, filters, sorting }
+    return { items, pagination: paginationInfo, filters, sorting: effectiveSorting }
   },
 
   async details(req, cfg) {

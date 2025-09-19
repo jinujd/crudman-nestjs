@@ -10,7 +10,7 @@ export class FastestValidatorAdapter implements ValidatorAdapter {
 
   generateSchemaFromModel(model: any, isUpdate: boolean, exclude: string[] = ['created_at','modified_at','deleted_at']): any {
     const rules: any = {}
-    let columns: Array<{ propertyName: string; isNullable?: boolean; type?: any; length?: number; isPrimary?: boolean; isGenerated?: boolean; isCreateDate?: boolean; isUpdateDate?: boolean }> = []
+    let columns: Array<{ propertyName: string; isNullable?: boolean; type?: any; length?: number; isPrimary?: boolean; isGenerated?: boolean; isCreateDate?: boolean; isUpdateDate?: boolean; hasDefault?: boolean }> = []
     try {
       const ds = CrudmanRegistry.get().getDataSource?.()
       if (ds && model) {
@@ -29,7 +29,8 @@ export class FastestValidatorAdapter implements ValidatorAdapter {
             isPrimary: c.isPrimary,
             isGenerated: c.isGenerated,
             isCreateDate: c.isCreateDate,
-            isUpdateDate: c.isUpdateDate
+            isUpdateDate: c.isUpdateDate,
+            hasDefault: c.default !== undefined
           }))
         }
       }
@@ -50,11 +51,10 @@ export class FastestValidatorAdapter implements ValidatorAdapter {
         if (col.isPrimary || col.isGenerated || col.isCreateDate || col.isUpdateDate) continue
 
         const rule: any = {}
-        if (col.isNullable === false) {
-          rule.optional = false
-        } else {
-          rule.optional = true
-        }
+        // Requiredness: if column is non-nullable but has a DB default, keep it optional.
+        // Otherwise, reflect nullability.
+        if (col.isNullable === false && !col.hasDefault) rule.optional = false
+        else rule.optional = true
 
         const typ = (typeof col.type === 'string' ? col.type.toLowerCase() : col.type)
         if (typ === 'varchar' || typ === 'text' || typ === String) {

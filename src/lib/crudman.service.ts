@@ -74,7 +74,7 @@ export class CrudmanService {
   }
 
   private send(res: any, body: any) { if (res && !res.headersSent) res.send(body); return body }
-  private sendNegotiated(res: any, action: 'list'|'details', result: any, req?: any) {
+  private async sendNegotiated(res: any, action: 'list'|'details', result: any, req?: any) {
     if (!res || res.headersSent) return result
     const rawHeader = (
       req?.headers?.['x-content-type'] || req?.headers?.['X-Content-Type'] || req?.headers?.accept ||
@@ -171,16 +171,11 @@ export class CrudmanService {
       } catch (err) {
         // exceljs not installed or failed → inform user clearly
         res.setHeader('Content-Type', 'application/json; charset=utf-8')
-        const fmt = this.getResponseFormatter()
-        const body = fmt({
-          action,
-          payload: null,
+        const body = {
+          data: null,
           errors: [{ message: 'Excel export requires optional dependency "exceljs". Install with: npm i exceljs' }],
-          success: false,
-          meta: {},
-          req: res?.req,
-          res
-        })
+          success: false
+        }
         return this.send(res, body)
       }
     }
@@ -205,13 +200,13 @@ export class CrudmanService {
     if (cache && cacheCfg) {
       const key = this.cacheKey(section, 'list', req, relations)
       const hit = cache.get<any>(key)
-      if (hit) return this.sendNegotiated(res, 'list', hit, req)
+      if (hit) return await this.sendNegotiated(res, 'list', hit, req)
       const payload = await orm.list(req, { ...actionCfg, relations, service: this })
       const fmt = this.getResponseFormatter()
       const body = fmt({ action: 'list', payload, errors: [], success: true, meta: { pagination: payload.pagination, filters: payload.filters, sorting: payload.sorting }, req, res })
       await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
       cache.set(key, body, typeof cacheCfg === 'object' ? cacheCfg.ttl : undefined)
-      return this.sendNegotiated(res, 'list', body, req)
+      return await this.sendNegotiated(res, 'list', body, req)
     }
     const payload = await orm.list(req, { ...actionCfg, relations, service: this })
     const fmt = this.getResponseFormatter()
@@ -234,13 +229,13 @@ export class CrudmanService {
     if (cache && cacheCfg) {
       const key = this.cacheKey(section, 'details', req, relations)
       const hit = cache.get<any>(key)
-      if (hit) return this.sendNegotiated(res, 'details', hit, req)
+      if (hit) return await this.sendNegotiated(res, 'details', hit, req)
       const entity = await orm.details(req, { ...actionCfg, relations, service: this })
       const fmt = this.getResponseFormatter()
       const body = fmt({ action: 'details', payload: entity, errors: [], success: !!entity, meta: {}, req, res })
       await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
       cache.set(key, body, typeof cacheCfg === 'object' ? cacheCfg.ttl : undefined)
-      return this.sendNegotiated(res, 'details', body, req)
+      return await this.sendNegotiated(res, 'details', body, req)
     }
     const entity = await orm.details(req, { ...actionCfg, relations, service: this })
     const fmt = this.getResponseFormatter()

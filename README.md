@@ -1,9 +1,9 @@
-# crudman-nestjs
+<h1 align="center" style="color:#352D77">crudman-nestjs</h1>
 
 <p align="center">
   <img src="docs/assets/crudman-logo.svg" alt="CRUD Man Logo" width="140" />
   <br/>
-  <sub>Minimal, adapter-driven CRUD layer for NestJS.</sub>
+  <sub style="color:#3F4C70">Minimal, adapter-driven CRUD layer for NestJS.</sub>
   <br/>
   <a href="https://jinujd.github.io/crudman-nestjs">Website</a> · <a href="https://github.com/jinujd/crudman-nestjs">GitHub</a>
   <br/>
