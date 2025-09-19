@@ -209,14 +209,17 @@ export class UsersController extends CrudControllerBase('users') {}</code></pre>
         // Fix image paths from README (e.g., docs/assets/ → assets/ for GitHub Pages docs root)
         const imgs = el.querySelectorAll('img')
         imgs.forEach((img) => {
-          const src = img.getAttribute('src') || ''
-          if (/^\/?docs\//.test(src) || /^\.\/docs\//.test(src)) {
-            img.setAttribute('src', src.replace(/^\/?docs\//, 'assets/'))
-          } else if (src.includes('docs/assets/')) {
-            img.setAttribute('src', src.replace(/.*docs\/assets\//, 'assets/'))
-          } else if (/^\.\/?docs\/assets\//.test(src)) {
-            img.setAttribute('src', src.replace(/^\.\/?docs\/assets\//, 'assets/'))
+          const raw = img.getAttribute('src') || ''
+          const fix = (s) => {
+            if (/^https?:\/\//i.test(s)) return s
+            let x = s.replace(/^\.\/?/, '').replace(/^\//, '')
+            if (x.startsWith('docs/assets/')) return 'assets/' + x.slice('docs/assets/'.length)
+            if (x.startsWith('docs/')) return x.replace(/^docs\//, '')
+            if (x.startsWith('assets/assets/')) return x.replace(/^assets\/assets\//, 'assets/')
+            return x
           }
+          const fixed = fix(raw)
+          if (fixed !== raw) img.setAttribute('src', fixed)
         })
       }
     } catch {}
