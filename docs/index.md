@@ -257,8 +257,8 @@ export class UsersController extends CrudControllerBase('users') {}</code></pre>
     </div>
   </div>
 
-  <div class="footer">Made with care · MIT License</div>
 </div>
+<div class="footer">Made with care · MIT License</div>
 
 <script>
   // Lightweight README fetch & render fallback if served via GitHub Pages without Jekyll plugins
