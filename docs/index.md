@@ -45,9 +45,16 @@ title: CRUDMan NestJS
   .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
   .card { background: white; border-radius: 14px; padding: 18px; border: 1px solid #e9e6da; box-shadow: 0 6px 20px rgba(11,31,58,.06); }
   .muted { color: #4c5670; }
-  table.features { width: 100%; border-collapse: collapse; margin: 16px 0; background: white; border-radius: 14px; overflow: hidden; border: 1px solid #e9e6da; }
-  table.features th, table.features td { padding: 12px 14px; border-bottom: 1px solid #eee7d0; vertical-align: top; }
-  table.features th { background: #f9f6eb; color: var(--royal-purple); text-align: left; font-weight: 700; }
+  /* Feature cards */
+  .feat-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin: 16px 0 }
+  @media (max-width: 960px) { .feat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) } }
+  @media (max-width: 640px) { .feat-grid { grid-template-columns: 1fr } }
+  .feat-card { background: #fff; border-radius: 14px; border: 1px solid #e9e6da; padding: 14px; box-shadow: 0 6px 18px rgba(0,17,58,.06); transition: transform .2s ease, box-shadow .2s ease, border-color .2s ease }
+  .feat-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(0,17,58,.10); border-color: #e2dfc6 }
+  .feat-head { display:flex; align-items:center; gap: 10px; margin-bottom: 8px }
+  .feat-icon { width: 22px; height: 22px; stroke: var(--royal-purple); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round }
+  .feat-title { font-weight: 800; color: #2a225f }
+  .feat-desc { color: #4c5670; font-size: 14px; line-height: 1.5 }
   /* Icons */
   .icon { width: 20px; height: 20px; vertical-align: -4px; margin-right: 8px; }
   .ticon { width: 16px; height: 16px; vertical-align: -2px; margin-right: 6px; opacity: 0.9 }
@@ -169,23 +176,22 @@ $ DELETE /api/companies/:id</pre>
   </div>
 
   <h2 style="color:#2a225f">Features</h2>
-  <table class="features">
-    <tr><th>Capability</th><th>What you get</th></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Auto CRUD endpoints</td><td>Spin up list, details, create, update, delete—in a single decorator or base class.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M4 12h16M4 7h10M4 17h10"/></svg>PATCH-first updates</td><td>Modern partial updates by default (configurable to PUT).</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M7 7h4v10H7zM13 7h4v10h-4z"/></svg>Relations by default</td><td>Include all relations automatically; fine-tune with include/exclude patterns.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Attributes selection</td><td>All columns by default, plus include/exclude to shape payloads.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M4 4h16v6H4zM4 12h10v8H4zM16 12h4v8h-4z"/></svg>Powerful querying</td><td>Clean filtering, sorting, pagination, and keyword search with safe whitelists.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 7v6h5"/></svg>Validation built-in</td><td>Fastest-validator out of the box; swap to Joi/Zod via adapters.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12"/><rect x="6" y="8" width="12" height="8"/></svg>Caching</td><td>Per-endpoint NodeCache with smart invalidation after writes.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M4 6h10M4 10h16M4 14h16M4 18h10"/></svg>Hooks everywhere</td><td>Before/after action, query, and validation—extend without forking.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>Swagger enhancer</td><td>Auto envelopes for list/details/create/update/delete; entity schemas derived from metadata.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M12 5l6 6H6l6-6zM6 15h12"/></svg>Save (upsert)</td><td>Single endpoint to create or update based on presence of an id.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M7 8h10M7 12h6"/></svg>Programmatic calls</td><td>Call other sections’ actions safely within hooks or services.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><rect x="4" y="18" width="16" height="2"/></svg>CSV/Excel export</td><td>One header switch away—deliver CSV or Excel without code changes.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><rect x="4" y="3" width="16" height="4"/></svg>Bulk import</td><td>Effortless data onramp with conflict policies, batching, and dry runs.</td></tr>
-    <tr><td><svg class="ticon" viewBox="0 0 24 24"><path d="M3 6h18M6 6v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>Bulk delete</td><td>Clear data at scale with safety valves and transparent reporting.</td></tr>
-  </table>
+  <div class="feat-grid">
+    <div class="feat-card"><div class="feat-head"><svg class="feat-icon" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg><div class="feat-title">Auto CRUD endpoints</div></div><div class="feat-desc">Spin up list, details, create, update, delete—in a single decorator or base class.</div></div>
+    <div class="feat-card"><div class="feat-head"><svg class="feat-icon" viewBox="0 0 24 24"><path d="M4 12h16M4 7h10M4 17h10"/></svg><div class="feat-title">PATCH-first updates</div></div><div class="feat-desc">Modern partial updates by default (configurable to PUT).</div></div>
+    <div class="feat-card"><div class="feat-head"><svg class="feat-icon" viewBox="0 0 24 24"><path d="M7 7h4v10H7zM13 7h4v10h-4z"/></svg><div class="feat-title">Relations by default</div></div><div class="feat-desc">Include all relations automatically; fine-tune with include/exclude patterns.</div></div>
+    <div class="feat-card"><div class="feat-head"><svg class="feat-icon" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg><div class="feat-title">Attributes selection</div></div><div class="feat-desc">All columns by default, plus include/exclude to shape payloads.</div></div>
+    <div class="feat-card"><div class="feat-head"><svg class="feat-icon" viewBox="0 0 24 24"><path d="M4 4h16v6H4zM4 12h10v8H4zM16 12h4v8h-4z"/></svg><div class="feat-title">Powerful querying</div></div><div class="feat-desc">Clean filtering, sorting, pagination, and keyword search with safe whitelists.</div></div>
+    <div class="feat-card"><div class="feat-head"><svg class="feat-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 7v6h5"/></svg><div class="feat-title">Validation built-in</div></div><div class="feat-desc">Fastest-validator out of the box; swap to Joi/Zod via adapters.</div></div>
+    <div class="feat-card"><div class="feat-head"><svg class="feat-icon" viewBox="0 0 24 24"><rect x="4" y="6" width="16" height="12"/><rect x="6" y="8" width="12" height="8"/></svg><div class="feat-title">Caching</div></div><div class="feat-desc">Per-endpoint NodeCache with smart invalidation after writes.</div></div>
+    <div class="feat-card"><div class="feat-head"><svg class="feat-icon" viewBox="0 0 24 24"><path d="M4 6h10M4 10h16M4 14h16M4 18h10"/></svg><div class="feat-title">Hooks everywhere</div></div><div class="feat-desc">Before/after action, query, and validation—extend without forking.</div></div>
+    <div class="feat-card"><div class="feat-head"><svg class="feat-icon" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg><div class="feat-title">Swagger enhancer</div></div><div class="feat-desc">Auto envelopes for list/details/create/update/delete; entity schemas derived from metadata.</div></div>
+    <div class="feat-card"><div class="feat-head"><svg class="feat-icon" viewBox="0 0 24 24"><path d="M12 5l6 6H6l6-6zM6 15h12"/></svg><div class="feat-title">Save (upsert)</div></div><div class="feat-desc">Single endpoint to create or update based on presence of an id.</div></div>
+    <div class="feat-card"><div class="feat-head"><svg class="feat-icon" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M7 8h10M7 12h6"/></svg><div class="feat-title">Programmatic calls</div></div><div class="feat-desc">Call other sections’ actions safely within hooks or services.</div></div>
+    <div class="feat-card"><div class="feat-head"><svg class="feat-icon" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><rect x="4" y="18" width="16" height="2"/></svg><div class="feat-title">CSV/Excel export</div></div><div class="feat-desc">One header switch away—deliver CSV or Excel without code changes.</div></div>
+    <div class="feat-card"><div class="feat-head"><svg class="feat-icon" viewBox="0 0 24 24"><path d="M12 21V9"/><path d="M7 14l5-5 5 5"/><rect x="4" y="3" width="16" height="4"/></svg><div class="feat-title">Bulk import</div></div><div class="feat-desc">Effortless data onramp with conflict policies, batching, and dry runs.</div></div>
+    <div class="feat-card"><div class="feat-head"><svg class="feat-icon" viewBox="0 0 24 24"><path d="M3 6h18M6 6v14a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg><div class="feat-title">Bulk delete</div></div><div class="feat-desc">Clear data at scale with safety valves and transparent reporting.</div></div>
+  </div>
 
   <h2 style="color:#2a225f">Install</h2>
   <pre><code>npm i crudman-nestjs</code></pre>
