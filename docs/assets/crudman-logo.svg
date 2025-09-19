@@ -5,9 +5,11 @@
   <!-- Outer ring -->
   <circle cx="128" cy="128" r="116" fill="none" stroke="#000" stroke-width="8" />
 
-  <!-- Hat (previous flatter style, centered) -->
-  <ellipse cx="128" cy="86" rx="78" ry="10" fill="#000" />
-  <rect x="78" y="70" width="100" height="16" rx="6" fill="#000" />
+  <!-- Hat (slanted, taller crown, narrower brim) -->
+  <g transform="rotate(-12 128 82)">
+    <ellipse cx="128" cy="86" rx="66" ry="12" fill="#000" />
+    <rect x="90" y="56" width="76" height="26" rx="8" fill="#000" />
+  </g>
 
   <!-- Monkey face silhouette -->
   <ellipse cx="128" cy="138" rx="56" ry="46" fill="#fff" stroke="#000" stroke-width="6" />
