@@ -74,9 +74,13 @@ export class CrudmanService {
   }
 
   private send(res: any, body: any) { if (res && !res.headersSent) res.send(body); return body }
-  private sendNegotiated(res: any, action: 'list'|'details', result: any) {
+  private sendNegotiated(res: any, action: 'list'|'details', result: any, req?: any) {
     if (!res || res.headersSent) return result
-    const rawHeader = (res.req?.headers?.['x-content-type'] || res.req?.headers?.['X-Content-Type'] || res.req?.headers?.accept || '').toString().toLowerCase()
+    const rawHeader = (
+      req?.headers?.['x-content-type'] || req?.headers?.['X-Content-Type'] || req?.headers?.accept ||
+      res?.req?.headers?.['x-content-type'] || res?.req?.headers?.['X-Content-Type'] || res?.req?.headers?.accept ||
+      ''
+    ).toString().toLowerCase()
     const allowed = CrudmanRegistry.get().getExportContentTypes()
     // normalize aliases and mime types
     const normalized = (() => {
@@ -199,13 +203,13 @@ export class CrudmanService {
     if (cache && cacheCfg) {
       const key = this.cacheKey(section, 'list', req, relations)
       const hit = cache.get<any>(key)
-      if (hit) return this.sendNegotiated(res, 'list', hit)
+      if (hit) return this.sendNegotiated(res, 'list', hit, req)
       const payload = await orm.list(req, { ...actionCfg, relations, service: this })
       const fmt = this.getResponseFormatter()
       const body = fmt({ action: 'list', payload, errors: [], success: true, meta: { pagination: payload.pagination, filters: payload.filters, sorting: payload.sorting }, req, res })
       await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
       cache.set(key, body, typeof cacheCfg === 'object' ? cacheCfg.ttl : undefined)
-      return this.sendNegotiated(res, 'list', body)
+      return this.sendNegotiated(res, 'list', body, req)
     }
     const payload = await orm.list(req, { ...actionCfg, relations, service: this })
     const fmt = this.getResponseFormatter()
@@ -228,13 +232,13 @@ export class CrudmanService {
     if (cache && cacheCfg) {
       const key = this.cacheKey(section, 'details', req, relations)
       const hit = cache.get<any>(key)
-      if (hit) return this.sendNegotiated(res, 'details', hit)
+      if (hit) return this.sendNegotiated(res, 'details', hit, req)
       const entity = await orm.details(req, { ...actionCfg, relations, service: this })
       const fmt = this.getResponseFormatter()
       const body = fmt({ action: 'details', payload: entity, errors: [], success: !!entity, meta: {}, req, res })
       await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
       cache.set(key, body, typeof cacheCfg === 'object' ? cacheCfg.ttl : undefined)
-      return this.sendNegotiated(res, 'details', body)
+      return this.sendNegotiated(res, 'details', body, req)
     }
     const entity = await orm.details(req, { ...actionCfg, relations, service: this })
     const fmt = this.getResponseFormatter()

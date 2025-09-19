@@ -66,3 +66,14 @@ it('DELETE /api/companies/:id should delete', async () => {
   expect(res.status).toBe(200)
 })
 
+it('GET /api/companies with x-content-type: excel returns JSON error if exceljs missing', async () => {
+  const res = await request(app.getHttpServer()).get('/api/companies').set('x-content-type', 'excel')
+  expect(res.status).toBe(200)
+  // Should be JSON body with success=false and error message about exceljs
+  expect(res.headers['content-type']).toMatch(/application\/json/)
+  expect(res.body && typeof res.body === 'object').toBe(true)
+  expect(res.body.success).toBe(false)
+  const msg = JSON.stringify(res.body.errors || [])
+  expect(msg.toLowerCase()).toContain('exceljs')
+})
+
