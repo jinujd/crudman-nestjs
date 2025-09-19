@@ -82,7 +82,9 @@ export class CrudmanService {
     const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, this)
     if (beforeAction === false) return
 
-    const relations = actionCfg.getRelations ? await actionCfg.getRelations(req, res, actionCfg) : (actionCfg.relations || [])
+    // Default: include all relations unless excluded/overridden
+    const baseRels = actionCfg.getRelations ? await actionCfg.getRelations(req, res, actionCfg) : (actionCfg.relations ?? '*')
+    const relations = baseRels
     const cache = CrudmanRegistry.get().getCache()
     const cacheCfg = this.getCacheCfg(actionCfg)
     if (cache && cacheCfg) {
@@ -109,7 +111,9 @@ export class CrudmanService {
     if (!orm) return this.send(res, { success: false, errors: [{ message: 'Invalid section' }] })
     const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, this)
     if (beforeAction === false) return
-    const relations = actionCfg.getRelations ? await actionCfg.getRelations(req, res, actionCfg) : (actionCfg.relations || [])
+    // Default: include all relations unless excluded/overridden
+    const baseRels = actionCfg.getRelations ? await actionCfg.getRelations(req, res, actionCfg) : (actionCfg.relations ?? '*')
+    const relations = baseRels
     const cache = CrudmanRegistry.get().getCache()
     const cacheCfg = this.getCacheCfg(actionCfg)
     if (cache && cacheCfg) {
