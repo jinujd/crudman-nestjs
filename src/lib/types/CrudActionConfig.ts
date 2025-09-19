@@ -13,8 +13,8 @@ export interface CrudActionConfig {
   additionalSettings?: any
   additionalResponse?: Record<string, any>
 
-  relations?: string[]
-  getRelations?: (req: any, res: any, cfg: any) => Promise<string[]> | string[]
+  relations?: '*' | string[] | { include?: string[]; exclude?: string[] }
+  getRelations?: (req: any, res: any, cfg: any) => Promise<string[] | { include?: string[]; exclude?: string[] } | '*' | undefined> | (string[] | { include?: string[]; exclude?: string[] } | '*' | undefined)
   attributes?: '*' | string[] | { include?: string[]; exclude?: string[] }
   conditions?: any
   orderBy?: Array<[string, SortOrder]>

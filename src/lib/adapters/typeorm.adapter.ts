@@ -73,8 +73,8 @@ export const TypeormAdapter: OrmAdapter = {
     }
 
     // Merge relations (existing + required by keyword nested paths)
-    const relationsBase = cfg.getRelations ? await cfg.getRelations(req, null, cfg) : (cfg.relations || [])
-    const relations = Array.from(new Set([ ...(relationsBase || []), ...requiredRelations ]))
+    const relationsBaseRaw = cfg.getRelations ? await cfg.getRelations(req, null, cfg) : (cfg.relations || undefined)
+    const relations = resolveRelations(repo, relationsBaseRaw, requiredRelations)
 
     // Combine where with keyword OR block
     let whereFinal: any = where
@@ -85,7 +85,7 @@ export const TypeormAdapter: OrmAdapter = {
 
     const hasLikeFilter = filters.some((f) => f.op === 'like')
     const hasRangeFilter = filters.some((f) => f.op === 'gte' || f.op === 'lte' || f.op === 'gt' || f.op === 'lt' || f.op === 'between')
-    let findOptions: any = { where: convertToTypeormWhere(whereFinal), relations, order: toTypeormOrder(sorting), skip, take, select: normalizeSelect(cfg.attributes) }
+    let findOptions: any = { where: convertToTypeormWhere(whereFinal), relations, order: toTypeormOrder(sorting), skip, take, select: normalizeSelect(cfg.attributes, repo) }
     if (cfg.onBeforeQuery) {
       const mod = await cfg.onBeforeQuery(findOptions, cfg.model, req, null, cfg.service)
       if (mod) findOptions = mod
@@ -174,8 +174,9 @@ export const TypeormAdapter: OrmAdapter = {
     if (!repo) throw new Error('Repository not provided (additionalSettings.repo or module dataSource needed)')
     const field = cfg.recordSelectionField || 'id'
     const value = req.params[field]
-    const relations = cfg.getRelations ? await cfg.getRelations(req, null, cfg) : (cfg.relations || [])
-    let findOptions: any = { where: { [field]: castId(value) } as any, relations, select: normalizeSelect(cfg.attributes) }
+    const relationsBaseRaw = cfg.getRelations ? await cfg.getRelations(req, null, cfg) : (cfg.relations || undefined)
+    const relations = resolveRelations(repo, relationsBaseRaw, [])
+    let findOptions: any = { where: { [field]: castId(value) } as any, relations, select: normalizeSelect(cfg.attributes, repo) }
     if (cfg.onBeforeQuery) {
       const mod = await cfg.onBeforeQuery(findOptions, cfg.model, req, null, cfg.service)
       if (mod) findOptions = mod
@@ -272,11 +273,37 @@ function toTypeormOrder(sorting: Array<{ field: string; order: 'ASC'|'DESC' }>):
   return order
 }
 
-function normalizeSelect(attrs: any): any {
+function normalizeSelect(attrs: any, repo: any): any {
   if (!attrs || attrs === '*') return undefined
   if (Array.isArray(attrs)) return attrs
-  // { include, exclude } not directly supported here; keep minimal for now
+  if (attrs && typeof attrs === 'object') {
+    const cols: string[] = Array.isArray(repo?.metadata?.columns)
+      ? repo.metadata.columns.map((c: any) => c.propertyName)
+      : []
+    if (attrs.include && Array.isArray(attrs.include) && attrs.include.length) return attrs.include
+    if (attrs.exclude && Array.isArray(attrs.exclude) && attrs.exclude.length) return cols.filter(c => !attrs.exclude.includes(c))
+  }
   return undefined
+}
+
+function resolveRelations(repo: any, rels: any, required: string[]): string[] | undefined {
+  const allRels: string[] = Array.isArray(repo?.metadata?.relations)
+    ? repo.metadata.relations.map((r: any) => r.propertyName)
+    : []
+  let base: string[]
+  if (!rels || rels === '*') {
+    base = allRels
+  } else if (Array.isArray(rels)) {
+    base = rels
+  } else if (typeof rels === 'object') {
+    if (rels.include && Array.isArray(rels.include)) base = rels.include
+    else if (rels.exclude && Array.isArray(rels.exclude)) base = allRels.filter((r) => !rels.exclude.includes(r))
+    else base = allRels
+  } else {
+    base = []
+  }
+  const merged = Array.from(new Set([ ...base, ...(required || []) ]))
+  return merged.length ? merged : undefined
 }
 
 function castId(v: any) { const n = Number(v); return Number.isNaN(n) ? v : n }
@@ -347,7 +374,7 @@ function MoreThan(v: any): any { return dynamicTypeormOperator('MoreThan', v) }
 function MoreThanOrEqual(v: any): any { return dynamicTypeormOperator('MoreThanOrEqual', v) }
 function LessThan(v: any): any { return dynamicTypeormOperator('LessThan', v) }
 function LessThanOrEqual(v: any): any { return dynamicTypeormOperator('LessThanOrEqual', v) }
-function Raw(fn: any): any { return dynamicTypeormOperator('Raw', fn) }
+function Raw(...args: any[]): any { return dynamicTypeormOperator('Raw', ...args) }
 
 // Case-insensitive like fallback: lower both sides via simple pattern; we map to Like on lowercased input
 function CaseInsensitiveLike(pattern: string): any {

@@ -49,7 +49,7 @@ Routes available:
 - GET /api/users
 - GET /api/users/:id
 - POST /api/users
-- PUT /api/users/:id
+- PATCH /api/users/:id
 - DELETE /api/users/:id
 
 To override any one, add your own method and decorate it with `@CrudList`, `@CrudDetails`, etc.
@@ -69,6 +69,8 @@ import { CrudmanModule, defaultResponseFormatter } from 'crudman-nestjs';
       defaultResponseFormatter,
       identityAccessor: (req) => req.identity || req.user || {},
       roleChecker: (identity, roles) => !roles?.length || roles.includes(identity?.role),
+      // HTTP verb for update endpoints: default 'patch'. Set to 'put' to use PUT.
+      updateMethod: 'patch',
       // defaultOrm, defaultValidator can be supplied to replace built-ins
     }),
   ],
@@ -127,8 +129,8 @@ Expanded (TypeORM example):
 
 Keys (per action, unless noted):
 - model (required): Entity class.
-- relations (optional): string[].
-- getRelations(req,res,cfg) (optional): Promise<string[]> | string[].
+- relations (optional): '*' | string[] | { include?: string[]; exclude?: string[] }.
+- getRelations(req,res,cfg) (optional): Promise<string[] | { include?: string[]; exclude?: string[] } | '*' | undefined> | (string[] | { include?: string[]; exclude?: string[] } | '*' | undefined).
 - filtersWhitelist (optional): string[]. If not provided, all entity columns are allowed (derived from repository metadata).
 - sortingWhitelist (optional): string[]. If not provided, all entity columns are allowed (derived from repository metadata).
 - orderBy (optional): Array<[field, "ASC"|"DESC"]>.
@@ -139,6 +141,7 @@ Keys (per action, unless noted):
 - getFinalValidationRules(generatedRules, req, res, validator) (optional): returns new rules.
 - enableCache (optional): boolean | { ttl?: number; key?:(ctx)=>string }.
 - additionalSettings.repo (required for TypeORM adapter): repository instance.
+ - attributes (optional): '*' | string[] | { include?: string[]; exclude?: string[] }. Defaults to all columns. Narrow for performance or privacy.
 
 Parameter details:
 - model (required)
@@ -193,8 +196,10 @@ Parameter details:
   - Type: Repository instance used for list/details/create/update/delete/save.
   - Required for TypeORM operations; supply the correct repository per section/action.
 
-Default whitelist behavior:
-- When `filtersWhitelist` or `sortingWhitelist` are omitted, the library resolves allowed fields from the TypeORM repository’s columns (`repo.metadata.columns`). This enables filter/sort on all fields by default while staying strictly model-scoped. To restrict inputs on public endpoints, set explicit whitelists.
+Default relations/attributes behavior:
+- Relations default to all entity relations (`relations: '*'`). Use `relations: { exclude: [...] }` to drop heavy joins or `relations: ['relA','relB']` to be explicit.
+- Attributes default to all columns. Use `attributes: { exclude: [...] }` or an explicit list to narrow select.
+- When `filtersWhitelist` or `sortingWhitelist` are omitted, the library resolves allowed fields from the TypeORM repository’s columns (`repo.metadata.columns`). This enables filter/sort on all fields by default while staying strictly model-scoped.
 
 Keyword search (list):
 - Query param: `keyword` (rename via `keywordParamName`).
@@ -620,14 +625,14 @@ export class ApiController {
 
 ## Swagger / OpenAPI
 - Enabled globally via `forRoot({ swagger: { enabled: true } })` or disable per endpoint in decorator options.
-- Provide a DTO per endpoint to type `data` for the docs.
+- Provide a DTO per endpoint to type `data` for the docs, or rely on entity-driven schemas described below.
 
-### Auto-generate schemas from entities (optional)
-You can auto-generate OpenAPI schemas from your TypeORM entities and plug them into Swagger without writing DTOs.
+### Auto-generate schemas and envelopes from entities (optional)
+You can auto-generate OpenAPI schemas for your entities and have list/details/create/update/delete responses documented with the standard envelope automatically.
 
 ```ts
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'
-import { registerSchemas } from 'crudman-nestjs'
+import { enhanceCrudSwaggerDocument, generateOpenApiSchemaFromEntity } from 'crudman-nestjs'
 import { Company } from './company.entity'
 import { User } from './user.entity'
 
@@ -636,12 +641,16 @@ const app = await NestFactory.create(AppModule)
 
 const swagger = require('@nestjs/swagger')
 const config = new DocumentBuilder().setTitle('Example').setVersion('1.0').build()
-const doc = SwaggerModule.createDocument(app, config, {
-  extraSchemas: {
-    Company: generateOpenApiSchemaFromEntity(Company)!,
-    User: generateOpenApiSchemaFromEntity(User)!
-  }
-})
+const doc = SwaggerModule.createDocument(app, config)
+// Optionally pre-register component schemas (enhancer also derives them from @UseCrud sections)
+doc.components = doc.components || { schemas: {} }
+doc.components.schemas = {
+  ...doc.components.schemas,
+  Company: generateOpenApiSchemaFromEntity(Company)!,
+  User: generateOpenApiSchemaFromEntity(User)!
+}
+// Enhance: add list/detail/create/update/delete response envelopes and entity refs
+enhanceCrudSwaggerDocument(doc)
 SwaggerModule.setup('docs', app, doc)
 ```
 
@@ -780,7 +789,7 @@ export class ApiController {
   @CrudCreate('companies')
   createCompany() {}
 
-  @Put('companies/:id')
+  @Patch('companies/:id')
   @CrudUpdate('companies')
   updateCompany() {}
 

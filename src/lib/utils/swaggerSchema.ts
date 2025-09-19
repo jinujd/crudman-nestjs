@@ -86,7 +86,7 @@ export function enhanceCrudSwaggerDocument(document: any) {
         }
       }
     }
-    // Details: GET with id param
+    // Details: GET with id param (include relations: document them as object for simplicity)
     if (item.get && isDetailsPath(path)) {
       item.get.responses = item.get.responses || {}
       item.get.responses['200'] = item.get.responses['200'] || {}
