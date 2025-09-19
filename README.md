@@ -59,6 +59,75 @@ We believe everyone building RESTful services with NestJS—especially CRUD‑he
 | Save (upsert) | Single endpoint that creates or updates based on id presence |
 | Programmatic calls | Safely call other sections’ actions from hooks/services |
 
+## UseCrud and sections (quick overview)
+
+`UseCrud` is a class decorator that wires your controller to one or more CRUD “sections”. A section is just a named configuration object that points to a model (entity) and optional per-action settings. Each section name becomes the logical key you use in decorators or in the base controller.
+
+- A section maps to a resource (e.g., `users`, `companies`).
+- `UseCrud({ sections: { companies: { model: Company, ... } } })` registers the section and its options.
+- You then either:
+  - Extend `CrudControllerBase('companies')` to get all endpoints for that section automatically, or
+  - Use the route decorators like `@CrudList('companies')` to bind specific methods.
+
+Minimal single-section controller (zero handlers):
+
+```ts
+import { Controller } from '@nestjs/common'
+import { UseCrud, CrudControllerBase } from 'crudman-nestjs'
+import { Company } from './company.entity'
+
+@UseCrud({ sections: { companies: { model: Company } } })
+@Controller('api/companies')
+export class CompaniesController extends CrudControllerBase('companies') {}
+```
+
+Multiple sections in one controller (explicit endpoints):
+
+```ts
+import { Controller, Get, Post, Patch, Delete } from '@nestjs/common'
+import { UseCrud, CrudList, CrudDetails, CrudCreate, CrudUpdate, CrudDelete } from 'crudman-nestjs'
+import { User } from './user.entity'
+import { Company } from './company.entity'
+
+@UseCrud({ sections: { users: { model: User }, companies: { model: Company } } })
+@Controller('api')
+export class ApiController {
+  @Get('users') @CrudList('users') listUsers() {}
+  @Get('users/:id') @CrudDetails('users') getUser() {}
+  @Post('users') @CrudCreate('users') createUser() {}
+  @Patch('users/:id') @CrudUpdate('users') updateUser() {}
+  @Delete('users/:id') @CrudDelete('users') deleteUser() {}
+}
+```
+
+Section options (selected):
+
+```ts
+@UseCrud({
+  sections: {
+    companies: {
+      model: Company,
+      list: {
+        relations: '*',                      // include all relations by default
+        attributes: { exclude: ['secret'] }, // all columns except listed
+        filtersWhitelist: ['name','isActive','createdAt'],
+        additionalSettings: { repo: companyRepository } // TypeORM repo
+      },
+      details: { relations: ['contacts'], additionalSettings: { repo: companyRepository } },
+      create:  { additionalSettings: { repo: companyRepository } },
+      update:  { additionalSettings: { repo: companyRepository } },
+      delete:  { additionalSettings: { repo: companyRepository } },
+    }
+  }
+})
+```
+
+How it links together:
+
+- `UseCrud` stores the sections configuration once on the controller class.
+- The library reads that config inside `CrudmanService` and the ORM adapter to resolve repositories, relations, attributes, filters, etc.
+- Decorators like `@CrudList('companies')` or the base `CrudControllerBase('companies')` tell the library which section’s settings to apply for a given route.
+
 ## Overview
 
 crudman-nestjs is a plug-and-play CRUD layer for NestJS. It auto-generates REST endpoints (list, details, create, update, delete) from a simple section config that references your entity model.
