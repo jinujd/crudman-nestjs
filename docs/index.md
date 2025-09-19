@@ -141,18 +141,27 @@ export class UsersController extends CrudControllerBase('users') {}</code></pre>
       const res = await fetch('https://raw.githubusercontent.com/jinujd/crudman-nestjs/main/README.md')
       if (!res.ok) return
       const md = await res.text()
-      // Very light markdown to HTML fallback; GitHub Pages may sanitize, so keep minimal
-      const escape = (s) => s.replace(/[&<>]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))
-      const toHtml = (m) => escape(m)
+      // Simple markdown renderer that preserves raw HTML in README, while protecting code blocks
+      const codeBlocks = []
+      let tmp = md.replace(/```([\s\S]*?)```/g, (_m, code) => {
+        codeBlocks.push(code)
+        return `@@CODEBLOCK_${codeBlocks.length - 1}@@`
+      })
+      // Headings, lists, inline code (keep existing HTML intact)
+      let html = tmp
         .replace(/^###\s+(.*)$/gm, '<h3>$1</h3>')
         .replace(/^##\s+(.*)$/gm, '<h2>$1</h2>')
         .replace(/^#\s+(.*)$/gm, '<h1>$1</h1>')
-        .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-        .replace(/`([^`]+)`/g, '<code>$1</code>')
         .replace(/^\-\s+(.*)$/gm, '<li>$1</li>')
-        .replace(/(<li>.*<\/li>\n?)+/g, (block) => `<ul>${block}</ul>`)
+        .replace(/(<li>[^<]*<\/li>\n?)+/g, (block) => `<ul>${block}</ul>`)
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
         .replace(/\n\n/g, '<br/><br/>')
-      const html = toHtml(md)
+      // Restore fenced code blocks with escaped HTML inside
+      html = html.replace(/@@CODEBLOCK_(\d+)@@/g, (_m, idx) => {
+        const i = Number(idx)
+        const esc = String(codeBlocks[i]).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
+        return `<pre><code>${esc}</code></pre>`
+      })
       const el = document.getElementById('readme-container')
       if (el) el.innerHTML = html
     } catch {}
