@@ -996,3 +996,22 @@ list: {
   - Disable: `?paginate=false` or `?perPage=0`
   - Custom names: `?pg=false` (with paginate renamed to 'pg')
 - When disabled, the response includes all matching items and a minimal pagination snapshot without COUNT overhead.
+
+## Example: Blog with slug as recordSelectionField
+
+```ts
+import { Controller, Get } from '@nestjs/common'
+import { UseCrud, CrudList, CrudDetails } from 'crudman-nestjs'
+import { BlogPost } from './blog-post.entity'
+
+@UseCrud({ sections: { posts: { model: BlogPost, recordSelectionField: 'slug' } } })
+@Controller('api/posts')
+export class PostsController {
+  @Get() @CrudList('posts') list() {}
+  @Get(':slug') @CrudDetails('posts') details() {}
+}
+```
+
+- Details path param will be `:slug` and Swagger will require `slug`.
+- Delete/Update will also use `:slug`.
+- List supports normal filters and keyword search; you can add `filtersWhitelist: ['slug','title']`.

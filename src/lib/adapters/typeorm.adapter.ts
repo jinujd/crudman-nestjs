@@ -176,7 +176,7 @@ export const TypeormAdapter: OrmAdapter = {
     }
     if (!repo) throw new Error('Repository not provided (additionalSettings.repo or module dataSource needed)')
     const field = cfg.recordSelectionField || 'id'
-    const value = req.params[field]
+    const value = (req.params && (req.params[field] ?? req.params.id ?? Object.values(req.params)[0]))
     const relationsBaseRaw = cfg.getRelations ? await cfg.getRelations(req, null, cfg) : (cfg.relations || undefined)
     const relations = resolveRelations(repo, relationsBaseRaw, [])
     let findOptions: any = { where: { [field]: castId(value) } as any, relations, select: normalizeSelect(cfg.attributes, repo) }
@@ -212,7 +212,8 @@ export const TypeormAdapter: OrmAdapter = {
     }
     if (!repo) throw new Error('Repository not provided (additionalSettings.repo or module dataSource needed)')
     const field = cfg.recordSelectionField || 'id'
-    const value = castId(req.params[field] ?? req.body[field])
+    const rawParam = req.params && (req.params[field] ?? req.params.id ?? Object.values(req.params)[0])
+    const value = castId(rawParam ?? req.body[field])
     const input = this.normalizeInput({ ...req.body, [field]: value }, cfg.model)
     await repo.update({ [field]: value } as any, input)
     return await repo.findOne({ where: { [field]: value } as any })
@@ -232,7 +233,8 @@ export const TypeormAdapter: OrmAdapter = {
     }
     if (!repo) throw new Error('Repository not provided (additionalSettings.repo or module dataSource needed)')
     const field = cfg.recordSelectionField || 'id'
-    const value = castId(req.params[field])
+    const rawParam = req.params && (req.params[field] ?? req.params.id ?? Object.values(req.params)[0])
+    const value = castId(rawParam)
     await repo.delete({ [field]: value } as any)
   },
 

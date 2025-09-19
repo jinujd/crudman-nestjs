@@ -23,9 +23,8 @@ export function generateOpenApiSchemaFromEntity(entity: any): any | null {
     // Add relation objects by default (document shape as object refs when possible)
     for (const rel of meta.relations || []) {
       const relName = rel.propertyName
-      const target = rel.type
-      const relEntity = typeof target === 'function' ? target() : target
-      const relSchemaName = relEntity?.name || 'Entity'
+      const inv = (rel as any).inverseEntityMetadata
+      const relSchemaName = inv?.name || (typeof rel.type === 'function' ? (rel.type as any).name : String(rel.type)) || 'Entity'
       properties[relName] = { $ref: `#/components/schemas/${relSchemaName}` }
     }
 
@@ -55,11 +54,14 @@ export function enhanceCrudSwaggerDocument(document: any) {
   if (!document.components.schemas) document.components.schemas = {}
 
   const sectionToEntityName: Record<string, string> = {}
+  const sectionToSelectionField: Record<string, string> = {}
   for (const [sectionKey, cfg] of Object.entries(sections)) {
     const ent = (cfg as any)?.model
     if (!ent) continue
     const name = ent.name || 'Entity'
     sectionToEntityName[sectionKey] = name
+    const selectionField = (cfg as any)?.recordSelectionField || 'id'
+    sectionToSelectionField[sectionKey] = selectionField
     // Register main entity schema
     const schema = generateOpenApiSchemaFromEntity(ent)
     if (schema) document.components.schemas[name] = schema
@@ -67,9 +69,9 @@ export function enhanceCrudSwaggerDocument(document: any) {
     try {
       const ds = CrudmanRegistry.get().getDataSource?.()
       const meta = ds ? safeGetMetadata(ds, ent) : null
-      const relTargets: any[] = meta?.relations?.map((r: any) => (typeof r.type === 'function' ? r.type() : r.type)).filter(Boolean) || []
+      const relTargets: any[] = meta?.relations?.map((r: any) => r.inverseEntityMetadata?.target).filter(Boolean) || []
       for (const tgt of relTargets) {
-        const tgtName = tgt.name || 'Entity'
+        const tgtName = (tgt as any).name || 'Entity'
         if (!document.components.schemas[tgtName]) {
           const tgtSchema = generateOpenApiSchemaFromEntity(tgt)
           if (tgtSchema) document.components.schemas[tgtName] = tgtSchema
@@ -78,11 +80,10 @@ export function enhanceCrudSwaggerDocument(document: any) {
     } catch {}
   }
 
-  const isDetailsPath = (p: string) => /\{id\}$/.test(p)
+  const isDetailsPath = (p: string) => /\{[^}]+\}$/.test(p)
   const getSectionFromPath = (p: string): string | null => {
     const parts = p.split('/').filter(Boolean)
     if (!parts.length) return null
-    // Try last non-parameter segment
     for (let i = parts.length - 1; i >= 0; i--) {
       const seg = parts[i]
       if (!seg.startsWith('{')) return seg
@@ -90,11 +91,14 @@ export function enhanceCrudSwaggerDocument(document: any) {
     return null
   }
 
+  // Inject/rename path params according to recordSelectionField
+  const newPaths: Record<string, any> = {}
   for (const [path, item] of Object.entries<any>(document.paths || {})) {
     const section = getSectionFromPath(path)
-    if (!section) continue
-    const entityName = sectionToEntityName[section]
-    if (!entityName) continue
+    const entityName = section ? sectionToEntityName[section] : undefined
+    const selectionField = section ? sectionToSelectionField[section] || 'id' : 'id'
+    if (!entityName) { newPaths[path] = item; continue }
+
     const ref = { $ref: `#/components/schemas/${entityName}` }
 
     // List: GET without id param
@@ -107,7 +111,7 @@ export function enhanceCrudSwaggerDocument(document: any) {
         }
       }
     }
-    // Details: GET with id param (include relations: document them as object for simplicity)
+    // Details: ensure param name matches selectionField and add param definition
     if (item.get && isDetailsPath(path)) {
       item.get.responses = item.get.responses || {}
       item.get.responses['200'] = item.get.responses['200'] || {}
@@ -116,20 +120,10 @@ export function enhanceCrudSwaggerDocument(document: any) {
           schema: buildDetailEnvelopeSchema(ref)
         }
       }
+      item.get.parameters = item.get.parameters || []
+      const hasParam = (item.get.parameters as any[]).some((p) => p.name === selectionField)
+      if (!hasParam) (item.get.parameters as any[]).push({ in: 'path', name: selectionField, required: true, schema: { type: 'string' } })
     }
-
-    // Create/Save: POST (collection path)
-    if (item.post) {
-      item.post.responses = item.post.responses || {}
-      item.post.responses['200'] = item.post.responses['200'] || {}
-      item.post.responses['200'].content = {
-        'application/json': {
-          schema: buildDetailEnvelopeSchema(ref)
-        }
-      }
-    }
-
-    // Update: PATCH/PUT (id path)
     if (item.patch) {
       item.patch.responses = item.patch.responses || {}
       item.patch.responses['200'] = item.patch.responses['200'] || {}
@@ -138,6 +132,9 @@ export function enhanceCrudSwaggerDocument(document: any) {
           schema: buildDetailEnvelopeSchema(ref)
         }
       }
+      item.patch.parameters = item.patch.parameters || []
+      const hasParam = (item.patch.parameters as any[]).some((p) => p.name === selectionField)
+      if (!hasParam) (item.patch.parameters as any[]).push({ in: 'path', name: selectionField, required: true, schema: { type: 'string' } })
     }
     if (item.put) {
       item.put.responses = item.put.responses || {}
@@ -147,9 +144,10 @@ export function enhanceCrudSwaggerDocument(document: any) {
           schema: buildDetailEnvelopeSchema(ref)
         }
       }
+      item.put.parameters = item.put.parameters || []
+      const hasParam = (item.put.parameters as any[]).some((p) => p.name === selectionField)
+      if (!hasParam) (item.put.parameters as any[]).push({ in: 'path', name: selectionField, required: true, schema: { type: 'string' } })
     }
-
-    // Delete: DELETE (id path)
     if (item.delete) {
       item.delete.responses = item.delete.responses || {}
       item.delete.responses['200'] = item.delete.responses['200'] || {}
@@ -158,8 +156,19 @@ export function enhanceCrudSwaggerDocument(document: any) {
           schema: buildDeleteEnvelopeSchema()
         }
       }
+      item.delete.parameters = item.delete.parameters || []
+      const hasParam = (item.delete.parameters as any[]).some((p) => p.name === selectionField)
+      if (!hasParam) (item.delete.parameters as any[]).push({ in: 'path', name: selectionField, required: true, schema: { type: 'string' } })
     }
+
+    // If the current path ends with {id} but selectionField is not 'id', clone the path with the right param name
+    let finalPath = path
+    if (isDetailsPath(path)) {
+      finalPath = path.replace(/\{[^}]+\}$/, `{${selectionField}}`)
+    }
+    newPaths[finalPath] = item
   }
+  document.paths = newPaths
 }
 
 function buildListEnvelopeSchema(itemRef: any) {
