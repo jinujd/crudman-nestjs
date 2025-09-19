@@ -21,7 +21,7 @@ title: CRUDMan NestJS
   .hero h1 { font-size: 44px; line-height: 1.1; margin: 0 0 12px; }
   .hero p { font-size: 18px; opacity: .95; }
   .hero .cta { margin-top: 18px; display: flex; gap: 12px; }
-  .btn { padding: 12px 16px; border-radius: 2px; border: 2px solid rgba(255,255,255,.2); color: white; }
+  .btn { padding: 12px 16px; border-radius: 4px; border: 2px solid rgba(255,255,255,.2); color: white; }
   .btn.primary { background: var(--royal-gold); color: var(--royal-navy); border-color: var(--royal-gold); font-weight: 600; }
   .btn { border-color: rgba(248,242,191,.4) }
   .container { max-width: 1060px; margin: 0 auto; padding: 0 20px; }
@@ -87,7 +87,7 @@ title: CRUDMan NestJS
   .site-header .brand { display:flex; align-items:center; gap:12px; color: var(--royal-purple); font-weight: 800; letter-spacing: .2px; font-size: 18px; }
   .site-header .brand img { width: 36px; height: 36px; filter: drop-shadow(0 2px 8px rgba(11,31,58,.2)); }
   .site-header .links { display:flex; gap: 10px; align-items:center; }
-  .site-header .links a { color: var(--royal-navy); padding: 8px 12px; border-radius: 2px; border: 1px solid transparent; transition: all .2s ease; font-weight: 600; }
+  .site-header .links a { color: var(--royal-navy); padding: 8px 12px; border-radius: 4px; border: 1px solid transparent; transition: all .2s ease; font-weight: 600; }
   .site-header .links a:hover { background:#f3efe0; border-color: #e8dfc4; transform: translateY(-1px) }
   .site-header .links a.active { background: var(--royal-gold); color: var(--royal-navy); border-color: #e2dfc6; box-shadow: 0 2px 8px rgba(0,17,58,.12) }
   .site-header .links .cta-gh { background: var(--royal-crimson); color: #fff; border-color: var(--royal-crimson); box-shadow: 0 6px 24px rgba(137,3,4,.25); }
@@ -96,7 +96,7 @@ title: CRUDMan NestJS
   .trust { display:flex; align-items:center; justify-content:center; gap: 16px; padding: 12px 16px; background: rgba(232,229,195,.6); border-top: 1px solid #e2dfc6; border-bottom: 1px solid #e2dfc6 }
   .trust img { height: 22px }
   /* Copy buttons and toast */
-  .copy-btn { position: absolute; top: 8px; right: 8px; font-size: 12px; background: rgba(248,242,191,.95); color: #00113a; border: 1px solid #e2dfc6; border-radius: 2px; padding: 4px 8px; cursor: pointer }
+  .copy-btn { position: absolute; top: 8px; right: 8px; font-size: 12px; background: rgba(248,242,191,.95); color: #00113a; border: 1px solid #e2dfc6; border-radius: 4px; padding: 4px 8px; cursor: pointer }
   .copy-btn:hover { filter: brightness(0.98) }
   pre { position: relative }
   .toast { position: fixed; right: 16px; bottom: 16px; background: linear-gradient(135deg, var(--royal-purple), var(--royal-navy)); color: #fff; padding: 10px 14px; border-radius: 8px; box-shadow: 0 10px 28px rgba(0,17,58,.25); opacity: 0; transform: translateY(8px); transition: all .2s ease; pointer-events: none; z-index: 80 }
