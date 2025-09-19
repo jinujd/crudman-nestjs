@@ -22,6 +22,17 @@ title: CRUDMan NestJS
   .logo-wrap { display:flex; justify-content:center; }
   .logo-badge { background: #fff; border-radius: 999px; padding: 12px; box-shadow: 0 6px 22px rgba(0,0,0,.25); display:inline-block; }
   .logo { width: 180px; filter: drop-shadow(0 6px 18px rgba(0,0,0,.2)); }
+  /* Terminal window */
+  .terminal { border-radius: 14px; background: #0f1424; color: #e8ecff; border: 1px solid rgba(255,255,255,.12); box-shadow: 0 10px 36px rgba(4,10,28,.45); overflow: hidden; }
+  .terminal .tbar { display:flex; align-items:center; gap:8px; padding: 10px 12px; background: linear-gradient(180deg, #151b32, #0f1424); border-bottom: 1px solid rgba(255,255,255,.08); }
+  .terminal .dot { width: 10px; height: 10px; border-radius: 50%; display:inline-block; }
+  .terminal .dot.red { background: #ff5f56 }
+  .terminal .dot.amber { background: #ffbd2e }
+  .terminal .dot.green { background: #27c93f }
+  .terminal .tbody { padding: 16px 18px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; font-size: 13.5px; line-height: 1.5; }
+  .terminal pre { margin: 0 0 12px; white-space: pre-wrap; }
+  .terminal code, .terminal kbd { color: #c7d2ff }
+  .terminal .prompt { color: #9ca8ff }
   .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
   .card { background: white; border-radius: 14px; padding: 18px; border: 1px solid #e9e6da; box-shadow: 0 6px 20px rgba(11,31,58,.06); }
   .muted { color: #4c5670; }
@@ -64,14 +75,32 @@ title: CRUDMan NestJS
 <section id="home" class="hero">
   <div class="container">
     <h1>crudman-nestjs</h1>
-    <p>Ship production-grade CRUD APIs for NestJS in minutes: adapter-driven, validation-first, cache-aware, and Swagger-friendly out of the box.</p>
+    <p>From zero to production-grade CRUD in minutes—no boilerplate, no fuss. Decorate, ship, scale.</p>
     <div class="cta">
       <a class="btn primary" href="https://github.com/jinujd/crudman-nestjs#readme">Get Started</a>
       <a class="btn" href="https://github.com/jinujd/crudman-nestjs">GitHub</a>
     </div>
   </div>
-  <div class="logo-wrap">
-    <span class="logo-badge"><img class="logo" src="assets/crudman-logo.svg" alt="CRUD Man Logo" /></span>
+  <div style="padding: 8px 24px">
+    <div class="terminal">
+      <div class="tbar"><span class="dot red"></span><span class="dot amber"></span><span class="dot green"></span></div>
+      <div class="tbody">
+        <pre><code>// companies.controller.ts
+import { Controller } from '@nestjs/common'
+import { UseCrud, CrudControllerBase } from 'crudman-nestjs'
+import { Company } from './company.entity'
+
+@UseCrud({ sections: { companies: { model: Company } } })
+@Controller('api/companies')
+export class CompaniesController extends CrudControllerBase('companies') {}</code></pre>
+        <pre class="prompt">$ Generated APIs (no boilerplate):
+$ GET    /api/companies
+$ GET    /api/companies/:id
+$ POST   /api/companies
+$ PATCH  /api/companies/:id
+$ DELETE /api/companies/:id</pre>
+      </div>
+    </div>
   </div>
 </section>
 
