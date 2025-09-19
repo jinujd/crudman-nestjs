@@ -216,15 +216,16 @@ $ DELETE /api/companies/:id</pre>
   </div>
 
   <h2 style="color:#2a225f">Install</h2>
-  <div class="terminal" style="margin-bottom:16px">
+  <div class="terminal" style="margin-bottom:16px; position: relative">
     <div class="tbar"><span class="dot red"></span><span class="dot amber"></span><span class="dot green"></span></div>
     <div class="tbody">
       <pre class="prompt">$ npm i crudman-nestjs</pre>
     </div>
+    <button class="copy-btn" data-code="npm i crudman-nestjs" aria-label="Copy install command">Copy</button>
   </div>
 
   <h2 style="color:#2a225f">One-minute setup</h2>
-  <div class="terminal">
+  <div class="terminal" style="position: relative">
     <div class="tbar"><span class="dot red"></span><span class="dot amber"></span><span class="dot green"></span></div>
     <div class="tbody">
       <pre><code>// users.controller.ts
@@ -236,6 +237,7 @@ import { User } from './user.entity'
 @Controller('api/users')
 export class UsersController extends CrudControllerBase('users') {}</code></pre>
     </div>
+    <button class="copy-btn" data-code="@UseCrud({ sections: { users: { model: User } } })\n@Controller('api/users')\nexport class UsersController extends CrudControllerBase('users') {}" aria-label="Copy setup snippet">Copy</button>
   </div>
 
   <h2 id="readme" style="color:#2a225f">README</h2>
@@ -283,13 +285,11 @@ export class UsersController extends CrudControllerBase('users') {}</code></pre>
         .replace(/(<li>[^<]*<\/li>\n?)+/g, (block) => `<ul>${block}</ul>`)
         .replace(/`([^`]+)`/g, '<code>$1</code>')
         .replace(/\n\n/g, '<br/><br/>')
-      // Restore fenced code blocks with escaped HTML inside and add copy buttons
+      // Restore fenced code blocks with escaped HTML inside (no copy buttons in README)
       html = html.replace(/@@CODEBLOCK_(\d+)@@/g, (_m, idx) => {
         const i = Number(idx)
-        const raw = String(codeBlocks[i])
-        const esc = raw.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
-        const btn = `<button class=\"copy-btn\" data-code=\"${raw.replace(/"/g, '&quot;').replace(/`/g, '\\`')}\">Copy</button>`
-        return `<pre><code>${esc}</code>${btn}</pre>`
+        const esc = String(codeBlocks[i]).replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]))
+        return `<pre><code>${esc}</code></pre>`
       })
       const el = document.getElementById('readme-container')
       if (el) {
@@ -342,7 +342,7 @@ export class UsersController extends CrudControllerBase('users') {}</code></pre>
     }))
   })()
 
-  // Copy handling + toast
+  // Copy handling for terminal cards + toast
   (function() {
     const toast = document.createElement('div')
     toast.className = 'toast'
