@@ -84,6 +84,7 @@ export const TypeormAdapter: OrmAdapter = {
     }
 
     const hasLikeFilter = filters.some((f) => f.op === 'like')
+    const hasRangeFilter = filters.some((f) => f.op === 'gte' || f.op === 'lte' || f.op === 'gt' || f.op === 'lt' || f.op === 'between')
     let findOptions: any = { where: convertToTypeormWhere(whereFinal), relations, order: toTypeormOrder(sorting), skip, take, select: normalizeSelect(cfg.attributes) }
     if (cfg.onBeforeQuery) {
       const mod = await cfg.onBeforeQuery(findOptions, cfg.model, req, null, cfg.service)
@@ -91,7 +92,7 @@ export const TypeormAdapter: OrmAdapter = {
     }
     let items: any[] = []
     let total = 0
-    if (hasLikeFilter) {
+    if (hasLikeFilter || hasRangeFilter) {
       // Use QueryBuilder for robust LIKE behavior across drivers
       const qb = repo.createQueryBuilder('t')
       // Apply simple filters

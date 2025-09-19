@@ -622,6 +622,33 @@ export class ApiController {
 - Enabled globally via `forRoot({ swagger: { enabled: true } })` or disable per endpoint in decorator options.
 - Provide a DTO per endpoint to type `data` for the docs.
 
+### Auto-generate schemas from entities (optional)
+You can auto-generate OpenAPI schemas from your TypeORM entities and plug them into Swagger without writing DTOs.
+
+```ts
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'
+import { registerSchemas } from 'crudman-nestjs'
+import { Company } from './company.entity'
+import { User } from './user.entity'
+
+const app = await NestFactory.create(AppModule)
+// ... setCrudmanDataSource(app.get(DataSource)) ...
+
+const swagger = require('@nestjs/swagger')
+const config = new DocumentBuilder().setTitle('Example').setVersion('1.0').build()
+const doc = SwaggerModule.createDocument(app, config, {
+  extraSchemas: {
+    Company: generateOpenApiSchemaFromEntity(Company)!,
+    User: generateOpenApiSchemaFromEntity(User)!
+  }
+})
+SwaggerModule.setup('docs', app, doc)
+```
+
+Notes:
+- Schemas reflect entity column types, `nullable`, and length (maxLength).
+- For full control, DTOs still work and take precedence when provided on endpoints.
+
 ## Swapping adapters
 - ORM: default TypeORM adapter; a Sequelize adapter can be added later with same config keys.
 - Validator: default fastest-validator; later swap in Joi via `ValidatorAdapter`.
@@ -840,6 +867,18 @@ curl "http://localhost:3000/api/companies?keyword=air&sort.name=asc&page=1&per_p
 Notes:
 - Filters and sorting apply to root entity fields. Use `filtersWhitelist`/`sortingWhitelist` to control allowed fields.
 - Keyword search supports nested dot-path `searchableFields` and merges required relations automatically.
+
+#### Response filters payload
+Each response includes a `filters` array echoing the parsed filters. Items now also include the original query token in `param` for traceability:
+```json
+{
+  "filters": [
+    { "field": "id", "op": "gte", "value": 21, "param": "id.min" },
+    { "field": "id", "op": "lte", "value": 21, "param": "id.max" }
+  ]
+}
+```
+Use `param` to display or rebuild the user’s query in UIs/logs.
 
 #### Pagination examples
 - Defaults: `page=1`, `per_page=30` (if not provided)

@@ -51,7 +51,9 @@ export class CrudmanService {
 
   private getActionCfg(section: string, action: string) {
     const sectionCfg = this.getSection(section) || {}
-    return sectionCfg[action] || { model: sectionCfg.model, ...sectionCfg }
+    const base = { model: sectionCfg.model, ...sectionCfg }
+    const specific = sectionCfg[action] || {}
+    return { ...base, ...specific }
   }
 
   private async validateIfNeeded(actionCfg: any, req: any, res: any, isUpdate: boolean) {

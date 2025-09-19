@@ -17,3 +17,6 @@ export * from './lib/types/Filters'
 export * from './lib/types/Identity'
 export * from './lib/types/CrudModuleOptions'
 
+// Utilities
+export * from './lib/utils/swaggerSchema'
+

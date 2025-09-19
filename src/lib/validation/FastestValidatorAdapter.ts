@@ -1,5 +1,6 @@
 import Validator from 'fastest-validator'
 import { ValidatorAdapter } from '../types/ValidatorAdapter'
+ import { CrudmanRegistry } from '../module/CrudmanRegistry'
 
 export class FastestValidatorAdapter implements ValidatorAdapter {
   private validator: any
@@ -9,7 +10,35 @@ export class FastestValidatorAdapter implements ValidatorAdapter {
 
   generateSchemaFromModel(model: any, isUpdate: boolean, exclude: string[] = ['created_at','modified_at','deleted_at']): any {
     const rules: any = {}
-    const columns: Array<{ propertyName: string; isNullable?: boolean; type?: any; length?: number }> = (model?.columns || model?.prototype?._columns || []) as any
+    let columns: Array<{ propertyName: string; isNullable?: boolean; type?: any; length?: number; isPrimary?: boolean; isGenerated?: boolean; isCreateDate?: boolean; isUpdateDate?: boolean }> = []
+    try {
+      const ds = CrudmanRegistry.get().getDataSource?.()
+      if (ds && model) {
+        let meta: any | undefined
+        try { meta = ds.getMetadata(model) } catch {}
+        if (!meta) {
+          const all = (ds as any).entityMetadatas || []
+          meta = all.find((m: any) => m.target === model || m.name === model?.name)
+        }
+        if (meta?.columns?.length) {
+          columns = meta.columns.map((c: any) => ({
+            propertyName: c.propertyName,
+            isNullable: c.isNullable,
+            type: c.type,
+            length: c.length,
+            isPrimary: c.isPrimary,
+            isGenerated: c.isGenerated,
+            isCreateDate: c.isCreateDate,
+            isUpdateDate: c.isUpdateDate
+          }))
+        }
+      }
+    } catch {
+      // ignore, fallback below
+    }
+    if (!columns.length) {
+      columns = (model?.columns || model?.prototype?._columns || []) as any
+    }
 
     if (Array.isArray(columns) && columns.length) {
       for (const col of columns) {
@@ -17,10 +46,15 @@ export class FastestValidatorAdapter implements ValidatorAdapter {
         if (!field) continue
         if (exclude.includes(field)) continue
         if (!isUpdate && field === 'id') continue
+        // Skip generated/auto timestamp columns for validation
+        if (col.isPrimary || col.isGenerated || col.isCreateDate || col.isUpdateDate) continue
 
         const rule: any = {}
-        if (col.isNullable === false && (!isUpdate || field === 'id')) rule.nullable = false
-        if (col.isNullable === true) { rule.nullable = true; rule.optional = true }
+        if (col.isNullable === false) {
+          rule.optional = false
+        } else {
+          rule.optional = true
+        }
 
         const typ = (typeof col.type === 'string' ? col.type.toLowerCase() : col.type)
         if (typ === 'varchar' || typ === 'text' || typ === String) {
@@ -43,8 +77,7 @@ export class FastestValidatorAdapter implements ValidatorAdapter {
       }
     }
     const fieldKeys = Object.keys(rules).filter(k => !k.startsWith('$$'))
-    // If we couldn't infer any concrete rules from the model, don't reject unknown fields
-    rules.$$strict = fieldKeys.length > 0 ? true : false
+    rules.$$strict = fieldKeys.length > 0
     return rules
   }
 

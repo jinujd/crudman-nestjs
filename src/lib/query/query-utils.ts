@@ -18,7 +18,8 @@ export const parsePagination = (
   opts?: { isPaginationEnabled?: boolean; allowDisable?: boolean; defaultEnabled?: boolean; maxPerPage?: number },
   defaults: { page?: number; perPage?: number } = {}
 ): { info: PaginationInfo; skip?: number; take?: number; disabled: boolean } => {
-  const query = normalizeKeysCamel(rawQuery || {})
+  const raw = rawQuery || {}
+  const query = normalizeKeysCamel(raw)
   const pageKey = names.page || 'page'
   const perPageKey = names.perPage || 'perPage'
   const paginateKey = names.paginate || 'paginate'
@@ -86,7 +87,7 @@ export const parseFilters = (
     if (whitelist.length && !whitelist.includes(field)) continue
     if (!op) {
       where[field] = val
-      filters.push({ field, op: 'eq', value: val })
+      filters.push({ field, op: 'eq', value: val, param: `${field}` })
       continue
     }
     const numericOpsConfigured = [ops.minOp, ops.maxOp, ops.gtOp, ops.ltOp]
@@ -101,19 +102,19 @@ export const parseFilters = (
           [ops.ltOp]: 'lt'
         }
         where[field][mapAny[op]] = n
-        filters.push({ field, op: mapAny[op], value: n })
+        filters.push({ field, op: mapAny[op], value: n, param: `${field}.${op}` })
       }
       continue
     }
     if (op === ops.betweenOp) {
       const [start, end] = String(val).split(',')
       where[field] = { between: [start, end] }
-      filters.push({ field, op: 'between', value: [start, end] })
+      filters.push({ field, op: 'between', value: [start, end], param: `${field}.${op}` })
       continue
     }
     if (op === ops.likeOp) {
       where[field] = { like: String(val) }
-      filters.push({ field, op: 'like', value: String(val) })
+      filters.push({ field, op: 'like', value: String(val), param: `${field}.${op}` })
       continue
     }
   }

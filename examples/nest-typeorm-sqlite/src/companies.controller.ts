@@ -1,29 +1,34 @@
-import { Controller, Get, Req, Res, Inject } from '@nestjs/common'
+import { Controller, Req, Inject } from '@nestjs/common'
+import { ApiTags, ApiOkResponse, ApiBody } from '@nestjs/swagger'
+import { CompanyDto } from './dtos/company.dto'
 import { UseCrud, CrudList, CrudDetails, CrudCreate, CrudUpdate, CrudDelete, CrudSave } from 'crudman-nestjs'
 import { Company } from './company.entity'
 import { CrudmanService } from 'crudman-nestjs'
 
 @UseCrud({ sections: { companies: { model: Company } } })
+@ApiTags('companies')
 @Controller('api/companies')
 export class CompaniesController {
   constructor(@Inject(CrudmanService) private readonly crud: CrudmanService) {}
-  @Get()
   @CrudList('companies')
-  list(@Req() req: any, @Res() res: any) { return this.crud.list('companies', req, res) }
+  list(@Req() req: any) { return this.crud.list('companies', req, undefined) }
 
-  @Get(':id')
   @CrudDetails('companies')
-  details(@Req() req: any, @Res() res: any) { return this.crud.details('companies', req, res) }
+  details(@Req() req: any) { return this.crud.details('companies', req, undefined) }
 
   @CrudCreate('companies')
-  create(@Req() req: any, @Res() res: any) { return this.crud.create('companies', req, res) }
+  @ApiBody({ type: CompanyDto })
+  @ApiOkResponse({ type: CompanyDto })
+  create(@Req() req: any) { return this.crud.create('companies', req, undefined) }
 
   @CrudUpdate('companies')
-  update(@Req() req: any, @Res() res: any) { return this.crud.update('companies', req, res) }
+  update(@Req() req: any) { return this.crud.update('companies', req, undefined) }
 
   @CrudDelete('companies')
-  remove(@Req() req: any, @Res() res: any) { return this.crud.delete('companies', req, res) }
+  remove(@Req() req: any) { return this.crud.delete('companies', req, undefined) }
 
   @CrudSave('companies')
-  save(@Req() req: any, @Res() res: any) { return this.crud.save('companies', req, res) }
+  @ApiBody({ type: CompanyDto })
+  @ApiOkResponse({ type: CompanyDto })
+  save(@Req() req: any) { return this.crud.save('companies', req, undefined) }
 }

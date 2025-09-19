@@ -1,6 +1,8 @@
 import 'reflect-metadata'
-import { applyDecorators, Get, Post, Put, Delete, SetMetadata, HttpCode } from '@nestjs/common'
+import { applyDecorators, Get, Post, Put, Patch, Delete, SetMetadata, HttpCode } from '@nestjs/common'
+import { ApiOperation, ApiParam, ApiOkResponse } from '../utils/safeSwagger'
 import { TypeormAdapter } from '../adapters/typeorm.adapter'
+import { CrudmanRegistry } from '../module/CrudmanRegistry'
 
 const CRD_META = 'crudman:meta'
 
@@ -17,12 +19,51 @@ export const UseCrud = (config: any, options?: any): ClassDecorator => {
   }
 }
 
-export const CrudList = (section: string, opts?: any) => applyDecorators(SetMetadata('crudman:action', { section, action: 'list', opts }), Get())
-export const CrudDetails = (section: string, opts?: any) => applyDecorators(SetMetadata('crudman:action', { section, action: 'details', opts }), Get(':id'))
-export const CrudCreate = (section: string, opts?: any) => applyDecorators(SetMetadata('crudman:action', { section, action: 'create', opts }), Post(), HttpCode(200))
-export const CrudUpdate = (section: string, opts?: any) => applyDecorators(SetMetadata('crudman:action', { section, action: 'update', opts }), Put(':id'))
-export const CrudDelete = (section: string, opts?: any) => applyDecorators(SetMetadata('crudman:action', { section, action: 'delete', opts }), Delete(':id'))
-export const CrudSave = (section: string, opts?: any) => applyDecorators(SetMetadata('crudman:action', { section, action: 'save', opts }), Post(), HttpCode(200))
+export const CrudList = (section: string, opts?: any) => applyDecorators(
+  SetMetadata('crudman:action', { section, action: 'list', opts }),
+  ApiOperation({ summary: `${section}: list` }),
+  ApiOkResponse({ description: 'List response' }),
+  Get()
+)
+export const CrudDetails = (section: string, opts?: any) => applyDecorators(
+  SetMetadata('crudman:action', { section, action: 'details', opts }),
+  ApiOperation({ summary: `${section}: details` }),
+  ApiParam({ name: 'id', required: true }),
+  ApiOkResponse({ description: 'Details response' }),
+  Get(':id')
+)
+export const CrudCreate = (section: string, opts?: any) => applyDecorators(
+  SetMetadata('crudman:action', { section, action: 'create', opts }),
+  ApiOperation({ summary: `${section}: create` }),
+  ApiOkResponse({ description: 'Create response' }),
+  Post(),
+  HttpCode(200)
+)
+export const CrudUpdate = (section: string, opts?: any) => {
+  const method = CrudmanRegistry.get().getUpdateMethod()
+  const verbDecorator = method === 'patch' ? Patch(':id') : Put(':id')
+  return applyDecorators(
+    SetMetadata('crudman:action', { section, action: 'update', opts }),
+    ApiOperation({ summary: `${section}: update` }),
+    ApiParam({ name: 'id', required: true }),
+    ApiOkResponse({ description: 'Update response' }),
+    verbDecorator
+  )
+}
+export const CrudDelete = (section: string, opts?: any) => applyDecorators(
+  SetMetadata('crudman:action', { section, action: 'delete', opts }),
+  ApiOperation({ summary: `${section}: delete` }),
+  ApiParam({ name: 'id', required: true }),
+  ApiOkResponse({ description: 'Delete response' }),
+  Delete(':id')
+)
+export const CrudSave = (section: string, opts?: any) => applyDecorators(
+  SetMetadata('crudman:action', { section, action: 'save', opts }),
+  ApiOperation({ summary: `${section}: save (upsert)` }),
+  ApiOkResponse({ description: 'Save response' }),
+  Post(),
+  HttpCode(200)
+)
 
 export const getCrudMeta = (target: any) => Reflect.getMetadata(CRD_META, target.constructor || target)
 

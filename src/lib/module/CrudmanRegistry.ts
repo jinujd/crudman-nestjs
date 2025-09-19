@@ -33,6 +33,7 @@ export class CrudmanRegistry {
   getRoleChecker() { return this.options.roleChecker || ((identity: any, roles?: string[]) => !roles?.length || roles.includes(identity?.role)) }
   getDataSource() { return (this.options as any).dataSource }
   setDataSource(ds: any) { (this.options as any).dataSource = ds }
+  getUpdateMethod() { return this.options.updateMethod || 'patch' }
 }
 
 

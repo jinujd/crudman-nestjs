@@ -1,24 +1,25 @@
-import { Get, Post, Put, Delete, Req, Res } from '@nestjs/common'
+import { Get, Post, Put, Patch, Delete, Req } from '@nestjs/common'
 import { CrudmanService } from '../crudman.service'
+import { CrudmanRegistry } from '../module/CrudmanRegistry'
 
 export function CrudControllerBase(section: string): any {
   class BaseController {
     constructor(protected readonly crud: CrudmanService) {}
 
     @Get()
-    list(@Req() req: any, @Res() res: any) { return this.crud.list(section, req, res) }
+    list(@Req() req: any) { return this.crud.list(section, req, undefined) }
 
     @Get(':id')
-    details(@Req() req: any, @Res() res: any) { return this.crud.details(section, req, res) }
+    details(@Req() req: any) { return this.crud.details(section, req, undefined) }
 
     @Post()
-    create(@Req() req: any, @Res() res: any) { return this.crud.create(section, req, res) }
+    create(@Req() req: any) { return this.crud.create(section, req, undefined) }
 
-    @Put(':id')
-    update(@Req() req: any, @Res() res: any) { return this.crud.update(section, req, res) }
+    @(CrudmanRegistry.get().getUpdateMethod() === 'patch' ? Patch(':id') : Put(':id'))
+    update(@Req() req: any) { return this.crud.update(section, req, undefined) }
 
     @Delete(':id')
-    remove(@Req() req: any, @Res() res: any) { return this.crud.delete(section, req, res) }
+    remove(@Req() req: any) { return this.crud.delete(section, req, undefined) }
   }
   return BaseController
 }
