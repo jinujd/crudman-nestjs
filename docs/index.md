@@ -4,15 +4,16 @@ title: CRUDMan NestJS
 ---
 
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
   :root {
     --royal-navy: #0b1f3a;
     --royal-purple: #352D77;
     --royal-gold: #c9a227;
     --royal-cream: #f6f3ea;
   }
-  html, body { margin: 0; padding: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: var(--royal-cream); color: var(--royal-navy); }
+  html, body { margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: var(--royal-cream); color: var(--royal-navy); scroll-behavior: smooth; }
   a { color: var(--royal-gold); text-decoration: none; }
-  .hero { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 24px; padding: 56px 24px; background: linear-gradient(140deg, var(--royal-purple), var(--royal-navy)); color: white; }
+  .hero { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 24px; padding: 72px 24px 56px; background: linear-gradient(140deg, var(--royal-purple), var(--royal-navy)); color: white; }
   .hero h1 { font-size: 44px; line-height: 1.1; margin: 0 0 12px; }
   .hero p { font-size: 18px; opacity: .95; }
   .hero .cta { margin-top: 18px; display: flex; gap: 12px; }
@@ -39,7 +40,7 @@ title: CRUDMan NestJS
   table.features { width: 100%; border-collapse: collapse; margin: 16px 0; background: white; border-radius: 14px; overflow: hidden; border: 1px solid #e9e6da; }
   table.features th, table.features td { padding: 12px 14px; border-bottom: 1px solid #eee7d0; vertical-align: top; }
   table.features th { background: #f9f6eb; color: var(--royal-purple); text-align: left; font-weight: 700; }
-  .footer { text-align:center; padding: 24px; color: #6c7390; }
+  .footer { text-align:center; padding: 36px 24px; color: #ffffff; background: linear-gradient(160deg, var(--royal-purple), var(--royal-navy)); border-top: 1px solid rgba(255,255,255,.12); margin-top: 48px; }
   /* Animations */
   @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes float { 0% { transform: translateY(0) } 50% { transform: translateY(-6px) } 100% { transform: translateY(0) } }
@@ -51,13 +52,15 @@ title: CRUDMan NestJS
   .card:nth-child(2) { animation-delay: .1s }
   .card:nth-child(3) { animation-delay: .2s }
   /* Header */
-  .site-header { position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,0.92); backdrop-filter: saturate(180%) blur(8px); border-bottom: 1px solid #eee7d0; }
-  .site-header .nav { display:flex; align-items:center; justify-content:space-between; max-width:1060px; margin:0 auto; padding: 10px 20px; }
-  .site-header .brand { display:flex; align-items:center; gap:10px; color: var(--royal-purple); font-weight: 700; }
-  .site-header .brand img { width: 28px; height: 28px; }
-  .site-header .links { display:flex; gap: 16px; }
-  .site-header .links a { color: var(--royal-navy); padding: 8px 10px; border-radius: 8px; }
-  .site-header .links a:hover { background:#f3efe0 }
+  .site-header { position: sticky; top: 0; z-index: 60; background: rgba(255,255,255,0.75); backdrop-filter: saturate(180%) blur(14px); border-bottom: 1px solid #eee7d0; box-shadow: 0 6px 24px rgba(11,31,58,0.06); }
+  .site-header .nav { display:flex; align-items:center; justify-content:space-between; max-width:1060px; margin:0 auto; padding: 12px 20px; }
+  .site-header .brand { display:flex; align-items:center; gap:12px; color: var(--royal-purple); font-weight: 800; letter-spacing: .2px; font-size: 18px; }
+  .site-header .brand img { width: 36px; height: 36px; filter: drop-shadow(0 2px 8px rgba(11,31,58,.2)); }
+  .site-header .links { display:flex; gap: 10px; align-items:center; }
+  .site-header .links a { color: var(--royal-navy); padding: 8px 12px; border-radius: 12px; border: 1px solid transparent; transition: all .2s ease; font-weight: 600; }
+  .site-header .links a:hover { background:#f3efe0; border-color: #e8dfc4; transform: translateY(-1px) }
+  .site-header .links .cta-gh { background: var(--royal-purple); color: #fff; border-color: var(--royal-purple); box-shadow: 0 6px 24px rgba(53,45,119,.25); }
+  .site-header .links .cta-gh:hover { filter: brightness(1.05) }
 </style>
 
 <header class="site-header">
@@ -68,6 +71,7 @@ title: CRUDMan NestJS
       <a href="#features">Features</a>
       <a href="#readme">Readme</a>
       <a href="#about">About</a>
+      <a class="cta-gh" href="https://github.com/jinujd/crudman-nestjs" target="_blank" rel="noopener">GitHub</a>
     </nav>
   </div>
 </header>
@@ -192,7 +196,19 @@ export class UsersController extends CrudControllerBase('users') {}</code></pre>
         return `<pre><code>${esc}</code></pre>`
       })
       const el = document.getElementById('readme-container')
-      if (el) el.innerHTML = html
+      if (el) {
+        el.innerHTML = html
+        // Fix image paths from README (e.g., docs/assets/ → assets/ for GitHub Pages docs root)
+        const imgs = el.querySelectorAll('img')
+        imgs.forEach((img) => {
+          const src = img.getAttribute('src') || ''
+          if (/^\/?docs\//.test(src)) {
+            img.setAttribute('src', src.replace(/^\/?docs\//, 'assets/'))
+          } else if (src.includes('docs/assets/')) {
+            img.setAttribute('src', src.replace(/.*docs\/assets\//, 'assets/'))
+          }
+        })
+      }
     } catch {}
   })()
 </script>
