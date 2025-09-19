@@ -61,6 +61,28 @@ crudman-nestjs is a plug-and-play CRUD layer for NestJS. It auto-generates REST 
 npm i crudman-nestjs
 ```
 
+## Swagger title/version (global)
+
+You can set a global Swagger title/version/description via the module options. If not provided, they default from your package.json (title is humanized from name).
+
+Defaults:
+- title: humanized package.json name (e.g., `crudman-nestjs` → `Crudman Nestjs`)
+- version: package.json version (e.g., `1.0.0`)
+- description: `CRUD APIs for {title}`
+
+Configure explicitly:
+```ts
+CrudmanModule.forRoot({
+  swagger: { enabled: true },
+  swaggerMeta: { title: 'My Awesome API', version: '2.0.0', description: 'Internal platform APIs' }
+})
+```
+
+Example project (from `examples/nest-typeorm-sqlite/src/app.module.ts`):
+```ts
+CrudmanModule.forRoot({ swaggerMeta: { title: 'Example API', version: '1.2.3' } })
+```
+
 ## Quick start (auto routes)
 
 Minimal controller with auto-generated endpoints:
