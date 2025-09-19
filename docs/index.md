@@ -95,5 +95,5 @@ title: CRUDMan NestJS
 @Controller('api/users')
 export class UsersController extends CrudControllerBase('users') {}</code></pre>
 
-  <div class="footer">Made with care · British royal palette · MIT License</div>
+  <div class="footer">Made with care · MIT License</div>
 </div>
