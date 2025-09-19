@@ -17,7 +17,7 @@ title: CRUDMan NestJS
   .hero h1 { font-size: 44px; line-height: 1.1; margin: 0 0 12px; }
   .hero p { font-size: 18px; opacity: .95; }
   .hero .cta { margin-top: 18px; display: flex; gap: 12px; }
-  .btn { padding: 12px 16px; border-radius: 10px; border: 2px solid rgba(255,255,255,.2); color: white; }
+  .btn { padding: 12px 16px; border-radius: 2px; border: 2px solid rgba(255,255,255,.2); color: white; }
   .btn.primary { background: var(--royal-gold); color: var(--royal-navy); border-color: var(--royal-gold); font-weight: 600; }
   .container { max-width: 1060px; margin: 0 auto; padding: 0 20px; }
   .logo-wrap { display:flex; justify-content:center; }
@@ -60,7 +60,7 @@ title: CRUDMan NestJS
   .site-header .brand { display:flex; align-items:center; gap:12px; color: var(--royal-purple); font-weight: 800; letter-spacing: .2px; font-size: 18px; }
   .site-header .brand img { width: 36px; height: 36px; filter: drop-shadow(0 2px 8px rgba(11,31,58,.2)); }
   .site-header .links { display:flex; gap: 10px; align-items:center; }
-  .site-header .links a { color: var(--royal-navy); padding: 8px 12px; border-radius: 12px; border: 1px solid transparent; transition: all .2s ease; font-weight: 600; }
+  .site-header .links a { color: var(--royal-navy); padding: 8px 12px; border-radius: 2px; border: 1px solid transparent; transition: all .2s ease; font-weight: 600; }
   .site-header .links a:hover { background:#f3efe0; border-color: #e8dfc4; transform: translateY(-1px) }
   .site-header .links .cta-gh { background: var(--royal-purple); color: #fff; border-color: var(--royal-purple); box-shadow: 0 6px 24px rgba(53,45,119,.25); }
   .site-header .links .cta-gh:hover { filter: brightness(1.05) }
