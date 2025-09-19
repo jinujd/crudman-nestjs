@@ -72,6 +72,7 @@ title: CRUDMan NestJS
   .site-header .links { display:flex; gap: 10px; align-items:center; }
   .site-header .links a { color: var(--royal-navy); padding: 8px 12px; border-radius: 2px; border: 1px solid transparent; transition: all .2s ease; font-weight: 600; }
   .site-header .links a:hover { background:#f3efe0; border-color: #e8dfc4; transform: translateY(-1px) }
+  .site-header .links a.active { background: var(--royal-gold); color: var(--royal-navy); border-color: #e2dfc6; box-shadow: 0 2px 8px rgba(0,17,58,.12) }
   .site-header .links .cta-gh { background: var(--royal-crimson); color: #fff; border-color: var(--royal-crimson); box-shadow: 0 6px 24px rgba(137,3,4,.25); }
   .site-header .links .cta-gh:hover { filter: brightness(1.05) }
 </style>
@@ -249,5 +250,34 @@ export class UsersController extends CrudControllerBase('users') {}</code></pre>
         })
       }
     } catch {}
+  })()
+
+  // Active section highlighting
+  (function() {
+    const links = Array.from(document.querySelectorAll('.site-header .links a[href^="#"]'))
+    const map = new Map()
+    links.forEach(a => {
+      const id = a.getAttribute('href').slice(1)
+      const sec = document.getElementById(id)
+      if (sec) map.set(sec, a)
+    })
+    const setActive = (el) => {
+      links.forEach(l => l.classList.remove('active'))
+      if (el) el.classList.add('active')
+    }
+    const io = new IntersectionObserver((entries) => {
+      let topMost = null
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          if (!topMost || e.boundingClientRect.top < topMost.boundingClientRect.top) topMost = e
+        }
+      })
+      if (topMost) setActive(map.get(topMost.target))
+    }, { rootMargin: '-20% 0px -70% 0px', threshold: [0, 0.25, 0.5, 0.75, 1] })
+    map.forEach((_, sec) => io.observe(sec))
+    // Also update on click
+    links.forEach(a => a.addEventListener('click', () => {
+      setTimeout(() => setActive(a), 100)
+    }))
   })()
 </script>
