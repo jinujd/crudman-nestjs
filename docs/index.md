@@ -359,8 +359,17 @@ export class UsersController extends CrudControllerBase('users') {}</code></pre>
   })()
 </script>
 
-<!-- WhatsApp Chat with Author -->
-<a class="wa-widget" href="https://wa.me/918157811122?text=Hi%20Jinu%2C%20I%20have%20a%20question%20about%20crudman-nestjs" target="_blank" rel="noopener" aria-label="Chat with author on WhatsApp">
-  <svg class="wa-icon" viewBox="0 0 32 32" aria-hidden="true"><path d="M19.11 17.14c-.27-.14-1.6-.79-1.85-.88-.25-.09-.43-.14-.62.14-.18.27-.71.88-.87 1.06-.16.18-.32.2-.6.07-.27-.14-1.16-.43-2.2-1.37-.81-.72-1.36-1.6-1.52-1.87-.16-.27-.02-.42.12-.56.12-.12.27-.32.4-.49.14-.16.18-.27.27-.45.09-.18.05-.34-.02-.49-.07-.14-.62-1.5-.85-2.05-.22-.53-.45-.46-.62-.46-.16 0-.34-.02-.52-.02s-.49.07-.75.34c-.25.27-.98.96-.98 2.34 0 1.38 1 2.71 1.14 2.9.14.18 1.98 3.03 4.8 4.25.67.29 1.2.46 1.61.58.68.22 1.29.19 1.78.12.54-.08 1.6-.65 1.82-1.28.22-.63.22-1.17.16-1.28-.06-.11-.25-.18-.52-.32zM16.02 28C9.37 28 4 22.63 4 15.98 4 9.34 9.37 4 16.02 4 22.64 4 28 9.34 28 15.98 28 22.63 22.64 28 16.02 28zm0-21.82c-5.49 0-9.96 4.47-9.96 9.96 0 1.76.46 3.43 1.28 4.88L6 26l5.07-1.33c1.41.77 3.03 1.2 4.95 1.2 5.49 0 9.96-4.47 9.96-9.96 0-5.49-4.47-9.96-9.96-9.96z"/></svg>
-  <span>Chat with author</span>
-</a>
+<!-- WhatsApp Chat with Author (GetButton.io) -->
+<script type="text/javascript">
+  (function () {
+    var options = {
+      whatsapp: "+918157811122",
+      call_to_action: "Chat with author",
+      position: "right",
+    };
+    var proto = document.location.protocol, host = "getbutton.io", url = proto + "//static." + host;
+    var s = document.createElement('script'); s.type = 'text/javascript'; s.async = true; s.src = url + '/widget-send-button/js/init.js';
+    s.onload = function () { WhWidgetSendButton.init(host, proto, options); };
+    var x = document.getElementsByTagName('script')[0]; x.parentNode.insertBefore(s, x);
+  })();
+ </script>
