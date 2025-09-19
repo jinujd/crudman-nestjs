@@ -9,6 +9,26 @@
   <br/>
 </p>
 
+> Creating CRUD is so simple. See how a simple States CRUD is defined:
+
+```ts
+// states.controller.ts
+import { Controller } from '@nestjs/common'
+import { UseCrud, CrudControllerBase } from 'crudman-nestjs'
+import { State } from './state.entity'
+
+@UseCrud({ sections: { states: { model: State } } })
+@Controller('api/states')
+export class StatesController extends CrudControllerBase('states') {}
+```
+
+That single snippet gives you:
+- GET /api/states (with filters, sorting, pagination, keyword)
+- GET /api/states/:id (includes relations by default)
+- POST /api/states
+- PATCH /api/states/:id
+- DELETE /api/states/:id
+
 We believe everyone building RESTful services with NestJS—especially CRUD‑heavy backends—will find this library helpful. It gives you out‑of‑the‑box CRUD endpoints, a clear configuration model, and the freedom to override anything when you need custom behavior. The design centers on adapters (ORM and validator), safe query handling, and simple developer ergonomics so you can start fast and customize when needed.
 
 ## Features

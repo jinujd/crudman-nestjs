@@ -4,7 +4,8 @@ import { CrudmanRegistry } from '../module/CrudmanRegistry'
 
 export function CrudControllerBase(section: string): any {
   class BaseController {
-    constructor(protected readonly crud: CrudmanService) {}
+    protected readonly crud: CrudmanService
+    constructor() { this.crud = new CrudmanService() }
 
     @Get()
     list(@Req() req: any) { return this.crud.list(section, req, undefined) }
@@ -21,6 +22,16 @@ export function CrudControllerBase(section: string): any {
     @Delete(':id')
     remove(@Req() req: any) { return this.crud.delete(section, req, undefined) }
   }
+  try {
+    const proto: any = (BaseController as any).prototype
+    const paramMetaKey = 'design:paramtypes'
+    // Ensure Swagger has parameter type metadata for decorated params
+    ;(Reflect as any).defineMetadata(paramMetaKey, [Object], proto, 'list')
+    ;(Reflect as any).defineMetadata(paramMetaKey, [Object], proto, 'details')
+    ;(Reflect as any).defineMetadata(paramMetaKey, [Object], proto, 'create')
+    ;(Reflect as any).defineMetadata(paramMetaKey, [Object], proto, 'update')
+    ;(Reflect as any).defineMetadata(paramMetaKey, [Object], proto, 'remove')
+  } catch {}
   return BaseController
 }
 

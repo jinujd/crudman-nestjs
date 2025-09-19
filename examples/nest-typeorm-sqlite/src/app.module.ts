@@ -9,12 +9,13 @@ import { CompaniesController } from './companies.controller'
 import { UsersController } from './users.controller'
 import { CountriesController } from './countries.controller'
 import { StatesController } from './states.controller'
+import { CustomController } from './custom.controller'
 
 @Module({
   imports: [
     TypeOrmModule.forRoot({ type: 'sqlite', database: 'test.sqlite', entities: [Company, User, Country, State], synchronize: true }),
-    CrudmanModule.forRoot({}),
+    CrudmanModule.forRoot({ swaggerMeta: { title: 'Example API', version: '1.2.3' } }),
   ],
-  controllers: [CompaniesController, UsersController, CountriesController, StatesController]
+  controllers: [CompaniesController, UsersController, CountriesController, StatesController, CustomController]
 })
 export class AppModule {}

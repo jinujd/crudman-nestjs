@@ -52,19 +52,43 @@ export function enhanceCrudSwaggerDocument(document: any) {
   const sections: Record<string, any> = meta.config?.sections || {}
   if (!document.components) document.components = {}
   if (!document.components.schemas) document.components.schemas = {}
+  // Apply global swagger meta (title/version/description) with fallbacks to package.json
+  try {
+    const reg = CrudmanRegistry.get()
+    const cfg = reg.getSwaggerMeta() || {}
+    const humanize = (s: string) => String(s || '').replace(/[-_]+/g, ' ').replace(/\s+/g, ' ').trim().replace(/(^|\s)\S/g, (t) => t.toUpperCase())
+    let pkg: any = null
+    try { pkg = require(process.cwd() + '/package.json') } catch {
+      try { pkg = require('../../../../package.json') } catch {}
+    }
+    const defaultTitle = humanize(pkg?.name || 'API')
+    const defaultVersion = pkg?.version || '1.0.0'
+    const defaultDescription = `CRUD APIs for ${cfg.title ? humanize(cfg.title) : defaultTitle}`
+    document.info = document.info || {}
+    document.info.title = cfg.title ? humanize(cfg.title) : (document.info.title || defaultTitle)
+    document.info.version = cfg.version || (document.info.version || defaultVersion)
+    document.info.description = cfg.description || (document.info.description || defaultDescription)
+  } catch {}
 
   const sectionToEntityName: Record<string, string> = {}
   const sectionToSelectionField: Record<string, string> = {}
+  const capitalize = (s: string) => (s && s.length ? s.charAt(0).toUpperCase() + s.slice(1) : s)
   for (const [sectionKey, cfg] of Object.entries(sections)) {
     const ent = (cfg as any)?.model
     if (!ent) continue
-    const name = ent.name || 'Entity'
+    const rawTitle = (cfg as any)?.title || ent.name || 'Entity'
+    const name = capitalize(String(rawTitle))
     sectionToEntityName[sectionKey] = name
     const selectionField = (cfg as any)?.recordSelectionField || 'id'
     sectionToSelectionField[sectionKey] = selectionField
     // Register main entity schema
     const schema = generateOpenApiSchemaFromEntity(ent)
-    if (schema) document.components.schemas[name] = schema
+    if (schema) {
+      ;(schema as any).title = name
+      if ((cfg as any)?.description) (schema as any).description = (cfg as any).description
+      else if (!(schema as any).description) (schema as any).description = `CRUD options for ${name}`
+      document.components.schemas[name] = schema
+    }
     // Also register direct relation target schemas
     try {
       const ds = CrudmanRegistry.get().getDataSource?.()
@@ -81,9 +105,26 @@ export function enhanceCrudSwaggerDocument(document: any) {
   }
 
   const isDetailsPath = (p: string) => /\{[^}]+\}$/.test(p)
+  const singularize = (word: string) => {
+    if (word.endsWith('ies')) return word.slice(0, -3) + 'y'
+    if (word.endsWith('s')) return word.slice(0, -1)
+    return word
+  }
+  const sectionKeys = Object.keys(sections)
+  const sectionKeyToSingular: Record<string, string> = Object.fromEntries(sectionKeys.map(k => [k, singularize(k)]))
   const getSectionFromPath = (p: string): string | null => {
     const parts = p.split('/').filter(Boolean)
     if (!parts.length) return null
+    // Prefer any segment that matches a known section key
+    for (const seg of parts) {
+      if (sectionKeys.includes(seg)) return seg
+    }
+    // Fallback: match singular segment to a section
+    for (const seg of parts) {
+      const match = sectionKeys.find(k => sectionKeyToSingular[k] === seg)
+      if (match) return match
+    }
+    // Last non-parameter fallback
     for (let i = parts.length - 1; i >= 0; i--) {
       const seg = parts[i]
       if (!seg.startsWith('{')) return seg
@@ -101,7 +142,7 @@ export function enhanceCrudSwaggerDocument(document: any) {
 
     const ref = { $ref: `#/components/schemas/${entityName}` }
 
-    // List: GET without id param
+    // List: GET without id param (also detect custom routes like /company/details/{id} using singular)
     if (item.get && !isDetailsPath(path)) {
       item.get.responses = item.get.responses || {}
       item.get.responses['200'] = item.get.responses['200'] || {}
@@ -110,6 +151,55 @@ export function enhanceCrudSwaggerDocument(document: any) {
           schema: buildListEnvelopeSchema(ref)
         }
       }
+
+      // Inject query params: pagination, sorting, filters, keyword
+      const sectionKey = section as string
+      const sectionCfg: any = (sections as any)[sectionKey] || {}
+      const listCfg: any = { ...(sectionCfg || {}), ...(sectionCfg.list || {}) }
+      const qn = listCfg.queryParamNames || {}
+      const pageName = qn.page || 'page'
+      const perPageName = qn.perPage || 'perPage'
+      const paginateName = qn.paginate || 'paginate'
+      const sortPrefix = qn.sortPrefix || 'sort.'
+      const keywordName = (qn.keyword || listCfg.keywordParamName || 'keyword')
+      const ds = CrudmanRegistry.get().getDataSource?.()
+      const meta = ds ? safeGetMetadata(ds, (sectionCfg as any).model) : null
+      const allCols: Array<{ name: string; type: string }> = Array.isArray(meta?.columns)
+        ? meta!.columns.map((c: any) => ({ name: c.propertyName, type: normalizeType(c.type) }))
+        : []
+      const filtersWhitelist: string[] = Array.isArray(listCfg.filtersWhitelist) && listCfg.filtersWhitelist.length ? listCfg.filtersWhitelist : allCols.map(c => c.name)
+      const sortingWhitelist: string[] = Array.isArray(listCfg.sortingWhitelist) && listCfg.sortingWhitelist.length ? listCfg.sortingWhitelist : allCols.map(c => c.name)
+
+      const params: any[] = item.get.parameters || []
+      const pushParam = (p: any) => {
+        if (!params.some((e) => e.in === p.in && e.name === p.name)) params.push(p)
+      }
+      // Pagination
+      pushParam({ in: 'query', name: pageName, required: false, schema: { type: 'integer', minimum: 1 } })
+      pushParam({ in: 'query', name: perPageName, required: false, schema: { type: 'integer', minimum: 0 } })
+      pushParam({ in: 'query', name: paginateName, required: false, schema: { type: 'string', enum: ['true','false','0','1','yes','no'] } })
+      // Sorting
+      for (const f of sortingWhitelist) {
+        pushParam({ in: 'query', name: `${sortPrefix}${f}`, required: false, schema: { type: 'string', enum: ['asc','desc'] } })
+      }
+      // Filters
+      const colType: Record<string, string> = Object.fromEntries(allCols.map(c => [c.name, c.type]))
+      const opNames = { min: qn.minOp || 'min', max: qn.maxOp || 'max', gt: qn.gtOp || 'gt', lt: qn.ltOp || 'lt', between: qn.betweenOp || 'between', like: qn.likeOp || 'like' }
+      for (const f of filtersWhitelist) {
+        const baseType = colType[f] === 'number' || colType[f] === 'integer' ? 'number' : (colType[f] === 'boolean' ? 'boolean' : 'string')
+        pushParam({ in: 'query', name: f, required: false, schema: { type: baseType } })
+        pushParam({ in: 'query', name: `${f}.${opNames.like}`, required: false, schema: { type: 'string' } })
+        pushParam({ in: 'query', name: `${f}.${opNames.min}`, required: false, schema: { type: baseType } })
+        pushParam({ in: 'query', name: `${f}.${opNames.max}`, required: false, schema: { type: baseType } })
+        pushParam({ in: 'query', name: `${f}.${opNames.gt}`, required: false, schema: { type: baseType } })
+        pushParam({ in: 'query', name: `${f}.${opNames.lt}`, required: false, schema: { type: baseType } })
+        pushParam({ in: 'query', name: `${f}.${opNames.between}`, required: false, schema: { type: 'string' }, description: 'start,end' })
+      }
+      // Keyword search
+      const kwCfg = listCfg.keyword || {}
+      const kwEnabled = kwCfg.isEnabled !== false
+      if (kwEnabled) pushParam({ in: 'query', name: keywordName, required: false, schema: { type: 'string' } })
+      item.get.parameters = params
     }
     // Details: ensure param name matches selectionField and add param definition
     if (item.get && isDetailsPath(path)) {
@@ -169,6 +259,18 @@ export function enhanceCrudSwaggerDocument(document: any) {
     newPaths[finalPath] = item
   }
   document.paths = newPaths
+
+  // Capitalize tag names globally and update path item tags
+  if (Array.isArray(document.tags)) {
+    document.tags = document.tags.map((t: any) => ({ ...t, name: capitalize(String(t?.name || '')) }))
+  }
+  for (const [, item] of Object.entries<any>(document.paths || {})) {
+    for (const method of ['get','post','put','patch','delete']) {
+      if (item[method] && Array.isArray(item[method].tags)) {
+        item[method].tags = item[method].tags.map((n: any) => capitalize(String(n)))
+      }
+    }
+  }
 }
 
 function buildListEnvelopeSchema(itemRef: any) {

@@ -34,6 +34,7 @@ export class CrudmanRegistry {
   getDataSource() { return (this.options as any).dataSource }
   setDataSource(ds: any) { (this.options as any).dataSource = ds }
   getUpdateMethod() { return this.options.updateMethod || 'patch' }
+  getSwaggerMeta() { return (this.options as any).swaggerMeta || {} }
 }
 
 

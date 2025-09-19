@@ -10,6 +10,7 @@ export interface CrudModuleOptions {
   identityAccessor?: IdentityAccessor
   roleChecker?: RoleChecker
   swagger?: { enabled?: boolean }
+  swaggerMeta?: { title?: string; version?: string; description?: string }
   cache?: { enabled?: boolean; stdTTL?: number; checkperiod?: number; maxKeys?: number; invalidateListsOnWrite?: boolean }
   dataSource?: any // optional TypeORM DataSource; used when ormType: 'typeorm' and repo isn't provided
   updateMethod?: 'put' | 'patch'
