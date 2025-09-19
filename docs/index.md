@@ -1,38 +1,89 @@
 ---
-layout: default
+layout: none
 title: CRUDMan NestJS
 ---
 
-<p align="center">
-  <img src="assets/crudman-logo.svg" alt="CRUD Man Logo" width="140" />
-</p>
+<style>
+  :root {
+    --royal-navy: #0b1f3a;
+    --royal-purple: #352D77;
+    --royal-gold: #c9a227;
+    --royal-cream: #f6f3ea;
+  }
+  html, body { margin: 0; padding: 0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; background: var(--royal-cream); color: var(--royal-navy); }
+  a { color: var(--royal-gold); text-decoration: none; }
+  .hero { display: grid; grid-template-columns: 1fr 1fr; align-items: center; gap: 24px; padding: 56px 24px; background: linear-gradient(140deg, var(--royal-purple), var(--royal-navy)); color: white; }
+  .hero h1 { font-size: 44px; line-height: 1.1; margin: 0 0 12px; }
+  .hero p { font-size: 18px; opacity: .95; }
+  .hero .cta { margin-top: 18px; display: flex; gap: 12px; }
+  .btn { padding: 12px 16px; border-radius: 10px; border: 2px solid rgba(255,255,255,.2); color: white; }
+  .btn.primary { background: var(--royal-gold); color: var(--royal-navy); border-color: var(--royal-gold); font-weight: 600; }
+  .container { max-width: 1060px; margin: 0 auto; padding: 0 20px; }
+  .logo-wrap { display:flex; justify-content:center; }
+  .logo { width: 180px; filter: drop-shadow(0 6px 18px rgba(0,0,0,.25)); }
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .card { background: white; border-radius: 14px; padding: 18px; border: 1px solid #e9e6da; box-shadow: 0 6px 20px rgba(11,31,58,.06); }
+  .muted { color: #4c5670; }
+  table.features { width: 100%; border-collapse: collapse; margin: 16px 0; background: white; border-radius: 14px; overflow: hidden; border: 1px solid #e9e6da; }
+  table.features th, table.features td { padding: 12px 14px; border-bottom: 1px solid #eee7d0; vertical-align: top; }
+  table.features th { background: #f9f6eb; color: var(--royal-purple); text-align: left; font-weight: 700; }
+  .footer { text-align:center; padding: 24px; color: #6c7390; }
+</style>
 
-<h1 style="color:#352D77">crudman-nestjs</h1>
+<section class="hero">
+  <div class="container">
+    <h1>crudman-nestjs</h1>
+    <p>Ship production-grade CRUD APIs for NestJS in minutes: adapter-driven, validation-first, cache-aware, and Swagger-friendly out of the box.</p>
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/jinujd/crudman-nestjs#readme">Get Started</a>
+      <a class="btn" href="https://github.com/jinujd/crudman-nestjs">GitHub</a>
+    </div>
+  </div>
+  <div class="logo-wrap">
+    <img class="logo" src="assets/crudman-logo.svg" alt="CRUD Man Logo" />
+  </div>
+</section>
 
-Pluggable CRUD for NestJS with adapters, validation, caching, and auto routes.
+<div class="container">
+  <h2 style="color:var(--royal-purple)">Why crudman?</h2>
+  <div class="grid">
+    <div class="card">
+      <h3>Plug-and-play</h3>
+      <p class="muted">Drop-in module, instant CRUD routes, and elegant overrides when you need full control.</p>
+    </div>
+    <div class="card">
+      <h3>Adapter-first</h3>
+      <p class="muted">TypeORM today, Sequelize-ready tomorrow—swap ORM or validators without upheaval.</p>
+    </div>
+    <div class="card">
+      <h3>Swagger-native</h3>
+      <p class="muted">Entity-driven schemas with polished response envelopes for list, details, create, update, delete.</p>
+    </div>
+  </div>
 
-- TypeORM-first; Sequelize-ready via future adapter
-- fastest-validator by default; adapter interface supports Joi later
-- relations/getRelations, filters/sorting whitelists
-- Standard, configurable response envelope
-- NodeCache per-endpoint caching; global invalidation on writes
-- Decorators and auto routes via CrudControllerBase
+  <h2 style="color:var(--royal-purple)">Features</h2>
+  <table class="features">
+    <tr><th>Capability</th><th>What you get</th></tr>
+    <tr><td>Auto CRUD endpoints</td><td>Spin up list, details, create, update, delete—in a single decorator or base class.</td></tr>
+    <tr><td>PATCH-first updates</td><td>Modern partial updates by default (configurable to PUT).</td></tr>
+    <tr><td>Relations by default</td><td>Include all relations automatically; fine-tune with include/exclude patterns.</td></tr>
+    <tr><td>Attributes selection</td><td>All columns by default, plus include/exclude to shape payloads.</td></tr>
+    <tr><td>Powerful querying</td><td>Clean filtering, sorting, pagination, and keyword search with safe whitelists.</td></tr>
+    <tr><td>Validation built-in</td><td>Fastest-validator out of the box; swap to Joi/Zod via adapters.</td></tr>
+    <tr><td>Caching</td><td>Per-endpoint NodeCache with smart invalidation after writes.</td></tr>
+    <tr><td>Hooks everywhere</td><td>Before/after action, query, and validation—extend without forking.</td></tr>
+    <tr><td>Swagger enhancer</td><td>Auto envelopes for list/details/create/update/delete; entity schemas derived from metadata.</td></tr>
+    <tr><td>Save (upsert)</td><td>Single endpoint to create or update based on presence of an id.</td></tr>
+    <tr><td>Programmatic calls</td><td>Call other sections’ actions safely within hooks or services.</td></tr>
+  </table>
 
-<h2 style="color:#3F4C70">Quick links</h2>
-- [GitHub](https://github.com/jinujd/crudman-nestjs)
-- [README on GitHub](https://github.com/jinujd/crudman-nestjs#readme)
+  <h2 style="color:var(--royal-purple)">Install</h2>
+  <pre><code>npm i crudman-nestjs</code></pre>
 
-<h2 style="color:#3F4C70">Install</h2>
-```bash
-npm i crudman-nestjs
-```
-
-<h2 style="color:#3F4C70">Usage</h2>
-```ts
-@UseCrud({ sections: { users: { model: User } } })
+  <h2 style="color:var(--royal-purple)">One-minute setup</h2>
+  <pre><code>@UseCrud({ sections: { users: { model: User } } })
 @Controller('api/users')
-export class UsersController extends CrudControllerBase('users') {}
-```
+export class UsersController extends CrudControllerBase('users') {}</code></pre>
 
-<h2 style="color:#3F4C70">Config</h2>
-See README for complete configuration, caching, validation hooks, and swagger.
+  <div class="footer">Made with care · British royal palette · MIT License</div>
+</div>

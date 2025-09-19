@@ -33,15 +33,31 @@ We believe everyone building RESTful services with NestJS—especially CRUD‑he
 
 ## Features
 
-- 🔌 Super easy to install and start using auto‑generated CRUD endpoints
-- 🐙 Adapter‑based and DB/service‑agnostic (TypeORM by default; Sequelize‑ready)
-- 🔎 Rich query handling: filtering, pagination, sorting, relations via safe whitelists
-- 🧪 Validation included by default (fastest‑validator) and pluggable (Joi/Zod via adapters)
-- 🎬 Override controller methods with ease using decorators or custom handlers
-- 🔧 Tiny config: global module options + per‑section settings
-- 🎁 Helper decorators and a base controller for zero‑boilerplate endpoints
-- ✏️ Swagger/OpenAPI friendly (DTOs per action for typed `data`)
-- 🧊 Caching with NodeCache; per‑endpoint TTL and automatic invalidation on writes
+- 🔌 Launch-ready CRUD endpoints in minutes
+- 🐙 Adapter-first design (TypeORM today; Sequelize-ready) 
+- 🔎 Powerful querying: filters, sorting, pagination, keyword search
+- 🧭 Relations and attributes control (include/exclude, sensible defaults)
+- 🧪 Validation built-in (fastest-validator) and swappable (Joi/Zod adapters)
+- 🎬 Elegant overrides via decorators or custom handlers
+- 🔧 Minimal config: global options + per-section tuning
+- 🎁 Base controller for zero-boilerplate auto routes
+- ✏️ Swagger-native with entity-driven schemas and envelopes
+- 🧊 NodeCache per-endpoint caching with smart invalidation
+## At-a-glance capabilities
+
+| Capability | What you get |
+| --- | --- |
+| Auto CRUD endpoints | List, details, create, update, delete with a single decorator or base class |
+| PATCH-first updates | Modern partial updates by default (configurable to PUT) |
+| Relations by default | Include all relations automatically; refine with include/exclude |
+| Attributes selection | All columns by default; include/exclude to shape payloads |
+| Powerful querying | Clean filters, sorting, pagination, keyword search with safe whitelists |
+| Validation built-in | fastest-validator out of the box; Joi/Zod via adapters |
+| Caching | NodeCache per-endpoint with invalidation on writes |
+| Hooks | Before/after action, query, validation to extend behavior |
+| Swagger enhancer | Auto envelopes for list/details/create/update/delete; entity schemas from metadata |
+| Save (upsert) | Single endpoint that creates or updates based on id presence |
+| Programmatic calls | Safely call other sections’ actions from hooks/services |
 
 ## Overview
 
