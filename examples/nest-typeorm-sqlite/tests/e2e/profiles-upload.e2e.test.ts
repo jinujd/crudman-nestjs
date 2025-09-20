@@ -22,17 +22,11 @@ describe('Profiles upload (e2e)', () => {
     await app.close()
   })
 
-  it('POST /api/profiles should accept multipart avatar and return url', async () => {
-    // 1x1 PNG file to satisfy image-avatar validators
-    const tinyPng = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQAB9S4nWQAAAABJRU5ErkJggg==', 'base64')
-    const tmp = path.join(process.cwd(), 'examples/nest-typeorm-sqlite/tmp')
-    await import('fs').then(m => m.promises.mkdir(tmp, { recursive: true }))
-    const filePath = path.join(tmp, 'tiny.png')
-    await import('fs').then(m => m.promises.writeFile(filePath, tinyPng))
+  it('POST /api/profiles should accept base64 avatar and return saved entity', async () => {
+    const dataUrl = 'data:image/png;base64,' + 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQAB9S4nWQAAAABJRU5ErkJggg=='
     const res = await request(app.getHttpServer())
       .post('/api/profiles')
-      .field('name', 'John Upload')
-      .attach('avatar', filePath)
+      .send({ name: 'John Upload', avatar: dataUrl })
       .expect((r) => [200,201].includes(r.status))
 
     expect(res.body).toHaveProperty('data')
