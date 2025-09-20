@@ -1061,9 +1061,9 @@ const doc = SwaggerModule.createDocument(app, config)
 doc.components = doc.components || { schemas: {} }
 doc.components.schemas = {
   ...doc.components.schemas,
-    Company: generateOpenApiSchemaFromEntity(Company)!,
-    User: generateOpenApiSchemaFromEntity(User)!
-  }
+  Company: generateOpenApiSchemaFromEntity(Company)!,
+  User: generateOpenApiSchemaFromEntity(User)!
+}
 // Enhance: add list/detail/create/update/delete response envelopes and entity refs
 enhanceCrudSwaggerDocument(doc)
 SwaggerModule.setup('docs', app, doc)
@@ -1253,7 +1253,7 @@ Notes:
 
 You can attach custom metadata to any action's response without changing the envelope. Provide either a static object via `additionalResponse`, or compute it dynamically via `getAdditionalResponse`. Both are merged into the response `meta`.
 
-Example:
+Example (per action):
 
 ```ts
 create: {
@@ -1280,6 +1280,25 @@ Response shape (excerpt):
   }
 }
 ```
+
+Example (example app excerpt): see `examples/nest-typeorm-sqlite/src/crud/companies.section.ts`:
+
+```ts
+export function companiesSection() {
+  return {
+    model: Company,
+    list: {
+      additionalResponse: { servedBy: 'example-app' },
+      getAdditionalResponse: async (req) => ({ requestId: req.headers?.['x-request-id'] || null })
+    },
+    create: {
+      getAdditionalResponse: async () => ({ createdVia: 'companies-section' })
+    }
+  }
+}
+```
+
+Defaults: If neither `additionalResponse` nor `getAdditionalResponse` is provided, no extra `meta` properties are added (beyond system-provided ones like pagination/filters/sorting when applicable).
 
 ### Query parameters: filters, sorting, pagination (Companies)
 
