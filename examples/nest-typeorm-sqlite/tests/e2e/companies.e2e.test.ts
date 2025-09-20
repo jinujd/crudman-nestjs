@@ -55,7 +55,8 @@ it('PATCH /api/companies/:id should update', async () => {
   const id = create.body.data.id
   const res = await request(app.getHttpServer()).patch(`/api/companies/${id}`).send({ name: 'Gamma LLC' })
   expect(res.status).toBe(200)
-  expect(res.body && res.body.data && res.body.data.name).toBe('Gamma LLC')
+  const details = await request(app.getHttpServer()).get(`/api/companies/${id}`).expect(200)
+  expect(details.body && details.body.data && details.body.data.name).toBe('Gamma LLC')
 })
 
 it('DELETE /api/companies/:id should delete', async () => {

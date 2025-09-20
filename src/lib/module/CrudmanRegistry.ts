@@ -48,6 +48,10 @@ export class CrudmanRegistry {
   getUploadLimits(): { maxSizeMB?: number; allowedMimeTypes?: string[] } {
     return (this.options as any).uploadLimits || {}
   }
+
+  getUploadResponseOptions(): { fileFieldMode?: 'filename_in_field'|'key_url_fields'; includeBaseUrlsOn?: Array<'list'|'details'|'create'|'update'|'save'>; allowRequestOverride?: boolean } {
+    return (this.options as any).uploadResponse || {}
+  }
 }
 
 

@@ -73,25 +73,24 @@ export class CrudmanService {
     const defaults = sectionCfg?.uploadDefaults || {}
     const out: UploadConfig = { sources: ['multipart'], map: [] }
     const ensureArray = (v: any) => Array.isArray(v) ? v : (v ? [v] : [])
+    const reg = CrudmanRegistry.get()
+    const fileResp = reg.getUploadResponseOptions?.() || {}
+    const fileFieldMode = fileResp.fileFieldMode || 'filename_in_field'
     for (const [baseField, raw] of Object.entries<any>(uploadable)) {
       const spec = String(raw || '').trim()
       const isArray = spec.includes('[]')
       const mode: UploadStorageMode = spec.includes(':base64') ? 'base64' : (spec.includes(':blob') ? 'blob' : 'filename')
-      const typeHint = spec.split(':')[0].replace('[]','') // image|video|pdf|doc|any
+      const typeHint = spec.split(':')[0].replace('[]','') // image, image-*, video, video-*, pdf, doc, spreadsheet(-*), text, xml, html, json, csv, archive, binary, any
       const sources: UploadSource[] = defaults.sources || ['multipart']
-      const validators = (() => {
-        if (defaults.validators) return defaults.validators
-        if (typeHint === 'image') return { allowedMimeTypes: ['image/jpeg','image/png','image/gif','image/webp'] }
-        if (typeHint === 'video') return { allowedMimeTypes: ['video/mp4','video/webm','video/ogg'] }
-        if (typeHint === 'pdf') return { allowedExtensions: ['.pdf'] }
-        if (typeHint === 'doc') return { allowedExtensions: ['.pdf','.doc','.docx'] }
-        return {}
-      })()
+      const validators = this.getValidatorsForTypeHint(typeHint, defaults.validators)
       const storage = defaults.storage || CrudmanRegistry.get().getOptions()?.defaultFileStorage
       const entry: UploadMapEntry = {
         sourceField: baseField,
         targetField: (() => {
           if (mode === 'filename') {
+            if (fileFieldMode === 'filename_in_field') {
+              return baseField
+            }
             return isArray ? { keys: `${baseField}Keys`, urls: `${baseField}Urls` } : { key: `${baseField}Key`, url: `${baseField}Url` }
           }
           if (mode === 'blob') return { blob: `${baseField}Blob`, mime: `${baseField}Mime` }
@@ -102,13 +101,59 @@ export class CrudmanService {
         storageMode: mode,
         storage,
         sources,
-        validators
+        validators,
+        typeHint: typeHint as any
       }
       out.map.push(entry)
     }
     // merge any explicit upload.map
     if (sectionCfg?.upload?.map?.length) out.map.push(...ensureArray(sectionCfg.upload.map))
     return out
+  }
+
+  private getValidatorsForTypeHint(typeHint: string, override?: any): any {
+    if (override) return override
+    const map: Record<string, any> = {
+      // images
+      'image': { allowedMimeTypes: ['image/jpeg','image/png','image/gif','image/webp','image/avif'], allowedExtensions: ['.jpg','.jpeg','.png','.gif','.webp','.avif'], maxSizeMB: 5 },
+      'image-jpg': { allowedMimeTypes: ['image/jpeg'], allowedExtensions: ['.jpg','.jpeg'], maxSizeMB: 5 },
+      'image-png': { allowedMimeTypes: ['image/png'], allowedExtensions: ['.png'], maxSizeMB: 5 },
+      'image-gif': { allowedMimeTypes: ['image/gif'], allowedExtensions: ['.gif'], maxSizeMB: 5 },
+      'image-webp': { allowedMimeTypes: ['image/webp'], allowedExtensions: ['.webp'], maxSizeMB: 5 },
+      'image-avif': { allowedMimeTypes: ['image/avif'], allowedExtensions: ['.avif'], maxSizeMB: 5 },
+      'image-avatar': { allowedMimeTypes: ['image/jpeg','image/png','image/gif','image/webp','image/avif'], allowedExtensions: ['.jpg','.jpeg','.png','.gif','.webp','.avif'], maxSizeMB: 2, _avatar: true },
+      'image-jpg-avatar': { allowedMimeTypes: ['image/jpeg'], allowedExtensions: ['.jpg','.jpeg'], maxSizeMB: 2, _avatar: true },
+      'image-png-avatar': { allowedMimeTypes: ['image/png'], allowedExtensions: ['.png'], maxSizeMB: 2, _avatar: true },
+      'image-webp-avatar': { allowedMimeTypes: ['image/webp'], allowedExtensions: ['.webp'], maxSizeMB: 2, _avatar: true },
+      'image-avif-avatar': { allowedMimeTypes: ['image/avif'], allowedExtensions: ['.avif'], maxSizeMB: 2, _avatar: true },
+      // video
+      'video': { allowedMimeTypes: ['video/mp4','video/webm','video/ogg'], allowedExtensions: ['.mp4','.webm','.ogg'], maxSizeMB: 100 },
+      'video-mp4': { allowedMimeTypes: ['video/mp4'], allowedExtensions: ['.mp4'], maxSizeMB: 100 },
+      'video-webm': { allowedMimeTypes: ['video/webm'], allowedExtensions: ['.webm'], maxSizeMB: 100 },
+      'video-ogg': { allowedMimeTypes: ['video/ogg'], allowedExtensions: ['.ogg'], maxSizeMB: 100 },
+      'video-short': { allowedMimeTypes: ['video/mp4','video/webm'], allowedExtensions: ['.mp4','.webm'], maxSizeMB: 25, _shortVideo: true },
+      // audio
+      'audio': { allowedMimeTypes: ['audio/mpeg','audio/mp4','audio/aac','audio/ogg','audio/wav'], allowedExtensions: ['.mp3','.m4a','.aac','.ogg','.wav'], maxSizeMB: 20 },
+      // docs
+      'pdf': { allowedExtensions: ['.pdf'], maxSizeMB: 10 },
+      'doc': { allowedExtensions: ['.pdf','.doc','.docx','.odt'], maxSizeMB: 10 },
+      // spreadsheets
+      'spreadsheet': { allowedExtensions: ['.xls','.xlsx','.csv'], maxSizeMB: 10 },
+      'spreadsheet-csv': { allowedMimeTypes: ['text/csv'], allowedExtensions: ['.csv'], maxSizeMB: 5 },
+      'spreadsheet-xls': { allowedMimeTypes: ['application/vnd.ms-excel'], allowedExtensions: ['.xls'], maxSizeMB: 10 },
+      'spreadsheet-xlsx': { allowedMimeTypes: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'], allowedExtensions: ['.xlsx'], maxSizeMB: 10 },
+      // text/web
+      'text': { allowedMimeTypes: ['text/plain','text/markdown'], allowedExtensions: ['.txt','.md'], maxSizeMB: 2 },
+      'csv': { allowedMimeTypes: ['text/csv'], allowedExtensions: ['.csv'], maxSizeMB: 5 },
+      'xml': { allowedMimeTypes: ['application/xml','text/xml'], allowedExtensions: ['.xml'], maxSizeMB: 2 },
+      'html': { allowedMimeTypes: ['text/html'], allowedExtensions: ['.html','.htm'], maxSizeMB: 2 },
+      'json': { allowedMimeTypes: ['application/json'], allowedExtensions: ['.json'], maxSizeMB: 2 },
+      // archive/binary/any
+      'archive': { allowedExtensions: ['.zip','.tar','.gz','.rar','.7z'], maxSizeMB: 200 },
+      'binary': { allowedMimeTypes: ['application/octet-stream'], maxSizeMB: 50 },
+      'any': {}
+    }
+    return map[typeHint] || {}
   }
 
   private getEffectiveUploadCfg(actionCfg: any): UploadConfig | undefined {
@@ -139,6 +184,7 @@ export class CrudmanService {
     const uploadCfg = this.getEffectiveUploadCfg(actionCfg)
     if (!uploadCfg || !uploadCfg.map || !uploadCfg.map.length) return
     const files: any[] = Array.isArray(req?.files) ? req.files : []
+    const errors: any[] = []
     for (const rule of uploadCfg.map) {
       const field = rule.sourceField
       const incomingFiles = files.filter((f) => f && String(f.fieldname) === field)
@@ -153,6 +199,60 @@ export class CrudmanService {
         for (const v of arr) items.push({ base64: String(v), mime: undefined, filename: undefined })
       }
       if (!items.length) continue
+
+      // Effective validators precedence: rule.validators > section.uploadDefaults.validators > global uploadLimits + typeHint defaults
+      const globalLimits = CrudmanRegistry.get().getUploadLimits() || {}
+      const typeDefaults = this.getValidatorsForTypeHint(String((rule as any)?.typeHint || ''), undefined)
+      const sectionDefaults = (actionCfg?.uploadDefaults?.validators) || {}
+      const eff: any = { ...typeDefaults, ...globalLimits, ...sectionDefaults, ...(rule.validators || {}) }
+
+      // Validate each item
+      for (const it of items) {
+        const errPrefix = field
+        // size
+        if (eff.maxSizeMB && eff.maxSizeMB > 0) {
+          const sizeBytes = it.buffer?.length || 0
+          const b64len = it.base64 ? Buffer.byteLength(String(it.base64).split('base64,').pop() || '', 'base64') : 0
+          const size = sizeBytes || b64len
+          const maxBytes = eff.maxSizeMB * 1024 * 1024
+          if (size > maxBytes) errors.push({ type: 'fileSize', field: errPrefix, message: `File too large. Max ${eff.maxSizeMB} MB` })
+        }
+        // extension
+        if (Array.isArray(eff.allowedExtensions) && eff.allowedExtensions.length) {
+          const ext = (it.filename ? require('path').extname(it.filename) : '').toLowerCase()
+          if (!ext || !eff.allowedExtensions.map((e: string) => e.toLowerCase()).includes(ext)) {
+            errors.push({ type: 'fileExtension', field: errPrefix, message: `Invalid extension. Allowed: ${eff.allowedExtensions.join(', ')}` })
+          }
+        }
+        // mime
+        if (Array.isArray(eff.allowedMimeTypes) && eff.allowedMimeTypes.length) {
+          const mime = (it.mime || '').toLowerCase()
+          if (!mime || !eff.allowedMimeTypes.map((m: string) => m.toLowerCase()).includes(mime)) {
+            errors.push({ type: 'fileMime', field: errPrefix, message: `Invalid MIME type. Allowed: ${eff.allowedMimeTypes.join(', ')}` })
+          }
+        }
+        // avatar dimensions (optional)
+        if (eff._avatar && (it.buffer || it.base64)) {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const sizeOf = require('image-size') as (input: Buffer) => { width: number; height: number }
+            const buf = it.buffer || Buffer.from(String(it.base64).split('base64,').pop() || '', 'base64')
+            const dim = sizeOf(buf)
+            if (dim?.width && dim?.height) {
+              const w = dim.width, h = dim.height
+              if (w < 128 || h < 128) errors.push({ type: 'imageDimensions', field: errPrefix, message: `Image too small. Min 128x128` })
+              if (w > 4096 || h > 4096) errors.push({ type: 'imageDimensions', field: errPrefix, message: `Image too large. Max 4096x4096` })
+              const ratio = w / h
+              if (Math.abs(ratio - 1) > 0.2) errors.push({ type: 'imageAspect', field: errPrefix, message: `Image should be near 1:1 aspect (±20%)` })
+            }
+          } catch {}
+        }
+        // video-short optional checks
+        if (typeDefaults && typeDefaults._shortVideo) {
+          // Implement only when external tools are available; skipped gracefully
+        }
+      }
+      if (errors.length) continue
       const adapter = this.getStorageAdapter(rule.storage)
       const assign = (key: string, value: any) => { if (!req.body) req.body = {}; (req.body as any)[key] = value }
       if (rule.storageMode === 'filename') {
@@ -165,14 +265,22 @@ export class CrudmanService {
             keys.push(saved.key); if (saved.url) urls.push(saved.url)
           }
           const tf = rule.targetField as any
-          if (tf?.keys) assign(tf.keys, keys)
-          if (tf?.urls) assign(tf.urls, urls)
+          if (typeof tf === 'string') {
+            assign(tf, keys)
+          } else {
+            if (tf?.keys) assign(tf.keys, keys)
+            if (tf?.urls) assign(tf.urls, urls)
+          }
         } else {
           const it = items[0]
           const saved = await adapter.save({ buffer: it.buffer, stream: it.stream, base64: it.base64, mime: it.mime, filename: it.filename })
           const tf = rule.targetField as any
-          if (tf?.key) assign(tf.key, saved.key)
-          if (tf?.url && saved.url) assign(tf.url, saved.url)
+          if (typeof tf === 'string') {
+            assign(tf, saved.key)
+          } else {
+            if (tf?.key) assign(tf.key, saved.key)
+            if (tf?.url && saved.url) assign(tf.url, saved.url)
+          }
         }
       } else if (rule.storageMode === 'base64') {
         const tf = rule.targetField as string
@@ -190,6 +298,7 @@ export class CrudmanService {
         }
       }
     }
+    if (errors.length) (req as any)._fileValidationErrors = errors
   }
 
   private async computeAdditionalResponse(section: string, action: string, actionCfg: any, body: any, req: any, res: any): Promise<any | undefined> {
@@ -203,30 +312,19 @@ export class CrudmanService {
       try { add(await Promise.resolve(ar(req, res, body))) } catch {}
     } else if (ar && typeof ar === 'object') add(ar)
 
-    // Auto imageBases for shorthand uploadable image fields (details/create/update/save only)
-    if (['details','create','update','save'].includes(action)) {
+    // Auto baseUrls for shorthand uploadable image fields (actions per options)
+    const includeOn = CrudmanRegistry.get().getUploadResponseOptions()?.includeBaseUrlsOn || ['list','details']
+    if (includeOn.includes(action as any)) {
       const uploadCfg = this.getEffectiveUploadCfg(actionCfg)
-      const imageRules = (uploadCfg?.map || []).filter((m) => m.typeHint === 'image' && m.storageMode === 'filename' && !m.isArray)
-      if (imageRules.length) {
-        const entity = body?.data
-        if (entity && typeof entity === 'object') {
-          const bases: Record<string,string> = {}
-          for (const r of imageRules) {
-            const tf: any = r.targetField
-            const urlField = tf?.url
-            const keyField = tf?.key
-            let url: string | undefined
-            if (urlField && entity[urlField]) url = String(entity[urlField])
-            else if (keyField && entity[keyField]) {
-              const adapter = this.getStorageAdapter(r.storage)
-              if (adapter?.getUrl) {
-                try { const u = await Promise.resolve(adapter.getUrl(String(entity[keyField]))); if (u) url = String(u) } catch {}
-              }
-            }
-            if (url) bases[r.sourceField] = url
-          }
-          if (Object.keys(bases).length) add({ imageBases: bases })
+      const rules = (uploadCfg?.map || []).filter((m) => m.storageMode === 'filename' && !m.isArray)
+      if (rules.length) {
+        const bases: Record<string,string> = {}
+        for (const r of rules) {
+          const adapter = this.getStorageAdapter(r.storage)
+          const base = (adapter?.getUrl && typeof adapter.getUrl === 'function') ? String((adapter as any).opts?.publicBaseUrl || '') : ''
+          if (base) bases[r.sourceField] = base.endsWith('/') ? base : base + '/'
         }
+        if (Object.keys(bases).length) add({ baseUrls: bases })
       }
     }
     return extra
@@ -241,7 +339,7 @@ export class CrudmanService {
     }
     const proceed = await this.applyHooks(actionCfg, 'onBeforeValidate', req, res, rules, validator, this)
     if (proceed === false) return { valid: false, errors: [{ message: 'Validation stopped by onBeforeValidate' }] }
-    const input = { ...req.body, ...(req.params || {}) }
+    const input = { ...req.body }
     const result = validator.validate(input, rules)
     const proceedAfter = await this.applyHooks(actionCfg, 'onAfterValidate', req, res, result.errors, validator, this)
     if (proceedAfter === false) return { valid: false, errors: result.errors }
@@ -356,6 +454,18 @@ export class CrudmanService {
     }
     // Default JSON
     res.setHeader('Content-Type', 'application/json; charset=utf-8')
+    // Per-request URL expansion override
+    try {
+      const urlPrefRaw = (req?.headers?.['x-file-url'] || req?.headers?.['X-File-Url'] || req?.query?.['x-file-url'] || req?.query?.['x_file_url'] || '').toString().toLowerCase()
+      const urlPref = urlPrefRaw === 'full' ? 'full' : (urlPrefRaw === 'key_only' ? 'key_only' : undefined)
+      const includeOn = CrudmanRegistry.get().getUploadResponseOptions()?.includeBaseUrlsOn || ['list','details']
+      if (urlPref && includeOn.includes(action)) {
+        const body = { ...result }
+        ;(body as any).meta = (body as any).meta || {}
+        ;(body as any).meta.fileUrlMode = urlPref
+        return this.send(res, body)
+      }
+    } catch {}
     return this.send(res, result)
   }
 
@@ -387,7 +497,7 @@ export class CrudmanService {
     const fmt = this.getResponseFormatter()
     const body = fmt({ action: 'list', payload, errors: [], success: true, meta: { pagination: payload.pagination, filters: payload.filters, sorting: payload.sorting }, req, res })
     const extra = await this.computeAdditionalResponse(section, 'list', actionCfg, body, req, res)
-    if (extra) (body as any).extra = extra
+    if (extra) (body as any).meta = { ...(body as any).meta, ...(extra || {}) }
     await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
     return this.sendNegotiated(res, 'list', body)
   }
@@ -418,7 +528,7 @@ export class CrudmanService {
     const fmt = this.getResponseFormatter()
     const body = fmt({ action: 'details', payload: entity, errors: [], success: !!entity, meta: {}, req, res })
     const extra = await this.computeAdditionalResponse(section, 'details', actionCfg, body, req, res)
-    if (extra) (body as any).extra = extra
+    if (extra) (body as any).meta = { ...(body as any).meta, ...(extra || {}) }
     await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
     return this.sendNegotiated(res, 'details', body)
   }
@@ -428,6 +538,9 @@ export class CrudmanService {
     const orm = this.getOrm(actionCfg)
     if (!orm) return this.send(res, { success: false, errors: [{ message: 'Invalid section' }] })
     await this.processUploads(section, actionCfg, req)
+    if ((req as any)._fileValidationErrors) {
+      return this.send(res, this.getResponseFormatter()({ action: 'create', payload: null, errors: (req as any)._fileValidationErrors, success: false, meta: {}, req, res }))
+    }
     const val = await this.validateIfNeeded(actionCfg, req, res, false)
     if (!val.valid) return this.send(res, this.getResponseFormatter()({ action: 'create', payload: null, errors: val.errors, success: false, meta: {}, req, res }))
     const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, this)
@@ -436,7 +549,7 @@ export class CrudmanService {
     this.invalidateSection(section)
     const body = this.getResponseFormatter()({ action: 'create', payload: saved, errors: [], success: true, meta: {}, req, res })
     const extra = await this.computeAdditionalResponse(section, 'create', actionCfg, body, req, res)
-    if (extra) (body as any).extra = extra
+    if (extra) (body as any).meta = { ...(body as any).meta, ...(extra || {}) }
     await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
     return this.send(res, body)
   }
@@ -446,6 +559,9 @@ export class CrudmanService {
     const orm = this.getOrm(actionCfg)
     if (!orm) return this.send(res, { success: false, errors: [{ message: 'Invalid section' }] })
     await this.processUploads(section, actionCfg, req)
+    if ((req as any)._fileValidationErrors) {
+      return this.send(res, this.getResponseFormatter()({ action: 'update', payload: null, errors: (req as any)._fileValidationErrors, success: false, meta: {}, req, res }))
+    }
     const val = await this.validateIfNeeded(actionCfg, req, res, true)
     if (!val.valid) return this.send(res, this.getResponseFormatter()({ action: 'update', payload: null, errors: val.errors, success: false, meta: {}, req, res }))
     const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, this)
@@ -454,7 +570,7 @@ export class CrudmanService {
     this.invalidateSection(section)
     const body = this.getResponseFormatter()({ action: 'update', payload: saved, errors: [], success: true, meta: {}, req, res })
     const extra = await this.computeAdditionalResponse(section, 'update', actionCfg, body, req, res)
-    if (extra) (body as any).extra = extra
+    if (extra) (body as any).meta = { ...(body as any).meta, ...(extra || {}) }
     await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
     return this.send(res, body)
   }
@@ -464,6 +580,9 @@ export class CrudmanService {
     const orm = this.getOrm(actionCfg)
     if (!orm) return this.send(res, { success: false, errors: [{ message: 'Invalid section' }] })
     await this.processUploads(section, actionCfg, req)
+    if ((req as any)._fileValidationErrors) {
+      return this.send(res, this.getResponseFormatter()({ action: 'save', payload: null, errors: (req as any)._fileValidationErrors, success: false, meta: {}, req, res }))
+    }
     const isUpdate = !!(req.params?.id || req.body?.id)
     const val = await this.validateIfNeeded(actionCfg, req, res, isUpdate)
     if (!val.valid) return this.send(res, this.getResponseFormatter()({ action: 'save', payload: null, errors: val.errors, success: false, meta: {}, req, res }))
@@ -473,7 +592,7 @@ export class CrudmanService {
     this.invalidateSection(section)
     const body = this.getResponseFormatter()({ action: 'save', payload: saved, errors: [], success: true, meta: {}, req, res })
     const extra = await this.computeAdditionalResponse(section, 'save', actionCfg, body, req, res)
-    if (extra) (body as any).extra = extra
+    if (extra) (body as any).meta = { ...(body as any).meta, ...(extra || {}) }
     await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
     return this.send(res, body)
   }

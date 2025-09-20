@@ -6,7 +6,7 @@ import { Profile } from './profile.entity'
 @UseCrud({ sections: {
   profiles: {
     model: Profile,
-    uploadable: { avatar: 'image' },
+    uploadable: { avatar: 'image-avatar' },
     uploadDefaults: { storage: 'local' }
   }
 }})

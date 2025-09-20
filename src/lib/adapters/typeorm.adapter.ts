@@ -231,15 +231,30 @@ export const TypeormAdapter: OrmAdapter = {
     const rawParam = req.params && (req.params[field] ?? req.params.id ?? Object.values(req.params)[0])
     const value = castId(rawParam ?? req.body[field])
     const input = this.normalizeInput({ ...req.body }, cfg.model)
-    // Use save for reliable partial updates across drivers
-    const existing = await repo.findOne({ where: { [field]: value } as any })
-    if (!existing) return existing
-    for (const k of Object.keys(input)) {
-      if (k === field) continue
-      ;(existing as any)[k] = (input as any)[k]
+    const updateKeys = Object.keys(input).filter((k) => k !== field)
+    if (updateKeys.length) {
+      try {
+        // Use QueryBuilder update with explicit where clause
+        const primary = (repo as any)?.metadata?.primaryColumns?.[0]?.propertyName || field
+        const qb = repo.createQueryBuilder()
+        await qb.update(cfg.model).set(input as any).where(`${primary} = :id`, { id: value }).execute()
+      } catch {
+        try {
+          // Prefer load-merge-save
+          const existing = await repo.findOne({ where: { [field]: value } as any })
+          if (existing) {
+            for (const k of updateKeys) (existing as any)[k] = (input as any)[k]
+            await repo.save(existing)
+          } else {
+            const toSave = repo.create({ [field]: value, ...input } as any)
+            await repo.save(toSave)
+          }
+        } catch {
+          await repo.update({ [field]: value } as any, input)
+        }
+      }
     }
-    const saved = await repo.save(existing)
-    return saved
+    return await repo.findOne({ where: { [field]: value } as any })
   },
 
   async save(req, cfg) {

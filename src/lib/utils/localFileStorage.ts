@@ -15,8 +15,8 @@ export class LocalDiskAdapter implements FileStorageAdapter {
   async save(input: FileStorageSaveInput): Promise<FileStorageSaveResult> {
     const id = randomUUID()
     const ext = input.filename ? path.extname(input.filename) : ''
-    const key = path.join(this.opts.dest, id + ext)
-    const abs = path.isAbsolute(key) ? key : path.join(process.cwd(), key)
+    const diskKey = path.join(this.opts.dest, id + ext)
+    const abs = path.isAbsolute(diskKey) ? diskKey : path.join(process.cwd(), diskKey)
     await fs.mkdir(path.dirname(abs), { recursive: true })
     if (input.buffer) {
       await fs.writeFile(abs, input.buffer)
@@ -33,17 +33,22 @@ export class LocalDiskAdapter implements FileStorageAdapter {
     } else {
       throw new Error('LocalDiskAdapter.save requires buffer, base64 or stream')
     }
-    const url = this.opts.publicBaseUrl ? joinUrl(this.opts.publicBaseUrl, key.replace(/^\.*\//, '')) : undefined
-    return { key, url, mime: input.mime, size: input.buffer?.length }
+    const relKey = path.relative(this.opts.dest, diskKey).replace(/^\.*\//, '').replace(/\\/g, '/')
+    const url = this.opts.publicBaseUrl ? joinUrl(this.opts.publicBaseUrl, relKey) : undefined
+    return { key: relKey, url, mime: input.mime, size: input.buffer?.length }
   }
 
   async delete(key: string): Promise<void> {
-    const abs = path.isAbsolute(key) ? key : path.join(process.cwd(), key)
+    const abs = path.isAbsolute(key) ? key : path.join(process.cwd(), this.opts.dest, key)
     try { await fs.unlink(abs) } catch {}
   }
 
   getUrl(key: string): string {
-    return this.opts.publicBaseUrl ? joinUrl(this.opts.publicBaseUrl, key.replace(/^\.*\//, '')) : key
+    if (this.opts.publicBaseUrl) {
+      const rel = key.replace(/^\.*\//, '').replace(/\\/g, '/')
+      return joinUrl(this.opts.publicBaseUrl, rel)
+    }
+    return key
   }
 }
 

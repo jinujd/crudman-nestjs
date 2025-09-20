@@ -15,13 +15,15 @@ export const defaultResponseFormatter: ResponseFormatter = ({ action, payload, e
         isHavingPreviousPage: false
       },
       filters: meta?.filters || [],
-      sorting: meta?.sorting || []
+      sorting: meta?.sorting || [],
+      meta: meta?.extra || meta?.meta
     }
   }
   return {
     data: payload || null,
     errors: errors || [],
-    success: success !== false
+    success: success !== false,
+    meta: meta?.extra || meta?.meta
   }
 }
 

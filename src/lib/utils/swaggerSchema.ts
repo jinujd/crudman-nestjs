@@ -236,16 +236,17 @@ export function enhanceCrudSwaggerDocument(document: any) {
         }
       }
       // Indicate multipart support for uploads
-      item.patch.requestBody = item.patch.requestBody || {
-        required: false,
-        content: {
-          'multipart/form-data': {
-            schema: { type: 'object' }
-          },
-          'application/json': {
-            schema: { $ref: `#/components/schemas/${entityName}` }
-          }
+      {
+        const sectionKey = section as string
+        const sectionCfg: any = (sections as any)[sectionKey] || {}
+        const mpSchema = buildCombinedMultipartSchema(document, entityName, sectionKey, sectionCfg, 'update')
+        item.patch.requestBody = item.patch.requestBody || { required: false, content: {} }
+        const content = item.patch.requestBody.content as any
+        if (mpSchema) {
+          content['multipart/form-data'] = content['multipart/form-data'] || { schema: { type: 'object' } }
+          content['multipart/form-data'].schema = mpSchema
         }
+        content['application/json'] = content['application/json'] || { schema: { $ref: `#/components/schemas/${entityName}` } }
       }
       item.patch.parameters = item.patch.parameters || []
       const hasParam = (item.patch.parameters as any[]).some((p) => p.name === selectionField)
@@ -259,16 +260,17 @@ export function enhanceCrudSwaggerDocument(document: any) {
           schema: buildDetailEnvelopeSchema(ref)
         }
       }
-      item.put.requestBody = item.put.requestBody || {
-        required: false,
-        content: {
-          'multipart/form-data': {
-            schema: { type: 'object' }
-          },
-          'application/json': {
-            schema: { $ref: `#/components/schemas/${entityName}` }
-          }
+      {
+        const sectionKey = section as string
+        const sectionCfg: any = (sections as any)[sectionKey] || {}
+        const mpSchema = buildCombinedMultipartSchema(document, entityName, sectionKey, sectionCfg, 'update')
+        item.put.requestBody = item.put.requestBody || { required: false, content: {} }
+        const content = item.put.requestBody.content as any
+        if (mpSchema) {
+          content['multipart/form-data'] = content['multipart/form-data'] || { schema: { type: 'object' } }
+          content['multipart/form-data'].schema = mpSchema
         }
+        content['application/json'] = content['application/json'] || { schema: { $ref: `#/components/schemas/${entityName}` } }
       }
       item.put.parameters = item.put.parameters || []
       const hasParam = (item.put.parameters as any[]).some((p) => p.name === selectionField)
@@ -283,16 +285,17 @@ export function enhanceCrudSwaggerDocument(document: any) {
         }
       }
       // Add multipart requestBody hint for create with uploads
-      item.post.requestBody = item.post.requestBody || {
-        required: false,
-        content: {
-          'multipart/form-data': {
-            schema: { type: 'object' }
-          },
-          'application/json': {
-            schema: { $ref: `#/components/schemas/${entityName}` }
-          }
+      {
+        const sectionKey = section as string
+        const sectionCfg: any = (sections as any)[sectionKey] || {}
+        const mpSchema = buildCombinedMultipartSchema(document, entityName, sectionKey, sectionCfg, 'create')
+        item.post.requestBody = item.post.requestBody || { required: false, content: {} }
+        const content = item.post.requestBody.content as any
+        if (mpSchema) {
+          content['multipart/form-data'] = content['multipart/form-data'] || { schema: { type: 'object' } }
+          content['multipart/form-data'].schema = mpSchema
         }
+        content['application/json'] = content['application/json'] || { schema: { $ref: `#/components/schemas/${entityName}` } }
       }
     }
     if (item.delete) {
@@ -337,7 +340,7 @@ function buildListEnvelopeSchema(itemRef: any) {
       data: { type: 'array', items: itemRef },
       errors: { type: 'array', items: {} },
       success: { type: 'boolean' },
-      extra: { type: 'object', additionalProperties: true },
+      meta: { type: 'object', additionalProperties: true },
       pagination: {
         type: 'object',
         properties: {
@@ -381,7 +384,7 @@ function buildDetailEnvelopeSchema(itemRef: any) {
       data: itemRef,
       errors: { type: 'array', items: {} },
       success: { type: 'boolean' },
-      extra: { type: 'object', additionalProperties: true }
+      meta: { type: 'object', additionalProperties: true }
     }
   }
 }
@@ -398,9 +401,117 @@ function buildDeleteEnvelopeSchema() {
       },
       errors: { type: 'array', items: {} },
       success: { type: 'boolean' },
-      extra: { type: 'object', additionalProperties: true }
+      meta: { type: 'object', additionalProperties: true }
     }
   }
+}
+
+function buildMultipartUploadSchema(sectionKey: string, sectionCfg: any) {
+  try {
+    // Prefer explicit upload config if present, otherwise expand shorthand
+    const uploadCfg = (sectionCfg && sectionCfg.upload) || expandUploadableShorthandSafe(sectionCfg)
+    if (!uploadCfg || !Array.isArray(uploadCfg.map) || !uploadCfg.map.length) return null
+    const properties: Record<string, any> = {}
+    const required: string[] = []
+    for (const rule of uploadCfg.map) {
+      const field = String(rule.sourceField)
+      const isArray = !!rule.isArray
+      // In multipart, files use type: string + format: binary per OpenAPI
+      const fileSchema: any = { type: 'string', format: 'binary' }
+      // Add validation notes to schema description
+      const v = computeEffectiveUploadValidators(rule, sectionCfg)
+      const parts: string[] = []
+      if (Array.isArray(v.allowedMimeTypes) && v.allowedMimeTypes.length) parts.push(`MIME: ${v.allowedMimeTypes.join(', ')}`)
+      if (Array.isArray(v.allowedExtensions) && v.allowedExtensions.length) parts.push(`Ext: ${v.allowedExtensions.join(', ')}`)
+      if (v.maxSizeMB) parts.push(`Max: ${v.maxSizeMB} MB`)
+      const th = (rule as any).typeHint || ''
+      if (String(th).includes('avatar')) parts.push('Dimensions: min 128x128, max 4096x4096, aspect ~1:1')
+      if (parts.length) fileSchema.description = parts.join(' | ')
+      properties[field] = isArray ? { type: 'array', items: fileSchema } : fileSchema
+      // Only mark required if validators explicitly require; keep optional by default
+    }
+    return { type: 'object', properties, required: required.length ? required : undefined }
+  } catch {
+    return null
+  }
+}
+
+function expandUploadableShorthandSafe(sectionCfg: any): any | undefined {
+  try {
+    const uploadable = sectionCfg?.uploadable
+    if (!uploadable || typeof uploadable !== 'object') return sectionCfg?.upload
+    const defaults = sectionCfg?.uploadDefaults || {}
+    const out: any = { sources: ['multipart'], map: [] }
+    for (const [field, hint] of Object.entries<any>(uploadable)) {
+      const isArray = Array.isArray(hint)
+      const typeHint = (isArray ? hint[0] : hint) as any
+      const storageMode = defaults.storageMode || 'filename'
+      const targetField = storageMode === 'filename'
+        ? (isArray ? { keys: `${field}Keys`, urls: `${field}Urls` } : { key: `${field}Key`, url: `${field}Url` })
+        : (storageMode === 'blob' ? { blob: `${field}Blob`, mime: `${field}Mime` } : `${field}`)
+      out.map.push({
+        sourceField: field,
+        targetField,
+        isArray,
+        storageMode,
+        storage: defaults.storage,
+        sources: ['multipart', 'base64'],
+        typeHint: typeof typeHint === 'string' ? typeHint : undefined
+      })
+    }
+    return out
+  } catch { return undefined }
+}
+
+// Build a multipart schema that includes both file fields (binary) and regular entity fields (string/number/etc.)
+function buildCombinedMultipartSchema(document: any, entityName: string, sectionKey: string, sectionCfg: any, mode: 'create' | 'update' = 'create'): any | null {
+  const fileSchema = buildMultipartUploadSchema(sectionKey, sectionCfg)
+  const entityRef = document?.components?.schemas?.[entityName]
+  if (!fileSchema && !entityRef) return null
+  // Merge properties: file fields override by name to ensure binary input
+  const properties: Record<string, any> = {}
+  // Derive readonly fields from ORM metadata (primary, generated, timestamps)
+  const readonlyFields = new Set<string>()
+  try {
+    const ds = CrudmanRegistry.get().getDataSource?.()
+    const meta = ds ? safeGetMetadata(ds, (sectionCfg as any).model) : null
+    for (const col of meta?.columns || []) {
+      if (col.isPrimary || col.isGenerated || col.isCreateDate || col.isUpdateDate) readonlyFields.add(col.propertyName)
+    }
+    // Also exclude upload target fields (e.g., avatarKey, avatarUrl)
+    const uploadCfg = (sectionCfg && sectionCfg.upload) || expandUploadableShorthandSafe(sectionCfg)
+    if (uploadCfg && Array.isArray(uploadCfg.map)) {
+      for (const rule of uploadCfg.map) {
+        const tf = rule?.targetField
+        if (typeof tf === 'string') readonlyFields.add(tf)
+        else if (tf && typeof tf === 'object') {
+          for (const v of Object.values(tf)) if (typeof v === 'string') readonlyFields.add(v)
+        }
+      }
+    }
+  } catch {}
+  if (entityRef && entityRef.properties && typeof entityRef.properties === 'object') {
+    for (const [name, prop] of Object.entries<any>(entityRef.properties)) {
+      if (readonlyFields.has(String(name))) continue
+      // Swagger UI needs primitive types for multipart; map object/array to string by default
+      const base = mapToMultipartFriendly(prop)
+      properties[name] = base
+    }
+  }
+  if (fileSchema && fileSchema.properties) {
+    for (const [name, prop] of Object.entries<any>(fileSchema.properties)) {
+      properties[name] = prop
+    }
+  }
+  return { type: 'object', properties }
+}
+
+function mapToMultipartFriendly(prop: any): any {
+  const t = (prop && prop.type) || 'string'
+  if (prop && prop.format === 'date-time') return { type: 'string', format: 'date-time' }
+  if (t === 'string' || t === 'number' || t === 'integer' || t === 'boolean') return { type: t }
+  // For arrays/objects/refs, default to string (client can send JSON string)
+  return { type: 'string' }
 }
 
 function normalizeType(t: any): string {
@@ -417,6 +528,53 @@ function safeGetMetadata(ds: any, entity: any): any | null {
     const all = (ds as any).entityMetadatas || []
     return all.find((m: any) => m.target === entity || m.name === entity?.name) || null
   }
+}
+
+function computeEffectiveUploadValidators(rule: any, sectionCfg: any): any {
+  try {
+    const reg = CrudmanRegistry.get()
+    const globalLimits = reg.getUploadLimits() || {}
+    const typeDefaults = getTypeHintDefaults(String(rule?.typeHint || ''))
+    const sectionDefaults = (sectionCfg?.uploadDefaults?.validators) || {}
+    return { ...typeDefaults, ...globalLimits, ...sectionDefaults, ...(rule.validators || {}) }
+  } catch { return rule?.validators || {} }
+}
+
+function getTypeHintDefaults(typeHint: string): any {
+  const map: Record<string, any> = {
+    'image': { allowedMimeTypes: ['image/jpeg','image/png','image/gif','image/webp','image/avif'], allowedExtensions: ['.jpg','.jpeg','.png','.gif','.webp','.avif'], maxSizeMB: 5 },
+    'image-jpg': { allowedMimeTypes: ['image/jpeg'], allowedExtensions: ['.jpg','.jpeg'], maxSizeMB: 5 },
+    'image-png': { allowedMimeTypes: ['image/png'], allowedExtensions: ['.png'], maxSizeMB: 5 },
+    'image-gif': { allowedMimeTypes: ['image/gif'], allowedExtensions: ['.gif'], maxSizeMB: 5 },
+    'image-webp': { allowedMimeTypes: ['image/webp'], allowedExtensions: ['.webp'], maxSizeMB: 5 },
+    'image-avif': { allowedMimeTypes: ['image/avif'], allowedExtensions: ['.avif'], maxSizeMB: 5 },
+    'image-avatar': { allowedMimeTypes: ['image/jpeg','image/png','image/gif','image/webp','image/avif'], allowedExtensions: ['.jpg','.jpeg','.png','.gif','.webp','.avif'], maxSizeMB: 2 },
+    'image-jpg-avatar': { allowedMimeTypes: ['image/jpeg'], allowedExtensions: ['.jpg','.jpeg'], maxSizeMB: 2 },
+    'image-png-avatar': { allowedMimeTypes: ['image/png'], allowedExtensions: ['.png'], maxSizeMB: 2 },
+    'image-webp-avatar': { allowedMimeTypes: ['image/webp'], allowedExtensions: ['.webp'], maxSizeMB: 2 },
+    'image-avif-avatar': { allowedMimeTypes: ['image/avif'], allowedExtensions: ['.avif'], maxSizeMB: 2 },
+    'video': { allowedMimeTypes: ['video/mp4','video/webm','video/ogg'], allowedExtensions: ['.mp4','.webm','.ogg'], maxSizeMB: 100 },
+    'video-mp4': { allowedMimeTypes: ['video/mp4'], allowedExtensions: ['.mp4'], maxSizeMB: 100 },
+    'video-webm': { allowedMimeTypes: ['video/webm'], allowedExtensions: ['.webm'], maxSizeMB: 100 },
+    'video-ogg': { allowedMimeTypes: ['video/ogg'], allowedExtensions: ['.ogg'], maxSizeMB: 100 },
+    'video-short': { allowedMimeTypes: ['video/mp4','video/webm'], allowedExtensions: ['.mp4','.webm'], maxSizeMB: 25 },
+    'audio': { allowedMimeTypes: ['audio/mpeg','audio/mp4','audio/aac','audio/ogg','audio/wav'], allowedExtensions: ['.mp3','.m4a','.aac','.ogg','.wav'], maxSizeMB: 20 },
+    'pdf': { allowedExtensions: ['.pdf'], maxSizeMB: 10 },
+    'doc': { allowedExtensions: ['.pdf','.doc','.docx','.odt'], maxSizeMB: 10 },
+    'spreadsheet': { allowedExtensions: ['.xls','.xlsx','.csv'], maxSizeMB: 10 },
+    'spreadsheet-csv': { allowedMimeTypes: ['text/csv'], allowedExtensions: ['.csv'], maxSizeMB: 5 },
+    'spreadsheet-xls': { allowedMimeTypes: ['application/vnd.ms-excel'], allowedExtensions: ['.xls'], maxSizeMB: 10 },
+    'spreadsheet-xlsx': { allowedMimeTypes: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'], allowedExtensions: ['.xlsx'], maxSizeMB: 10 },
+    'text': { allowedMimeTypes: ['text/plain','text/markdown'], allowedExtensions: ['.txt','.md'], maxSizeMB: 2 },
+    'csv': { allowedMimeTypes: ['text/csv'], allowedExtensions: ['.csv'], maxSizeMB: 5 },
+    'xml': { allowedMimeTypes: ['application/xml','text/xml'], allowedExtensions: ['.xml'], maxSizeMB: 2 },
+    'html': { allowedMimeTypes: ['text/html'], allowedExtensions: ['.html','.htm'], maxSizeMB: 2 },
+    'json': { allowedMimeTypes: ['application/json'], allowedExtensions: ['.json'], maxSizeMB: 2 },
+    'archive': { allowedExtensions: ['.zip','.tar','.gz','.rar','.7z'], maxSizeMB: 200 },
+    'binary': { allowedMimeTypes: ['application/octet-stream'], maxSizeMB: 50 },
+    'any': {}
+  }
+  return map[typeHint] || {}
 }
 
 
