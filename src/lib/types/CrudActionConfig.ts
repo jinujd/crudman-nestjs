@@ -12,6 +12,8 @@ export interface CrudActionConfig {
   recordSelectionField?: string
   additionalSettings?: any
   additionalResponse?: Record<string, any> | ((req: any, res: any, currentResponse: any) => any | Promise<any>)
+  // New alias with clearer naming. If provided, it will be merged with additionalResponse
+  getAdditionalResponse?: (req: any, res: any, currentResponse: any) => any | Promise<any>
 
   relations?: '*' | string[] | { include?: string[]; exclude?: string[] }
   getRelations?: (req: any, res: any, cfg: any) => Promise<string[] | { include?: string[]; exclude?: string[] } | '*' | undefined> | (string[] | { include?: string[]; exclude?: string[] } | '*' | undefined)
