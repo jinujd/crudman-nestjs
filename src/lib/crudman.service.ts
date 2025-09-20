@@ -198,7 +198,14 @@ export class CrudmanService {
         const arr = Array.isArray(base64Value) ? base64Value : [base64Value]
         for (const v of arr) items.push({ base64: String(v), mime: undefined, filename: undefined })
       }
-      if (!items.length) continue
+      if (!items.length) {
+        // If no file provided on create, mark as required for filename uploads
+        const isCreate = !(req?.params?.id || req?.body?.id)
+        if (isCreate && rule.storageMode === 'filename' && !rule.isArray) {
+          errors.push({ type: 'required', field: rule.sourceField, message: `The ${rule.sourceField} field is required.` })
+        }
+        continue
+      }
 
       // Effective validators precedence: rule.validators > section.uploadDefaults.validators > global uploadLimits + typeHint defaults
       const globalLimits = CrudmanRegistry.get().getUploadLimits() || {}
@@ -499,7 +506,7 @@ export class CrudmanService {
     const extra = await this.computeAdditionalResponse(section, 'list', actionCfg, body, req, res)
     if (extra) (body as any).meta = { ...(body as any).meta, ...(extra || {}) }
     await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
-    return this.sendNegotiated(res, 'list', body)
+    return this.sendNegotiated(res, 'list', body, req)
   }
 
   async details(section: string, req: any, res: any) {
@@ -530,7 +537,7 @@ export class CrudmanService {
     const extra = await this.computeAdditionalResponse(section, 'details', actionCfg, body, req, res)
     if (extra) (body as any).meta = { ...(body as any).meta, ...(extra || {}) }
     await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
-    return this.sendNegotiated(res, 'details', body)
+    return this.sendNegotiated(res, 'details', body, req)
   }
 
   async create(section: string, req: any, res: any) {
@@ -539,10 +546,11 @@ export class CrudmanService {
     if (!orm) return this.send(res, { success: false, errors: [{ message: 'Invalid section' }] })
     await this.processUploads(section, actionCfg, req)
     if ((req as any)._fileValidationErrors) {
+      try { if (res?.status) res.status(400) } catch {}
       return this.send(res, this.getResponseFormatter()({ action: 'create', payload: null, errors: (req as any)._fileValidationErrors, success: false, meta: {}, req, res }))
     }
     const val = await this.validateIfNeeded(actionCfg, req, res, false)
-    if (!val.valid) return this.send(res, this.getResponseFormatter()({ action: 'create', payload: null, errors: val.errors, success: false, meta: {}, req, res }))
+    if (!val.valid) { try { if (res?.status) res.status(400) } catch {}; return this.send(res, this.getResponseFormatter()({ action: 'create', payload: null, errors: val.errors, success: false, meta: {}, req, res })) }
     const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, this)
     if (beforeAction === false) return
     const saved = await orm.create(req, { ...actionCfg, service: this })
@@ -560,10 +568,11 @@ export class CrudmanService {
     if (!orm) return this.send(res, { success: false, errors: [{ message: 'Invalid section' }] })
     await this.processUploads(section, actionCfg, req)
     if ((req as any)._fileValidationErrors) {
+      try { if (res?.status) res.status(400) } catch {}
       return this.send(res, this.getResponseFormatter()({ action: 'update', payload: null, errors: (req as any)._fileValidationErrors, success: false, meta: {}, req, res }))
     }
     const val = await this.validateIfNeeded(actionCfg, req, res, true)
-    if (!val.valid) return this.send(res, this.getResponseFormatter()({ action: 'update', payload: null, errors: val.errors, success: false, meta: {}, req, res }))
+    if (!val.valid) { try { if (res?.status) res.status(400) } catch {}; return this.send(res, this.getResponseFormatter()({ action: 'update', payload: null, errors: val.errors, success: false, meta: {}, req, res })) }
     const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, this)
     if (beforeAction === false) return
     const saved = await orm.update(req, { ...actionCfg, service: this })
@@ -581,11 +590,12 @@ export class CrudmanService {
     if (!orm) return this.send(res, { success: false, errors: [{ message: 'Invalid section' }] })
     await this.processUploads(section, actionCfg, req)
     if ((req as any)._fileValidationErrors) {
+      try { if (res?.status) res.status(400) } catch {}
       return this.send(res, this.getResponseFormatter()({ action: 'save', payload: null, errors: (req as any)._fileValidationErrors, success: false, meta: {}, req, res }))
     }
     const isUpdate = !!(req.params?.id || req.body?.id)
     const val = await this.validateIfNeeded(actionCfg, req, res, isUpdate)
-    if (!val.valid) return this.send(res, this.getResponseFormatter()({ action: 'save', payload: null, errors: val.errors, success: false, meta: {}, req, res }))
+    if (!val.valid) { try { if (res?.status) res.status(400) } catch {}; return this.send(res, this.getResponseFormatter()({ action: 'save', payload: null, errors: val.errors, success: false, meta: {}, req, res })) }
     const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, this)
     if (beforeAction === false) return
     const saved = orm.save ? await orm.save(req, { ...actionCfg, service: this }) : (isUpdate ? await orm.update(req, { ...actionCfg, service: this }) : await orm.create(req, { ...actionCfg, service: this }))

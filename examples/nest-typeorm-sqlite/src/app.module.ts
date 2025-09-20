@@ -17,6 +17,7 @@ import { Profile } from './profile.entity'
 import { ProfilesController } from './profiles.controller'
 import { UploadDemo } from './upload-demo.entity'
 import { FileUploadsController } from './file-uploads.controller'
+import { ImageUploadsController } from './image-uploads.controller'
 
 @Module({
   imports: [
@@ -27,6 +28,6 @@ import { FileUploadsController } from './file-uploads.controller'
       fileStorages: { local: { type: 'local', dest: 'uploads', publicBaseUrl: 'http://localhost:3001/uploads' } }
     }),
   ],
-  controllers: [CompaniesController, UsersController, CountriesController, StatesController, CustomController, ShorthandController, ProfilesController, FileUploadsController]
+  controllers: [CompaniesController, UsersController, CountriesController, StatesController, CustomController, ShorthandController, ProfilesController, FileUploadsController, ImageUploadsController]
 })
 export class AppModule {}

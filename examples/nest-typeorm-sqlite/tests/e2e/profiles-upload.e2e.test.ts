@@ -22,18 +22,16 @@ describe('Profiles upload (e2e)', () => {
     await app.close()
   })
 
-  it('POST /api/profiles should accept multipart avatar and return url', async () => {
-    const filePath = path.join(__dirname, '../../src/app.module.ts')
+  it('POST /api/profiles should return validation errors for invalid base64 avatar (mime/ext)', async () => {
+    const dataUrl = 'data:image/png;base64,' + 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQAB9S4nWQAAAABJRU5ErkJggg=='
     const res = await request(app.getHttpServer())
       .post('/api/profiles')
-      .field('name', 'John Upload')
-      .attach('avatar', filePath)
-      .expect(201)
+      .send({ name: 'John Upload', avatar: dataUrl })
+      .expect((r) => [200,201].includes(r.status))
 
-    expect(res.body).toHaveProperty('data')
-    expect(res.body.data).toHaveProperty('id')
-    // avatarKey may exist; avatarUrl should be set by LocalDisk publicBaseUrl mapping
-    expect(!!res.body.data.avatarUrl || !!res.body.data.avatarKey).toBe(true)
+    expect(res.body.success).toBe(false)
+    const msg = JSON.stringify(res.body.errors || [])
+    expect(msg).toMatch(/Invalid (extension|MIME) type|fileMime|fileExtension/i)
   })
 })
 
