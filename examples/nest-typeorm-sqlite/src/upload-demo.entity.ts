@@ -5,12 +5,12 @@ export class UploadDemo {
   @PrimaryGeneratedColumn('increment')
   id!: number
 
-  @Column('varchar', { length: 160, nullable: true })
-  title!: string | null
+  @Column('varchar', { length: 160, nullable: false })
+  title!: string
 
   // Default filename_in_field mode stores relative filename here
-  @Column('varchar', { nullable: true })
-  file!: string | null
+  @Column('varchar', { nullable: false })
+  file!: string
 
   @CreateDateColumn({ type: 'datetime' })
   createdAt!: Date

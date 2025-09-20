@@ -65,6 +65,8 @@ export class FastestValidatorAdapter implements ValidatorAdapter {
         if (typ === 'varchar' || typ === 'text' || typ === String) {
           rule.type = 'string';
           if (col.length) rule.max = Number(col.length)
+          // For non-nullable string columns without default, require non-empty string
+          if (col.isNullable === false && !col.hasDefault && !isUpdate) rule.min = 1
         } else if (typ === 'int' || typ === 'integer' || typ === Number) {
           rule.type = 'number'; rule.integer = true
         } else if (typ === 'float' || typ === 'double' || typ === 'decimal') {
