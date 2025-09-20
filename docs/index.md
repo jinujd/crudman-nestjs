@@ -247,6 +247,44 @@ export class UsersController extends CrudControllerBase('users') {}</code></pre>
   <h2 id="readme" style="color:#2a225f">README</h2>
   <div id="readme-container" class="card" style="overflow:auto; max-height: 80vh"></div>
 
+  <div class="card" style="margin-top:16px">
+    <h3>Supported upload types (presets)</h3>
+    <p class="muted">Use these presets in <code>uploadable</code> or <code>typeHint</code>. Override MIME/ext/size per field via <code>validators</code>. Avatar presets also enforce image dimensions.</p>
+    <div style="overflow:auto">
+      <table>
+        <thead>
+          <tr><th>Type</th><th>Allowed MIME types</th><th>Extensions</th><th>Max size (MB)</th><th>Image constraints</th><th>Notes</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>image</td><td>jpeg, png, gif, webp, avif</td><td>.jpg,.jpeg,.png,.gif,.webp,.avif</td><td>5</td><td>—</td><td>group</td></tr>
+          <tr><td>image-jpg</td><td>image/jpeg</td><td>.jpg,.jpeg</td><td>5</td><td>—</td><td></td></tr>
+          <tr><td>image-png</td><td>image/png</td><td>.png</td><td>5</td><td>—</td><td></td></tr>
+          <tr><td>image-gif</td><td>image/gif</td><td>.gif</td><td>5</td><td>—</td><td></td></tr>
+          <tr><td>image-webp</td><td>image/webp</td><td>.webp</td><td>5</td><td>—</td><td></td></tr>
+          <tr><td>image-avif</td><td>image/avif</td><td>.avif</td><td>5</td><td>—</td><td></td></tr>
+          <tr><td>image-avatar</td><td>jpeg, png, gif, webp, avif</td><td>.jpg,.jpeg,.png,.gif,.webp,.avif</td><td>2</td><td>min 128x128, max 4096x4096, aspect ~1:1</td><td>avatars</td></tr>
+          <tr><td>video</td><td>video/mp4, video/webm, video/ogg</td><td>.mp4,.webm,.ogg</td><td>100</td><td>—</td><td></td></tr>
+          <tr><td>video-short</td><td>video/mp4, video/webm</td><td>.mp4,.webm</td><td>25</td><td>—</td><td>short clips</td></tr>
+          <tr><td>audio</td><td>audio/mpeg, audio/mp4, audio/aac, audio/ogg, audio/wav</td><td>.mp3,.m4a,.aac,.ogg,.wav</td><td>20</td><td>—</td><td></td></tr>
+          <tr><td>pdf</td><td>—</td><td>.pdf</td><td>10</td><td>—</td><td></td></tr>
+          <tr><td>doc</td><td>—</td><td>.pdf,.doc,.docx,.odt</td><td>10</td><td>—</td><td></td></tr>
+          <tr><td>spreadsheet</td><td>—</td><td>.xls,.xlsx,.csv</td><td>10</td><td>—</td><td>group</td></tr>
+          <tr><td>spreadsheet-csv</td><td>text/csv</td><td>.csv</td><td>5</td><td>—</td><td></td></tr>
+          <tr><td>spreadsheet-xls</td><td>application/vnd.ms-excel</td><td>.xls</td><td>10</td><td>—</td><td></td></tr>
+          <tr><td>spreadsheet-xlsx</td><td>application/vnd.openxmlformats-officedocument.spreadsheetml.sheet</td><td>.xlsx</td><td>10</td><td>—</td><td></td></tr>
+          <tr><td>csv</td><td>text/csv</td><td>.csv</td><td>5</td><td>—</td><td></td></tr>
+          <tr><td>xml</td><td>application/xml, text/xml</td><td>.xml</td><td>2</td><td>—</td><td></td></tr>
+          <tr><td>html</td><td>text/html</td><td>.html,.htm</td><td>2</td><td>—</td><td></td></tr>
+          <tr><td>json</td><td>application/json</td><td>.json</td><td>2</td><td>—</td><td></td></tr>
+          <tr><td>text</td><td>text/plain, text/markdown</td><td>.txt,.md</td><td>2</td><td>—</td><td></td></tr>
+          <tr><td>archive</td><td>—</td><td>.zip,.tar,.gz,.rar,.7z</td><td>200</td><td>—</td><td></td></tr>
+          <tr><td>binary</td><td>application/octet-stream</td><td>any</td><td>50</td><td>—</td><td>raw blobs</td></tr>
+        </tbody>
+      </table>
+      <p class="muted">Default storage: filename_in_field (relative key saved in the entity field). Responses include <code>meta.baseUrls</code> on list/details; clients can set <code>x-file-url=full|key_only</code> to indicate URL preference.</p>
+    </div>
+  </div>
+
   <h2 id="about" style="color:#2a225f">About</h2>
   <div class="author-card">
     <div class="author-header">
