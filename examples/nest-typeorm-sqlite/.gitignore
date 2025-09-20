@@ -1,0 +1,10 @@
+# Ignore runtime uploads and local databases
+uploads/
+*.sqlite
+*.sqlite3
+*.sqlite-shm
+*.sqlite-wal
+*.db
+*.db3
+
+
