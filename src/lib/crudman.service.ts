@@ -548,12 +548,12 @@ export class CrudmanService {
     const orm = this.getOrm(actionCfg)
     if (!orm) return this.send(res, { success: false, errors: [{ message: 'Invalid section' }] })
     await this.processUploads(section, actionCfg, req)
-    if ((req as any)._fileValidationErrors) {
-      try { if (res?.status) res.status(400) } catch {}
-      return this.send(res, this.getResponseFormatter()({ action: 'create', payload: null, errors: (req as any)._fileValidationErrors, success: false, meta: {}, req, res }))
-    }
     const val = await this.validateIfNeeded(actionCfg, req, res, false)
-    if (!val.valid) { try { if (res?.status) res.status(400) } catch {}; return this.send(res, this.getResponseFormatter()({ action: 'create', payload: null, errors: val.errors, success: false, meta: {}, req, res })) }
+    const combinedErrors = [ ...(((req as any)._fileValidationErrors as any[]) || []), ...(val.valid ? [] : val.errors) ]
+    if (combinedErrors.length) {
+      try { if (res?.status) res.status(400) } catch {}
+      return this.send(res, this.getResponseFormatter()({ action: 'create', payload: null, errors: combinedErrors, success: false, meta: {}, req, res }))
+    }
     const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, this)
     if (beforeAction === false) return
     const saved = await orm.create(req, { ...actionCfg, service: this })
@@ -570,12 +570,12 @@ export class CrudmanService {
     const orm = this.getOrm(actionCfg)
     if (!orm) return this.send(res, { success: false, errors: [{ message: 'Invalid section' }] })
     await this.processUploads(section, actionCfg, req)
-    if ((req as any)._fileValidationErrors) {
-      try { if (res?.status) res.status(400) } catch {}
-      return this.send(res, this.getResponseFormatter()({ action: 'update', payload: null, errors: (req as any)._fileValidationErrors, success: false, meta: {}, req, res }))
-    }
     const val = await this.validateIfNeeded(actionCfg, req, res, true)
-    if (!val.valid) { try { if (res?.status) res.status(400) } catch {}; return this.send(res, this.getResponseFormatter()({ action: 'update', payload: null, errors: val.errors, success: false, meta: {}, req, res })) }
+    const combinedErrors = [ ...(((req as any)._fileValidationErrors as any[]) || []), ...(val.valid ? [] : val.errors) ]
+    if (combinedErrors.length) {
+      try { if (res?.status) res.status(400) } catch {}
+      return this.send(res, this.getResponseFormatter()({ action: 'update', payload: null, errors: combinedErrors, success: false, meta: {}, req, res }))
+    }
     const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, this)
     if (beforeAction === false) return
     const saved = await orm.update(req, { ...actionCfg, service: this })
@@ -592,13 +592,13 @@ export class CrudmanService {
     const orm = this.getOrm(actionCfg)
     if (!orm) return this.send(res, { success: false, errors: [{ message: 'Invalid section' }] })
     await this.processUploads(section, actionCfg, req)
-    if ((req as any)._fileValidationErrors) {
-      try { if (res?.status) res.status(400) } catch {}
-      return this.send(res, this.getResponseFormatter()({ action: 'save', payload: null, errors: (req as any)._fileValidationErrors, success: false, meta: {}, req, res }))
-    }
     const isUpdate = !!(req.params?.id || req.body?.id)
     const val = await this.validateIfNeeded(actionCfg, req, res, isUpdate)
-    if (!val.valid) { try { if (res?.status) res.status(400) } catch {}; return this.send(res, this.getResponseFormatter()({ action: 'save', payload: null, errors: val.errors, success: false, meta: {}, req, res })) }
+    const combinedErrors = [ ...(((req as any)._fileValidationErrors as any[]) || []), ...(val.valid ? [] : val.errors) ]
+    if (combinedErrors.length) {
+      try { if (res?.status) res.status(400) } catch {}
+      return this.send(res, this.getResponseFormatter()({ action: 'save', payload: null, errors: combinedErrors, success: false, meta: {}, req, res }))
+    }
     const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, this)
     if (beforeAction === false) return
     const saved = orm.save ? await orm.save(req, { ...actionCfg, service: this }) : (isUpdate ? await orm.update(req, { ...actionCfg, service: this }) : await orm.create(req, { ...actionCfg, service: this }))
