@@ -22,17 +22,16 @@ describe('Profiles upload (e2e)', () => {
     await app.close()
   })
 
-  it('POST /api/profiles should accept base64 avatar and return saved entity', async () => {
+  it('POST /api/profiles should reject too-small avatar (avatar preset enforces dimensions)', async () => {
     const dataUrl = 'data:image/png;base64,' + 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQAB9S4nWQAAAABJRU5ErkJggg=='
     const res = await request(app.getHttpServer())
       .post('/api/profiles')
       .send({ name: 'John Upload', avatar: dataUrl })
       .expect((r) => [200,201].includes(r.status))
 
-    expect(res.body).toHaveProperty('data')
-    expect(res.body.data).toHaveProperty('id')
-    // In filename_in_field mode, we expect avatar field in entity to be key
-    expect(!!res.body.data.avatar || !!res.body.data.avatarKey || !!res.body.data.avatarUrl).toBe(true)
+    expect(res.body.success).toBe(false)
+    const msg = JSON.stringify(res.body.errors || [])
+    expect(msg).toMatch(/Image too small|imageDimensions/i)
   })
 })
 
