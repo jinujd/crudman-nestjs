@@ -235,6 +235,18 @@ export function enhanceCrudSwaggerDocument(document: any) {
           schema: buildDetailEnvelopeSchema(ref)
         }
       }
+      // Indicate multipart support for uploads
+      item.patch.requestBody = item.patch.requestBody || {
+        required: false,
+        content: {
+          'multipart/form-data': {
+            schema: { type: 'object' }
+          },
+          'application/json': {
+            schema: { $ref: `#/components/schemas/${entityName}` }
+          }
+        }
+      }
       item.patch.parameters = item.patch.parameters || []
       const hasParam = (item.patch.parameters as any[]).some((p) => p.name === selectionField)
       if (!hasParam) (item.patch.parameters as any[]).push({ in: 'path', name: selectionField, required: true, schema: { type: 'string' } })
@@ -247,9 +259,41 @@ export function enhanceCrudSwaggerDocument(document: any) {
           schema: buildDetailEnvelopeSchema(ref)
         }
       }
+      item.put.requestBody = item.put.requestBody || {
+        required: false,
+        content: {
+          'multipart/form-data': {
+            schema: { type: 'object' }
+          },
+          'application/json': {
+            schema: { $ref: `#/components/schemas/${entityName}` }
+          }
+        }
+      }
       item.put.parameters = item.put.parameters || []
       const hasParam = (item.put.parameters as any[]).some((p) => p.name === selectionField)
       if (!hasParam) (item.put.parameters as any[]).push({ in: 'path', name: selectionField, required: true, schema: { type: 'string' } })
+    }
+    if (item.post) {
+      item.post.responses = item.post.responses || {}
+      item.post.responses['200'] = item.post.responses['200'] || {}
+      item.post.responses['200'].content = {
+        'application/json': {
+          schema: buildDetailEnvelopeSchema(ref)
+        }
+      }
+      // Add multipart requestBody hint for create with uploads
+      item.post.requestBody = item.post.requestBody || {
+        required: false,
+        content: {
+          'multipart/form-data': {
+            schema: { type: 'object' }
+          },
+          'application/json': {
+            schema: { $ref: `#/components/schemas/${entityName}` }
+          }
+        }
+      }
     }
     if (item.delete) {
       item.delete.responses = item.delete.responses || {}
@@ -293,6 +337,7 @@ function buildListEnvelopeSchema(itemRef: any) {
       data: { type: 'array', items: itemRef },
       errors: { type: 'array', items: {} },
       success: { type: 'boolean' },
+      extra: { type: 'object', additionalProperties: true },
       pagination: {
         type: 'object',
         properties: {
@@ -335,7 +380,8 @@ function buildDetailEnvelopeSchema(itemRef: any) {
     properties: {
       data: itemRef,
       errors: { type: 'array', items: {} },
-      success: { type: 'boolean' }
+      success: { type: 'boolean' },
+      extra: { type: 'object', additionalProperties: true }
     }
   }
 }
@@ -351,7 +397,8 @@ function buildDeleteEnvelopeSchema() {
         }
       },
       errors: { type: 'array', items: {} },
-      success: { type: 'boolean' }
+      success: { type: 'boolean' },
+      extra: { type: 'object', additionalProperties: true }
     }
   }
 }

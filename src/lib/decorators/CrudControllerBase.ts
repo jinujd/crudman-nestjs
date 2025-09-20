@@ -1,8 +1,9 @@
-import { Get, Post, Put, Patch, Delete, Req, Res } from '@nestjs/common'
+import { Get, Post, Put, Patch, Delete, Req, Res, UseInterceptors } from '@nestjs/common'
+import { AnyFilesInterceptor } from '@nestjs/platform-express'
 import { CrudmanService } from '../crudman.service'
 import { CrudmanRegistry } from '../module/CrudmanRegistry'
 import { applyDecorators, SetMetadata } from '@nestjs/common'
-import { ApiOperation, ApiParam, ApiOkResponse } from '../utils/safeSwagger'
+import { ApiOperation, ApiParam, ApiOkResponse, ApiBody } from '../utils/safeSwagger'
 
 export function CrudControllerBase(section: string | string[]): any {
   const paramMetaKey = 'design:paramtypes'
@@ -21,9 +22,13 @@ export function CrudControllerBase(section: string | string[]): any {
       details(@Req() req: any, @Res() res: any) { return this.crud.details(sec, req, res) }
 
       @Post()
+      @UseInterceptors(AnyFilesInterceptor())
+      @ApiBody({ required: false, description: 'JSON body or multipart form with files', schema: { type: 'object' } } as any)
       create(@Req() req: any, @Res() res: any) { return this.crud.create(sec, req, res) }
 
       @(CrudmanRegistry.get().getUpdateMethod() === 'patch' ? Patch(':id') : Put(':id'))
+      @UseInterceptors(AnyFilesInterceptor())
+      @ApiBody({ required: false, description: 'JSON body or multipart form with files', schema: { type: 'object' } } as any)
       update(@Req() req: any, @Res() res: any) { return this.crud.update(sec, req, res) }
 
       @Delete(':id')
@@ -85,7 +90,8 @@ export function CrudControllerBase(section: string | string[]): any {
       define(createName, function(this: any, req: any, res: any) { return this.crud.create(sectionKey, req, res) })
       try { (Req() as any)(proto, createName, 0); (Res() as any)(proto, createName, 1) } catch {}
       decorate(createName, [
-        applyDecorators(SetMetadata('crudman:action', { section: sectionKey, action: 'create' }), ApiOperation({ summary: `${sectionKey}: create` }), ApiOkResponse({ description: 'Create response' })),
+        UseInterceptors(AnyFilesInterceptor()) as any,
+        applyDecorators(SetMetadata('crudman:action', { section: sectionKey, action: 'create' }), ApiOperation({ summary: `${sectionKey}: create` }), ApiOkResponse({ description: 'Create response' }), ApiBody({ required: false, description: 'JSON body or multipart form with files', schema: { type: 'object' } } as any)),
         Post(sectionKey)
       ])
 
@@ -94,7 +100,8 @@ export function CrudControllerBase(section: string | string[]): any {
       define(updateName, function(this: any, req: any, res: any) { return this.crud.update(sectionKey, req, res) })
       try { (Req() as any)(proto, updateName, 0); (Res() as any)(proto, updateName, 1) } catch {}
       decorate(updateName, [
-        applyDecorators(SetMetadata('crudman:action', { section: sectionKey, action: 'update' }), ApiOperation({ summary: `${sectionKey}: update` }), ApiParam({ name: 'id', required: true }), ApiOkResponse({ description: 'Update response' })),
+        UseInterceptors(AnyFilesInterceptor()) as any,
+        applyDecorators(SetMetadata('crudman:action', { section: sectionKey, action: 'update' }), ApiOperation({ summary: `${sectionKey}: update` }), ApiParam({ name: 'id', required: true }), ApiOkResponse({ description: 'Update response' }), ApiBody({ required: false, description: 'JSON body or multipart form with files', schema: { type: 'object' } } as any)),
         updateMethod === 'patch' ? Patch(`${sectionKey}/:id`) : Put(`${sectionKey}/:id`)
       ])
 

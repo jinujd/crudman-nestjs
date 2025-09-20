@@ -15,6 +15,10 @@ export interface CrudModuleOptions {
   cache?: { enabled?: boolean; stdTTL?: number; checkperiod?: number; maxKeys?: number; invalidateListsOnWrite?: boolean }
   dataSource?: any // optional TypeORM DataSource; used when ormType: 'typeorm' and repo isn't provided
   updateMethod?: 'put' | 'patch'
+  // Upload defaults
+  defaultFileStorage?: string
+  fileStorages?: Record<string, any>
+  uploadLimits?: { maxSizeMB?: number; allowedMimeTypes?: string[] }
 }
 
 

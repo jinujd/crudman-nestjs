@@ -11,7 +11,7 @@ export interface CrudActionConfig {
 
   recordSelectionField?: string
   additionalSettings?: any
-  additionalResponse?: Record<string, any>
+  additionalResponse?: Record<string, any> | ((req: any, res: any, currentResponse: any) => any | Promise<any>)
 
   relations?: '*' | string[] | { include?: string[]; exclude?: string[] }
   getRelations?: (req: any, res: any, cfg: any) => Promise<string[] | { include?: string[]; exclude?: string[] } | '*' | undefined> | (string[] | { include?: string[]; exclude?: string[] } | '*' | undefined)
@@ -56,6 +56,11 @@ export interface CrudActionConfig {
   customImplementation?: (tag: 'list'|'details'|'create'|'update'|'delete'|'save', params: any, req: any, res: any) => Promise<any> | any
 
   enableCache?: boolean | { ttl?: number; key?: (ctx: { section: string; action: string; req: any; relations?: string[] }) => string }
+
+  // Uploads
+  upload?: import('./Upload').UploadConfig
+  uploadable?: Record<string, string>
+  uploadDefaults?: { storage?: string; dir?: string; keyPrefix?: string; deleteOnReplace?: boolean; imageMaxSizeMB?: number; fileMaxSizeMB?: number }
 }
 
 

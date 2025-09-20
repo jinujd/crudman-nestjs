@@ -16,6 +16,8 @@ export * from './lib/types/Sorting'
 export * from './lib/types/Filters'
 export * from './lib/types/Identity'
 export * from './lib/types/CrudModuleOptions'
+export * from './lib/types/Upload'
+export * from './lib/utils/localFileStorage'
 
 // Utilities
 export * from './lib/utils/swaggerSchema'

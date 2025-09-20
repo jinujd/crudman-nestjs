@@ -42,6 +42,7 @@ We believe everyone building RESTful services with NestJS—especially CRUD‑he
 - 🔧 Minimal config: global options + per-section tuning
 - 🎁 Base controller for zero-boilerplate auto routes
 - ✏️ Swagger-native with entity-driven schemas and envelopes
+- 📦 File uploads: multipart/base64/blob with local/S3 adapters and shorthand
 - 🧊 NodeCache per-endpoint caching with smart invalidation
 ## At-a-glance capabilities
 
@@ -265,6 +266,67 @@ This is ideal when one controller maps to one resource (section) and you don’t
 @CrudDetails('users')
 details(@Req() req) { /* custom logic */ }
 ```
+
+## File uploads (create/update/save)
+
+CrudMan supports files in requests via a simple, pluggable system. You can accept files as multipart/form-data, base64 strings (in JSON), or even blobs, and choose how they are stored per field.
+
+- Sources: `multipart` (form-data), `base64` (JSON); streams/presigned (advanced)
+- Storage modes:
+  - `filename` (recommended): upload using a storage adapter (Local/S3/etc.), store only key/filename and optional URL in your entity
+  - `base64`: store the base64 string in a text column
+  - `blob`: store a Buffer in a BLOB/bytea column, with an adjacent mime column
+- Validation: `maxSizeMB`, `allowedMimeTypes`, `allowedExtensions`; shorthands: `image`, `video`, `pdf`, `doc`
+- Extras: an optional `extra` field is appended to responses; with shorthand image fields, `imageBases` is auto-populated with public URLs
+
+### Quick start (shorthand)
+
+```ts
+@UseCrud({ sections: {
+  profiles: {
+    model: Profile,
+    common: {
+      uploadable: { avatar: 'image' },  // → avatarKey + avatarUrl on entity
+      uploadDefaults: { storage: 'local' }
+    }
+  }
+}})
+```
+
+Request forms:
+- Multipart: form-data with field `avatar` as a file
+- JSON base64: `{ "avatar": "data:image/png;base64,iVBORw0..." }`
+
+Entity columns for `avatar: 'image'` (filename mode):
+- `avatarKey: string | null`, `avatarUrl: string | null`
+
+### Full control (per-action or common)
+
+```ts
+sections: {
+  documents: {
+    model: Doc,
+    common: {
+      upload: {
+        sources: ['multipart','base64'],
+        map: [
+          { sourceField: 'file', storageMode: 'filename', storage: 's3', targetField: { key: 'fileKey', url: 'fileUrl' }, validators: { maxSizeMB: 10, allowedExtensions: ['.pdf'] }, typeHint: 'pdf' },
+          { sourceField: 'thumbnail', storageMode: 'base64', targetField: 'thumbnailBase64', typeHint: 'image' }
+        ]
+      }
+    }
+  }
+}
+```
+
+### Validation and rules
+- Uploads are processed into `req.body` first; then your validator runs.
+- Shorthands (`image`, `video`, `pdf`, `doc`) infer typical mime/extension allow lists.
+- Use `getFinalValidationRules` to merge with or override generated rules.
+
+### Swagger
+- Create/Update endpoints are annotated with `multipart/form-data` and normal `application/json`.
+- `extra` is documented as an open object; for shorthand image fields, responses include `imageBases` automatically.
 
 ## Overview
 
@@ -944,9 +1006,9 @@ const doc = SwaggerModule.createDocument(app, config)
 doc.components = doc.components || { schemas: {} }
 doc.components.schemas = {
   ...doc.components.schemas,
-  Company: generateOpenApiSchemaFromEntity(Company)!,
-  User: generateOpenApiSchemaFromEntity(User)!
-}
+    Company: generateOpenApiSchemaFromEntity(Company)!,
+    User: generateOpenApiSchemaFromEntity(User)!
+  }
 // Enhance: add list/detail/create/update/delete response envelopes and entity refs
 enhanceCrudSwaggerDocument(doc)
 SwaggerModule.setup('docs', app, doc)

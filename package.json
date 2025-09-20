@@ -26,6 +26,7 @@
   "devDependencies": {
     "@nestjs/common": "^10",
     "@nestjs/core": "^10",
+    "@nestjs/platform-express": "^10",
     "@types/node": "^24.5.2",
     "eslint": "^9.35.0",
     "eslint-config-prettier": "^10.1.8",
@@ -43,6 +44,7 @@
   "peerDependencies": {
     "@nestjs/common": "^10",
     "@nestjs/core": "^10",
+    "@nestjs/platform-express": "^10",
     "rxjs": "^7"
   },
   "module": "dist/index.js",

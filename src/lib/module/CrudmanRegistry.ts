@@ -39,6 +39,15 @@ export class CrudmanRegistry {
     const list = (this.options as any).exportContentTypes
     return Array.isArray(list) && list.length ? list : ['json','csv','excel']
   }
+  getFileStorage(name?: string): any {
+    const storages = (this.options as any).fileStorages || {}
+    const def = (this.options as any).defaultFileStorage
+    const key = name || def
+    return key ? storages[key] : undefined
+  }
+  getUploadLimits(): { maxSizeMB?: number; allowedMimeTypes?: string[] } {
+    return (this.options as any).uploadLimits || {}
+  }
 }
 
 

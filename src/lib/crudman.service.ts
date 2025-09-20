@@ -1,4 +1,14 @@
 import { Injectable } from '@nestjs/common';
+import { promises as fs } from 'fs'
+import * as path from 'path'
+import {
+  UploadConfig,
+  UploadMapEntry,
+  UploadSource,
+  UploadStorageMode,
+  FileStorageAdapter
+} from './types/Upload'
+import { LocalDiskAdapter } from './utils/localFileStorage'
 import * as csv from './utils/csv'
 import { CrudmanRegistry } from './module/CrudmanRegistry'
 import { defaultResponseFormatter } from './response/defaultResponseFormatter'
@@ -55,6 +65,171 @@ export class CrudmanService {
     const base = { model: sectionCfg.model, ...sectionCfg }
     const specific = sectionCfg[action] || {}
     return { ...base, ...specific }
+  }
+
+  private expandUploadableShorthand(sectionCfg: any): UploadConfig | undefined {
+    const uploadable = sectionCfg?.uploadable
+    if (!uploadable || typeof uploadable !== 'object') return sectionCfg?.upload
+    const defaults = sectionCfg?.uploadDefaults || {}
+    const out: UploadConfig = { sources: ['multipart'], map: [] }
+    const ensureArray = (v: any) => Array.isArray(v) ? v : (v ? [v] : [])
+    for (const [baseField, raw] of Object.entries<any>(uploadable)) {
+      const spec = String(raw || '').trim()
+      const isArray = spec.includes('[]')
+      const mode: UploadStorageMode = spec.includes(':base64') ? 'base64' : (spec.includes(':blob') ? 'blob' : 'filename')
+      const typeHint = spec.split(':')[0].replace('[]','') // image|video|pdf|doc|any
+      const sources: UploadSource[] = defaults.sources || ['multipart']
+      const validators = (() => {
+        if (defaults.validators) return defaults.validators
+        if (typeHint === 'image') return { allowedMimeTypes: ['image/jpeg','image/png','image/gif','image/webp'] }
+        if (typeHint === 'video') return { allowedMimeTypes: ['video/mp4','video/webm','video/ogg'] }
+        if (typeHint === 'pdf') return { allowedExtensions: ['.pdf'] }
+        if (typeHint === 'doc') return { allowedExtensions: ['.pdf','.doc','.docx'] }
+        return {}
+      })()
+      const storage = defaults.storage || CrudmanRegistry.get().getOptions()?.defaultFileStorage
+      const entry: UploadMapEntry = {
+        sourceField: baseField,
+        targetField: (() => {
+          if (mode === 'filename') {
+            return isArray ? { keys: `${baseField}Keys`, urls: `${baseField}Urls` } : { key: `${baseField}Key`, url: `${baseField}Url` }
+          }
+          if (mode === 'blob') return { blob: `${baseField}Blob`, mime: `${baseField}Mime` }
+          // base64
+          return `${baseField}Base64`
+        })(),
+        isArray,
+        storageMode: mode,
+        storage,
+        sources,
+        validators
+      }
+      out.map.push(entry)
+    }
+    // merge any explicit upload.map
+    if (sectionCfg?.upload?.map?.length) out.map.push(...ensureArray(sectionCfg.upload.map))
+    return out
+  }
+
+  private getEffectiveUploadCfg(actionCfg: any): UploadConfig | undefined {
+    // action overrides section-level
+    const fromAction: UploadConfig | undefined = actionCfg?.upload
+    if (fromAction?.map?.length) return fromAction
+    return this.expandUploadableShorthand(actionCfg)
+  }
+
+  private getStorageAdapter(name?: string): FileStorageAdapter | undefined {
+    const cfg = CrudmanRegistry.get().getFileStorage(name)
+    if (!cfg) return undefined
+    if (cfg.type === 'local') {
+      return new LocalDiskAdapter({ dest: cfg.dest || 'uploads', publicBaseUrl: cfg.publicBaseUrl })
+    }
+    return cfg as FileStorageAdapter
+  }
+
+  private async readFileBufferIfPath(file: any): Promise<Buffer | undefined> {
+    if (file?.buffer) return file.buffer as Buffer
+    if (file?.path) {
+      try { return await fs.readFile(file.path) } catch { return undefined }
+    }
+    return undefined
+  }
+
+  private async processUploads(section: string, actionCfg: any, req: any): Promise<void> {
+    const uploadCfg = this.getEffectiveUploadCfg(actionCfg)
+    if (!uploadCfg || !uploadCfg.map || !uploadCfg.map.length) return
+    const files: any[] = Array.isArray(req?.files) ? req.files : []
+    for (const rule of uploadCfg.map) {
+      const field = rule.sourceField
+      const incomingFiles = files.filter((f) => f && String(f.fieldname) === field)
+      const base64Value = req?.body?.[field]
+      const items: Array<{ buffer?: Buffer; base64?: string; mime?: string; filename?: string }> = []
+      if (incomingFiles.length) {
+        for (const f of incomingFiles) {
+          items.push({ buffer: await this.readFileBufferIfPath(f), mime: f.mimetype, filename: f.originalname })
+        }
+      } else if (base64Value) {
+        const arr = Array.isArray(base64Value) ? base64Value : [base64Value]
+        for (const v of arr) items.push({ base64: String(v), mime: undefined, filename: undefined })
+      }
+      if (!items.length) continue
+      const adapter = this.getStorageAdapter(rule.storage)
+      const assign = (key: string, value: any) => { if (!req.body) req.body = {}; (req.body as any)[key] = value }
+      if (rule.storageMode === 'filename') {
+        if (!adapter) throw new Error('No file storage adapter configured')
+        if (rule.isArray) {
+          const keys: string[] = []
+          const urls: string[] = []
+          for (const it of items) {
+            const saved = await adapter.save({ buffer: it.buffer, base64: it.base64, mime: it.mime, filename: it.filename })
+            keys.push(saved.key); if (saved.url) urls.push(saved.url)
+          }
+          const tf = rule.targetField as any
+          if (tf?.keys) assign(tf.keys, keys)
+          if (tf?.urls) assign(tf.urls, urls)
+        } else {
+          const it = items[0]
+          const saved = await adapter.save({ buffer: it.buffer, base64: it.base64, mime: it.mime, filename: it.filename })
+          const tf = rule.targetField as any
+          if (tf?.key) assign(tf.key, saved.key)
+          if (tf?.url && saved.url) assign(tf.url, saved.url)
+        }
+      } else if (rule.storageMode === 'base64') {
+        const tf = rule.targetField as string
+        if (rule.isArray) assign(tf, items.map((it) => it.base64 || ''))
+        else assign(tf, items[0].base64 || '')
+      } else if (rule.storageMode === 'blob') {
+        if (rule.isArray) {
+          // Not supported in shorthand for arrays; skip
+        } else {
+          const it = items[0]
+          const buf = it.buffer || (it.base64 ? Buffer.from(String(it.base64).split('base64,').pop() || '', 'base64') : undefined)
+          const tf = rule.targetField as any
+          if (buf) assign(tf.blob, buf)
+          if (tf?.mime) assign(tf.mime, it.mime || 'application/octet-stream')
+        }
+      }
+    }
+  }
+
+  private async computeAdditionalResponse(section: string, action: string, actionCfg: any, body: any, req: any, res: any): Promise<any | undefined> {
+    let extra: any = undefined
+    const add = (obj?: any) => {
+      if (obj && typeof obj === 'object') extra = { ...(extra || {}), ...obj }
+    }
+    // User-specified additionalResponse
+    const ar = actionCfg?.additionalResponse
+    if (typeof ar === 'function') {
+      try { add(await Promise.resolve(ar(req, res, body))) } catch {}
+    } else if (ar && typeof ar === 'object') add(ar)
+
+    // Auto imageBases for shorthand uploadable image fields (details/create/update/save only)
+    if (['details','create','update','save'].includes(action)) {
+      const uploadCfg = this.getEffectiveUploadCfg(actionCfg)
+      const imageRules = (uploadCfg?.map || []).filter((m) => m.typeHint === 'image' && m.storageMode === 'filename' && !m.isArray)
+      if (imageRules.length) {
+        const entity = body?.data
+        if (entity && typeof entity === 'object') {
+          const bases: Record<string,string> = {}
+          for (const r of imageRules) {
+            const tf: any = r.targetField
+            const urlField = tf?.url
+            const keyField = tf?.key
+            let url: string | undefined
+            if (urlField && entity[urlField]) url = String(entity[urlField])
+            else if (keyField && entity[keyField]) {
+              const adapter = this.getStorageAdapter(r.storage)
+              if (adapter?.getUrl) {
+                try { const u = await Promise.resolve(adapter.getUrl(String(entity[keyField]))); if (u) url = String(u) } catch {}
+              }
+            }
+            if (url) bases[r.sourceField] = url
+          }
+          if (Object.keys(bases).length) add({ imageBases: bases })
+        }
+      }
+    }
+    return extra
   }
 
   private async validateIfNeeded(actionCfg: any, req: any, res: any, isUpdate: boolean) {
@@ -211,6 +386,8 @@ export class CrudmanService {
     const payload = await orm.list(req, { ...actionCfg, relations, service: this })
     const fmt = this.getResponseFormatter()
     const body = fmt({ action: 'list', payload, errors: [], success: true, meta: { pagination: payload.pagination, filters: payload.filters, sorting: payload.sorting }, req, res })
+    const extra = await this.computeAdditionalResponse(section, 'list', actionCfg, body, req, res)
+    if (extra) (body as any).extra = extra
     await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
     return this.sendNegotiated(res, 'list', body)
   }
@@ -240,6 +417,8 @@ export class CrudmanService {
     const entity = await orm.details(req, { ...actionCfg, relations, service: this })
     const fmt = this.getResponseFormatter()
     const body = fmt({ action: 'details', payload: entity, errors: [], success: !!entity, meta: {}, req, res })
+    const extra = await this.computeAdditionalResponse(section, 'details', actionCfg, body, req, res)
+    if (extra) (body as any).extra = extra
     await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
     return this.sendNegotiated(res, 'details', body)
   }
@@ -248,6 +427,7 @@ export class CrudmanService {
     const actionCfg = this.getActionCfg(section, 'create')
     const orm = this.getOrm(actionCfg)
     if (!orm) return this.send(res, { success: false, errors: [{ message: 'Invalid section' }] })
+    await this.processUploads(section, actionCfg, req)
     const val = await this.validateIfNeeded(actionCfg, req, res, false)
     if (!val.valid) return this.send(res, this.getResponseFormatter()({ action: 'create', payload: null, errors: val.errors, success: false, meta: {}, req, res }))
     const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, this)
@@ -255,6 +435,8 @@ export class CrudmanService {
     const saved = await orm.create(req, { ...actionCfg, service: this })
     this.invalidateSection(section)
     const body = this.getResponseFormatter()({ action: 'create', payload: saved, errors: [], success: true, meta: {}, req, res })
+    const extra = await this.computeAdditionalResponse(section, 'create', actionCfg, body, req, res)
+    if (extra) (body as any).extra = extra
     await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
     return this.send(res, body)
   }
@@ -263,6 +445,7 @@ export class CrudmanService {
     const actionCfg = this.getActionCfg(section, 'update')
     const orm = this.getOrm(actionCfg)
     if (!orm) return this.send(res, { success: false, errors: [{ message: 'Invalid section' }] })
+    await this.processUploads(section, actionCfg, req)
     const val = await this.validateIfNeeded(actionCfg, req, res, true)
     if (!val.valid) return this.send(res, this.getResponseFormatter()({ action: 'update', payload: null, errors: val.errors, success: false, meta: {}, req, res }))
     const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, this)
@@ -270,6 +453,8 @@ export class CrudmanService {
     const saved = await orm.update(req, { ...actionCfg, service: this })
     this.invalidateSection(section)
     const body = this.getResponseFormatter()({ action: 'update', payload: saved, errors: [], success: true, meta: {}, req, res })
+    const extra = await this.computeAdditionalResponse(section, 'update', actionCfg, body, req, res)
+    if (extra) (body as any).extra = extra
     await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
     return this.send(res, body)
   }
@@ -278,6 +463,7 @@ export class CrudmanService {
     const actionCfg = this.getActionCfg(section, 'save')
     const orm = this.getOrm(actionCfg)
     if (!orm) return this.send(res, { success: false, errors: [{ message: 'Invalid section' }] })
+    await this.processUploads(section, actionCfg, req)
     const isUpdate = !!(req.params?.id || req.body?.id)
     const val = await this.validateIfNeeded(actionCfg, req, res, isUpdate)
     if (!val.valid) return this.send(res, this.getResponseFormatter()({ action: 'save', payload: null, errors: val.errors, success: false, meta: {}, req, res }))
@@ -286,6 +472,8 @@ export class CrudmanService {
     const saved = orm.save ? await orm.save(req, { ...actionCfg, service: this }) : (isUpdate ? await orm.update(req, { ...actionCfg, service: this }) : await orm.create(req, { ...actionCfg, service: this }))
     this.invalidateSection(section)
     const body = this.getResponseFormatter()({ action: 'save', payload: saved, errors: [], success: true, meta: {}, req, res })
+    const extra = await this.computeAdditionalResponse(section, 'save', actionCfg, body, req, res)
+    if (extra) (body as any).extra = extra
     await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
     return this.send(res, body)
   }

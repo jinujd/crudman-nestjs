@@ -13,12 +13,18 @@ import { CustomController } from './custom.controller'
 import { Tag } from './tag.entity'
 import { Category } from './category.entity'
 import { ShorthandController } from './shorthand.controller'
+import { Profile } from './profile.entity'
+import { ProfilesController } from './profiles.controller'
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({ type: 'sqlite', database: 'test.sqlite', entities: [Company, User, Country, State, Tag, Category], synchronize: true }),
-    CrudmanModule.forRoot({ swaggerMeta: { title: 'Example API', version: '1.2.3' } }),
+    TypeOrmModule.forRoot({ type: 'sqlite', database: 'test.sqlite', entities: [Company, User, Country, State, Tag, Category, Profile], synchronize: true }),
+    CrudmanModule.forRoot({
+      swaggerMeta: { title: 'Example API', version: '1.2.3' },
+      defaultFileStorage: 'local',
+      fileStorages: { local: { type: 'local', dest: 'uploads', publicBaseUrl: 'http://localhost:3001/uploads' } }
+    }),
   ],
-  controllers: [CompaniesController, UsersController, CountriesController, StatesController, CustomController, ShorthandController]
+  controllers: [CompaniesController, UsersController, CountriesController, StatesController, CustomController, ShorthandController, ProfilesController]
 })
 export class AppModule {}
