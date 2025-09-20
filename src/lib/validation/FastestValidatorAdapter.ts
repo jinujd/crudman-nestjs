@@ -47,8 +47,13 @@ export class FastestValidatorAdapter implements ValidatorAdapter {
         if (!field) continue
         if (exclude.includes(field)) continue
         if (!isUpdate && field === 'id') continue
-        // Skip generated/auto timestamp columns for validation
-        if (col.isPrimary || col.isGenerated || col.isCreateDate || col.isUpdateDate) continue
+        // Skip generated/auto timestamp columns for validation, but allow id in updates
+        if (col.isPrimary || col.isGenerated || col.isCreateDate || col.isUpdateDate) {
+          if (isUpdate && field === 'id') {
+            rules.id = { type: 'any', optional: true }
+          }
+          continue
+        }
 
         const rule: any = {}
         // Requiredness: if column is non-nullable but has a DB default, keep it optional.
@@ -77,7 +82,8 @@ export class FastestValidatorAdapter implements ValidatorAdapter {
       }
     }
     const fieldKeys = Object.keys(rules).filter(k => !k.startsWith('$$'))
-    rules.$$strict = fieldKeys.length > 0
+    // For updates, be lenient with extra keys (e.g., framework-injected) by removing them
+    rules.$$strict = isUpdate ? 'remove' : fieldKeys.length > 0
     return rules
   }
 

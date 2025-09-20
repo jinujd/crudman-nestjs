@@ -19,6 +19,11 @@ export interface CrudModuleOptions {
   defaultFileStorage?: string
   fileStorages?: Record<string, any>
   uploadLimits?: { maxSizeMB?: number; allowedMimeTypes?: string[] }
+  uploadResponse?: {
+    fileFieldMode?: 'filename_in_field' | 'key_url_fields'
+    includeBaseUrlsOn?: Array<'list'|'details'|'create'|'update'|'save'>
+    allowRequestOverride?: boolean
+  }
 }
 
 
