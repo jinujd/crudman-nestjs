@@ -346,7 +346,7 @@ export class UsersController extends CrudControllerBase('users') {}</code></pre>
     }))
   })()
 
-  // Copy handling for terminal cards + toast
+  // Copy handling for terminal cards + toast (with fallback)
   (function() {
     const toast = document.createElement('div')
     toast.className = 'toast'
@@ -357,7 +357,21 @@ export class UsersController extends CrudControllerBase('users') {}</code></pre>
       const t = e.target
       if (t && t.classList && t.classList.contains('copy-btn')) {
         const code = t.getAttribute('data-code') || ''
-        try { await navigator.clipboard.writeText(code); showToast() } catch {}
+        try {
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(code)
+            showToast()
+          } else {
+            const ta = document.createElement('textarea')
+            ta.value = code
+            ta.style.position = 'fixed'
+            ta.style.top = '-2000px'
+            document.body.appendChild(ta)
+            ta.focus()
+            ta.select()
+            try { document.execCommand('copy'); showToast() } finally { document.body.removeChild(ta) }
+          }
+        } catch {}
       }
     })
   })()
