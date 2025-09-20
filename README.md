@@ -544,6 +544,8 @@ Keys (per action, unless noted):
 - fieldsForUniquenessValidation (optional): string[].
 - conditionTypeForUniquenessValidation (optional): "or"|"and".
 - hooks (optional): onBeforeAction, onAfterAction, onBeforeQuery, afterFetch, onBeforeValidate, onAfterValidate.
+- additionalResponse (optional): object or function `(req, res, currentResponse) => object` whose returned properties are merged into the response `meta`.
+- getAdditionalResponse (optional): function `(req, res, currentResponse) => object | Promise<object>`; evaluated after `additionalResponse` and merged into the same `meta`.
 - getFinalValidationRules(generatedRules, req, res, validator) (optional): returns new rules.
 - enableCache (optional): boolean | { ttl?: number; key?:(ctx)=>string }.
 - additionalSettings.repo (required for TypeORM adapter): repository instance.
@@ -1059,9 +1061,9 @@ const doc = SwaggerModule.createDocument(app, config)
 doc.components = doc.components || { schemas: {} }
 doc.components.schemas = {
   ...doc.components.schemas,
-    Company: generateOpenApiSchemaFromEntity(Company)!,
-    User: generateOpenApiSchemaFromEntity(User)!
-  }
+  Company: generateOpenApiSchemaFromEntity(Company)!,
+  User: generateOpenApiSchemaFromEntity(User)!
+}
 // Enhance: add list/detail/create/update/delete response envelopes and entity refs
 enhanceCrudSwaggerDocument(doc)
 SwaggerModule.setup('docs', app, doc)
@@ -1246,6 +1248,57 @@ Notes:
 - In the TypeORM adapter, `additionalSettings.repo` is required on each action to perform DB operations.
 - Keep filters/sorting whitelists strict for public endpoints.
 - Use `getFinalValidationRules` to strengthen auto-generated rules from your entity.
+
+### Adding extra response data (additionalResponse / getAdditionalResponse)
+
+You can attach custom metadata to any action's response without changing the envelope. Provide either a static object via `additionalResponse`, or compute it dynamically via `getAdditionalResponse`. Both are merged into the response `meta`.
+
+Example (per action):
+
+```ts
+create: {
+  additionalSettings: { repo: companyRepository },
+  additionalResponse: { servedBy: 'crudman' },
+  getAdditionalResponse: async (req, _res, current) => ({
+    requestId: req.headers['x-request-id'] || null,
+    timestamp: new Date().toISOString(),
+    // you can inspect current (already formatted) response if needed
+  })
+}
+```
+
+Response shape (excerpt):
+
+```json
+{
+  "data": { /* ... */ },
+  "success": true,
+  "meta": {
+    "servedBy": "crudman",
+    "requestId": "abc-123",
+    "timestamp": "2025-09-20T20:34:00.000Z"
+  }
+}
+```
+
+Example (example app excerpt): see `examples/nest-typeorm-sqlite/src/crud/companies.section.ts`:
+
+```ts
+export function companiesSection() {
+  return {
+    model: Company,
+    list: {
+      additionalResponse: { servedBy: 'example-app' },
+      getAdditionalResponse: async (req) => ({ requestId: req.headers?.['x-request-id'] || null })
+    },
+    create: {
+      getAdditionalResponse: async () => ({ createdVia: 'companies-section' })
+    }
+  }
+}
+```
+
+Defaults: If neither `additionalResponse` nor `getAdditionalResponse` is provided, no extra `meta` properties are added (beyond system-provided ones like pagination/filters/sorting when applicable).
 
 ### Query parameters: filters, sorting, pagination (Companies)
 

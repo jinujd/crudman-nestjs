@@ -313,11 +313,14 @@ export class CrudmanService {
     const add = (obj?: any) => {
       if (obj && typeof obj === 'object') extra = { ...(extra || {}), ...obj }
     }
-    // User-specified additionalResponse
+    // User-specified additional response(s)
     const ar = actionCfg?.additionalResponse
     if (typeof ar === 'function') {
       try { add(await Promise.resolve(ar(req, res, body))) } catch {}
     } else if (ar && typeof ar === 'object') add(ar)
+    if (typeof actionCfg?.getAdditionalResponse === 'function') {
+      try { add(await Promise.resolve(actionCfg.getAdditionalResponse(req, res, body))) } catch {}
+    }
 
     // Auto baseUrls for shorthand uploadable image fields (actions per options)
     const includeOn = CrudmanRegistry.get().getUploadResponseOptions()?.includeBaseUrlsOn || ['list','details']
