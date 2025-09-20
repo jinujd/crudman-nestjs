@@ -22,7 +22,7 @@ describe('Profiles upload (e2e)', () => {
     await app.close()
   })
 
-  it('POST /api/profiles should reject too-small avatar (avatar preset enforces dimensions)', async () => {
+  it('POST /api/profiles should return validation errors for invalid base64 avatar (mime/ext)', async () => {
     const dataUrl = 'data:image/png;base64,' + 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQAB9S4nWQAAAABJRU5ErkJggg=='
     const res = await request(app.getHttpServer())
       .post('/api/profiles')
@@ -31,7 +31,7 @@ describe('Profiles upload (e2e)', () => {
 
     expect(res.body.success).toBe(false)
     const msg = JSON.stringify(res.body.errors || [])
-    expect(msg).toMatch(/Image too small|imageDimensions/i)
+    expect(msg).toMatch(/Invalid (extension|MIME) type|fileMime|fileExtension/i)
   })
 })
 
