@@ -326,7 +326,60 @@ sections: {
 
 ### Swagger
 - Create/Update endpoints are annotated with `multipart/form-data` and normal `application/json`.
-- `extra` is documented as an open object; for shorthand image fields, responses include `imageBases` automatically.
+- Responses include a `meta` object (non-resource data). For shorthand image fields, responses include `meta.baseUrls` automatically.
+
+## Supported upload types (presets)
+
+Use these presets in `uploadable` (or explicit `upload.map` → `typeHint`) to get sensible defaults for MIME, extensions, and size. All limits are defaults; override with `validators` per field/section. Avatar presets also enforce image dimensions.
+
+| Type                     | Allowed MIME types                                           | Extensions                               | Max size (MB) | Image constraints                                  | Notes |
+|--------------------------|--------------------------------------------------------------|------------------------------------------|---------------|----------------------------------------------------|-------|
+| image                    | image/jpeg, image/png, image/gif, image/webp, image/avif    | .jpg, .jpeg, .png, .gif, .webp, .avif    | 5             | —                                                  | group |
+| image-jpg                | image/jpeg                                                   | .jpg, .jpeg                              | 5             | —                                                  |       |
+| image-png                | image/png                                                    | .png                                     | 5             | —                                                  |       |
+| image-gif                | image/gif                                                    | .gif                                     | 5             | —                                                  |       |
+| image-webp               | image/webp                                                   | .webp                                    | 5             | —                                                  |       |
+| image-avif               | image/avif                                                   | .avif                                    | 5             | —                                                  |       |
+| image-avatar             | jpeg, png, gif, webp, avif                                   | .jpg, .jpeg, .png, .gif, .webp, .avif    | 2             | min 128x128, max 4096x4096, aspect ~1:1            | avatars |
+| image-jpg-avatar         | image/jpeg                                                   | .jpg, .jpeg                              | 2             | min 128x128, max 4096x4096, aspect ~1:1            | avatars |
+| image-png-avatar         | image/png                                                    | .png                                     | 2             | min 128x128, max 4096x4096, aspect ~1:1            | avatars |
+| image-webp-avatar        | image/webp                                                   | .webp                                    | 2             | min 128x128, max 4096x4096, aspect ~1:1            | avatars |
+| image-avif-avatar        | image/avif                                                   | .avif                                    | 2             | min 128x128, max 4096x4096, aspect ~1:1            | avatars |
+| video                    | video/mp4, video/webm, video/ogg                             | .mp4, .webm, .ogg                        | 100           | —                                                  |       |
+| video-mp4                | video/mp4                                                    | .mp4                                    | 100           | —                                                  |       |
+| video-webm               | video/webm                                                   | .webm                                   | 100           | —                                                  |       |
+| video-ogg                | video/ogg                                                    | .ogg                                    | 100           | —                                                  |       |
+| video-short              | video/mp4, video/webm                                        | .mp4, .webm                              | 25            | —                                                  | short clips |
+| audio                    | audio/mpeg, audio/mp4, audio/aac, audio/ogg, audio/wav      | .mp3, .m4a, .aac, .ogg, .wav            | 20            | —                                                  |       |
+| pdf                      | —                                                            | .pdf                                    | 10            | —                                                  |       |
+| doc                      | —                                                            | .pdf, .doc, .docx, .odt                 | 10            | —                                                  |       |
+| spreadsheet              | —                                                            | .xls, .xlsx, .csv                       | 10            | —                                                  | group |
+| spreadsheet-csv          | text/csv                                                     | .csv                                    | 5             | —                                                  |       |
+| spreadsheet-xls          | application/vnd.ms-excel                                    | .xls                                    | 10            | —                                                  |       |
+| spreadsheet-xlsx         | application/vnd.openxmlformats-officedocument.spreadsheetml.sheet | .xlsx                              | 10            | —                                                  |       |
+| csv                      | text/csv                                                     | .csv                                    | 5             | —                                                  |       |
+| xml                      | application/xml, text/xml                                   | .xml                                    | 2             | —                                                  |       |
+| html                     | text/html                                                    | .html, .htm                             | 2             | —                                                  |       |
+| json                     | application/json                                             | .json                                   | 2             | —                                                  |       |
+| text                     | text/plain, text/markdown                                   | .txt, .md                               | 2             | —                                                  |       |
+| archive                  | —                                                            | .zip, .tar, .gz, .rar, .7z              | 200           | —                                                  |       |
+| binary                   | application/octet-stream                                    | any                                      | 50            | —                                                  | raw blobs |
+
+Notes:
+- These are defaults; override with `validators` on each upload rule or via `uploadDefaults.validators`.
+- Default storage mode is `filename_in_field` (relative filename saved directly in your entity field).
+- By default, list/details include `meta.baseUrls` so clients can build full URLs. Per-request override header: `x-file-url=full|key_only`.
+
+Usage (shorthand):
+```ts
+@UseCrud({ sections: {
+  profiles: {
+    model: Profile,
+    uploadable: { avatar: 'image-avatar' },
+    uploadDefaults: { storage: 'local' } // storage is defined in module forRoot
+  }
+}})
+```
 
 ## Overview
 
