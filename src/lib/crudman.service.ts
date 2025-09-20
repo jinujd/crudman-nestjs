@@ -499,7 +499,7 @@ export class CrudmanService {
     const extra = await this.computeAdditionalResponse(section, 'list', actionCfg, body, req, res)
     if (extra) (body as any).meta = { ...(body as any).meta, ...(extra || {}) }
     await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
-    return this.sendNegotiated(res, 'list', body)
+    return this.sendNegotiated(res, 'list', body, req)
   }
 
   async details(section: string, req: any, res: any) {
@@ -530,7 +530,7 @@ export class CrudmanService {
     const extra = await this.computeAdditionalResponse(section, 'details', actionCfg, body, req, res)
     if (extra) (body as any).meta = { ...(body as any).meta, ...(extra || {}) }
     await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
-    return this.sendNegotiated(res, 'details', body)
+    return this.sendNegotiated(res, 'details', body, req)
   }
 
   async create(section: string, req: any, res: any) {
