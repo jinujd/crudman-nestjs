@@ -1,6 +1,10 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import request from 'supertest'
+import 'reflect-metadata'
 import { INestApplication } from '@nestjs/common'
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'
+import { DataSource } from 'typeorm'
+import { setCrudmanDataSource } from 'crudman-nestjs'
 import { Test } from '@nestjs/testing'
 import { AppModule } from '../../src/app.module'
 
@@ -11,6 +15,12 @@ describe('ShorthandController (e2e)', () => {
     const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile()
     app = moduleRef.createNestApplication()
     await app.init()
+    const ds = app.get(DataSource)
+    setCrudmanDataSource(ds)
+    // init swagger for /docs-json (after app.init)
+    const config = new DocumentBuilder().setTitle('Test').setVersion('1.0').build()
+    const doc = SwaggerModule.createDocument(app, config)
+    SwaggerModule.setup('docs', app, doc)
   })
 
   afterAll(async () => {

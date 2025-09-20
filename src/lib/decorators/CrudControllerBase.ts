@@ -36,11 +36,11 @@ export function CrudControllerBase(section: string | string[]): any {
     }
     try {
       const proto: any = (BaseController as any).prototype
-      ;(Reflect as any).defineMetadata(paramMetaKey, [Object], proto, 'list')
-      ;(Reflect as any).defineMetadata(paramMetaKey, [Object], proto, 'details')
-      ;(Reflect as any).defineMetadata(paramMetaKey, [Object], proto, 'create')
-      ;(Reflect as any).defineMetadata(paramMetaKey, [Object], proto, 'update')
-      ;(Reflect as any).defineMetadata(paramMetaKey, [Object], proto, 'remove')
+      for (const m of ['list','details','create','update','remove']) {
+        ;(Reflect as any).defineMetadata(paramMetaKey, [Object, Object], proto, m)
+        ;(Reflect as any).defineMetadata('design:returntype', Object, proto, m)
+        ;(Reflect as any).defineMetadata('design:type', Function, proto, m)
+      }
     } catch {}
     return BaseController
   }
@@ -58,7 +58,9 @@ export function CrudControllerBase(section: string | string[]): any {
 
     const define = (name: string, fn: Function) => {
       Object.defineProperty(proto, name, { value: fn, writable: false, configurable: true })
-      ;(Reflect as any).defineMetadata(paramMetaKey, [Object], proto, name)
+      ;(Reflect as any).defineMetadata(paramMetaKey, [Object, Object], proto, name)
+      ;(Reflect as any).defineMetadata('design:returntype', Object, proto, name)
+      ;(Reflect as any).defineMetadata('design:type', Function, proto, name)
     }
 
     const decorate = (name: string, decorators: any[]) => {

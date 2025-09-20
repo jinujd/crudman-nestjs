@@ -230,9 +230,16 @@ export const TypeormAdapter: OrmAdapter = {
     const field = cfg.recordSelectionField || 'id'
     const rawParam = req.params && (req.params[field] ?? req.params.id ?? Object.values(req.params)[0])
     const value = castId(rawParam ?? req.body[field])
-    const input = this.normalizeInput({ ...req.body, [field]: value }, cfg.model)
-    await repo.update({ [field]: value } as any, input)
-    return await repo.findOne({ where: { [field]: value } as any })
+    const input = this.normalizeInput({ ...req.body }, cfg.model)
+    // Use save for reliable partial updates across drivers
+    const existing = await repo.findOne({ where: { [field]: value } as any })
+    if (!existing) return existing
+    for (const k of Object.keys(input)) {
+      if (k === field) continue
+      ;(existing as any)[k] = (input as any)[k]
+    }
+    const saved = await repo.save(existing)
+    return saved
   },
 
   async save(req, cfg) {

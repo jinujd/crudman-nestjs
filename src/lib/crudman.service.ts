@@ -143,10 +143,10 @@ export class CrudmanService {
       const field = rule.sourceField
       const incomingFiles = files.filter((f) => f && String(f.fieldname) === field)
       const base64Value = req?.body?.[field]
-      const items: Array<{ buffer?: Buffer; base64?: string; mime?: string; filename?: string }> = []
+      const items: Array<{ buffer?: Buffer; stream?: NodeJS.ReadableStream; base64?: string; mime?: string; filename?: string }> = []
       if (incomingFiles.length) {
         for (const f of incomingFiles) {
-          items.push({ buffer: await this.readFileBufferIfPath(f), mime: f.mimetype, filename: f.originalname })
+          items.push({ buffer: await this.readFileBufferIfPath(f), stream: f.stream, mime: f.mimetype, filename: f.originalname })
         }
       } else if (base64Value) {
         const arr = Array.isArray(base64Value) ? base64Value : [base64Value]
@@ -161,7 +161,7 @@ export class CrudmanService {
           const keys: string[] = []
           const urls: string[] = []
           for (const it of items) {
-            const saved = await adapter.save({ buffer: it.buffer, base64: it.base64, mime: it.mime, filename: it.filename })
+            const saved = await adapter.save({ buffer: it.buffer, stream: it.stream, base64: it.base64, mime: it.mime, filename: it.filename })
             keys.push(saved.key); if (saved.url) urls.push(saved.url)
           }
           const tf = rule.targetField as any
@@ -169,7 +169,7 @@ export class CrudmanService {
           if (tf?.urls) assign(tf.urls, urls)
         } else {
           const it = items[0]
-          const saved = await adapter.save({ buffer: it.buffer, base64: it.base64, mime: it.mime, filename: it.filename })
+          const saved = await adapter.save({ buffer: it.buffer, stream: it.stream, base64: it.base64, mime: it.mime, filename: it.filename })
           const tf = rule.targetField as any
           if (tf?.key) assign(tf.key, saved.key)
           if (tf?.url && saved.url) assign(tf.url, saved.url)

@@ -6,10 +6,8 @@ import { Profile } from './profile.entity'
 @UseCrud({ sections: {
   profiles: {
     model: Profile,
-    common: {
-      uploadable: { avatar: 'image' },
-      uploadDefaults: { storage: 'local' }
-    }
+    uploadable: { avatar: 'image' },
+    uploadDefaults: { storage: 'local' }
   }
 }})
 @ApiTags('profiles')
