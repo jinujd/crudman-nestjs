@@ -399,31 +399,84 @@ crudman-nestjs is a plug-and-play CRUD layer for NestJS. It auto-generates REST 
 npm i crudman-nestjs
 ```
 
-## Swagger title/version (global)
+## Swagger Configuration
 
-You can set a global Swagger title/version/description via the module options. If not provided, they default from your package.json (title is humanized from name).
+Crudman automatically generates comprehensive Swagger documentation for all your CRUD endpoints. Here's how to configure it:
 
-Defaults:
+### Basic Setup
+
+1. **Install Swagger dependencies** (if not already installed):
+```bash
+npm install @nestjs/swagger swagger-ui-express
+```
+
+2. **Configure Swagger in your main.ts**:
+```ts
+import 'reflect-metadata'
+import { NestFactory } from '@nestjs/core'
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger'
+import { enhanceCrudSwaggerDocument } from 'crudman-nestjs'
+import { AppModule } from './app.module'
+
+async function bootstrap() {
+  const app = await NestFactory.create(AppModule)
+  
+  // Set up Swagger
+  const config = new DocumentBuilder()
+    .setTitle('Your API Title')
+    .setVersion('1.0')
+    .build()
+  
+  const document = SwaggerModule.createDocument(app, config)
+  enhanceCrudSwaggerDocument(document) // This enhances CRUD endpoints
+  SwaggerModule.setup('docs', app, document)
+  
+  await app.listen(3000)
+  console.log('Application is running on: http://localhost:3000')
+  console.log('Swagger docs available at: http://localhost:3000/docs')
+}
+bootstrap()
+```
+
+3. **Access your API documentation**:
+   - **Swagger UI**: `http://localhost:3000/docs`
+   - **JSON Schema**: `http://localhost:3000/docs-json`
+
+### What's Auto-Generated
+
+The `enhanceCrudSwaggerDocument()` function automatically adds:
+
+- **Complete API endpoints** for all CRUD operations (GET, POST, PATCH/PUT, DELETE)
+- **Request/Response schemas** based on your TypeORM entities
+- **Pagination details** for list endpoints
+- **Query parameters** (filters, sorting, search, pagination)
+- **File upload specifications** for endpoints with file uploads
+- **Response envelopes** with proper data structure
+- **Validation rules** and error responses
+
+### Global Swagger Configuration
+
+You can set global Swagger metadata via the module options:
+
+```ts
+CrudmanModule.forRoot({
+  swagger: { enabled: true },
+  swaggerMeta: { 
+    title: 'My Awesome API', 
+    version: '2.0.0', 
+    description: 'Internal platform APIs' 
+  }
+})
+```
+
+**Defaults** (if not provided):
 - title: humanized package.json name (e.g., `crudman-nestjs` → `Crudman Nestjs`)
 - version: package.json version (e.g., `1.0.0`)
 - description: `CRUD APIs for {title}`
 
-Configure explicitly:
-```ts
-CrudmanModule.forRoot({
-  swagger: { enabled: true },
-  swaggerMeta: { title: 'My Awesome API', version: '2.0.0', description: 'Internal platform APIs' }
-})
-```
+### Export Content Types
 
-Example project (from `examples/nest-typeorm-sqlite/src/app.module.ts`):
-```ts
-CrudmanModule.forRoot({ swaggerMeta: { title: 'Example API', version: '1.2.3' } })
-```
-
-### Export content types (global)
-
-Control which response content types are available for list/details via the `x-content-type` header. Defaults to all three.
+Control which response content types are available for list/details via the `x-content-type` header:
 
 ```ts
 CrudmanModule.forRoot({
@@ -431,7 +484,21 @@ CrudmanModule.forRoot({
   exportContentTypes: ['json','csv'] // disable excel globally
 })
 ```
+
 The Swagger docs will only show the allowed values in the header enum.
+
+### TypeORM Integration
+
+If you're using TypeORM, make sure to set the DataSource:
+
+```ts
+import { DataSource } from 'typeorm'
+import { setCrudmanDataSource } from 'crudman-nestjs'
+
+// In your bootstrap function:
+const ds = app.get(DataSource)
+setCrudmanDataSource(ds)
+```
 
 ## Quick start (auto routes)
 
