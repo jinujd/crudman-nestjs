@@ -467,6 +467,49 @@ The `enhanceCrudSwaggerDocument()` function automatically adds:
 - **Response envelopes** with proper data structure
 - **Validation rules** and error responses
 
+### Request body content types (write endpoints)
+- By default, POST/PUT/PATCH show three tabs:
+  - `application/json`: inline JSON properties derived from your entity (create: required fields; update: all optional)
+  - `application/x-www-form-urlencoded`: same inline properties as form fields
+  - `multipart/form-data`: file inputs (when uploads configured) + scalar entity fields
+- Relations are excluded from write bodies by default.
+
+You can customize globally via `CrudmanModule.forRoot`:
+```ts
+CrudmanModule.forRoot({
+  swagger: {
+    enabled: true,
+    // How JSON request body is shown: inline object vs $ref to component schema
+    requestBodySchemaMode: 'inline', // 'inline' | 'ref'
+    // Which content types to include for write endpoints
+    requestBodyContentTypes: ['json','form','multipart'],
+    // Include relation properties in write bodies
+    includeRelationsInWriteBody: false
+  }
+})
+```
+
+Per-section override:
+```ts
+@UseCrud({
+  sections: {
+    companies: {
+      model: Company,
+      swagger: {
+        requestBodySchemaMode: 'inline',
+        requestBodyContentTypes: ['json','form'],
+        includeRelationsInWriteBody: false
+      }
+    }
+  }
+})
+```
+
+Notes:
+- Inline JSON schema excludes readonly fields (id/createdAt/updatedAt) and upload target fields.
+- multipart shows only scalar fields; complex fields are stringified.
+- You can use any path for docs (e.g., `'docs'` or `'swagger'`) in `SwaggerModule.setup(path, app, document)`.
+
 ### Global Swagger Configuration
 
 You can set global Swagger metadata via the module options:
@@ -927,11 +970,38 @@ onBeforeValidate: async (req, _res, rules) => {
 - Type: `(generatedRules: any, req: RequestLike, res: ResponseLike, validator: ValidatorAdapter) => any | Promise<any>`
 - Use: Replace or extend the auto-generated rules from the model.
 - Returns: The final rules object/schema used for validation.
-- Example:
+- Rules format: fastest-validator schema. Use fields like `type`, `min`, `max`, `empty`, `optional`, `enum`, etc.
+
+Examples:
+
+1) Make fields mandatory on create but optional on update (fastest-validator format):
 ```ts
-getFinalValidationRules: async (rules) => ({
+// Create action: name and email required; phone optional
+create: {
+  getFinalValidationRules: (rules) => ({
+    ...rules,
+    name:  { type: 'string', empty: false, min: 2 },
+    email: { type: 'email',  empty: false },
+    phone: { type: 'string', optional: true }
+  })
+},
+
+// Update action: make all fields optional, but keep formats
+update: {
+  getFinalValidationRules: (rules) => ({
+    ...rules,
+    name:  { type: 'string', min: 2, optional: true },
+    email: { type: 'email',  optional: true },
+    phone: { type: 'string', optional: true }
+  })
+}
+```
+
+2) Add a password rule (min length) while keeping generated rules:
+```ts
+getFinalValidationRules: (rules) => ({
   ...rules,
-  password: { type: 'string', min: 8 }
+  password: { type: 'string', min: 8, empty: false }
 })
 ```
 
