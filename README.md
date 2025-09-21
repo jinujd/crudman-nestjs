@@ -247,6 +247,63 @@ With shorthand models:
 })
 ```
 
+### Attribute inclusion/exclusion examples
+
+Global defaults (apply to all actions unless overridden):
+
+```ts
+CrudmanModule.forRoot({
+  // keep all fields readable, but protect system fields from writes globally
+  defaults: { attributes: { read: '*', write: { exclude: ['id','createdAt','updatedAt'] } } }
+})
+```
+
+Per-section defaults:
+
+```ts
+@UseCrud({ sections: {
+  users: {
+    model: User,
+    // only expose a minimal public profile across list/details
+    attributes: { read: { include: ['id','firstName','lastName','avatarUrl'] } }
+  }
+}})
+```
+
+Per-action read narrowing (exclude sensitive columns on list only):
+
+```ts
+list:   { attributes: { read: { exclude: ['internalNotes','lastLoginIp'] } } },
+details:{ attributes: { read: '*' } }
+```
+
+Per-action write allow-list (create allows only safe inputs):
+
+```ts
+create: { attributes: { write: { include: ['name','email','role'] } } },
+update: { attributes: { write: { exclude: ['id','createdAt','updatedAt'] } } }
+```
+
+Combine include/exclude (exclude wins outside include scope):
+
+```ts
+attributes: {
+  read:  { include: ['id','name','email','profile'], exclude: ['email'] }, // → effectively ['id','name','profile']
+  write: { include: ['name','email','role'], exclude: ['role'] }            // → effectively ['name','email']
+}
+```
+
+Shorthand models (per-model override):
+
+```ts
+@UseCrud({
+  models: [
+    [Company, { attributes: { read: { exclude: ['secret'] }, write: { exclude: ['id','createdAt'] } } }],
+    [User,    { attributes: { read: { include: ['id','firstName','lastName','avatarUrl'] } } }]
+  ]
+})
+```
+
 ## CrudControllerBase explained
 
 `CrudControllerBase(sectionName: string)` is a tiny base class that auto-binds the five standard routes for a single section:
