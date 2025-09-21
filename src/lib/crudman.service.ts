@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core'
 import { promises as fs } from 'fs'
 import * as path from 'path'
 import {
@@ -17,7 +18,7 @@ import { defaultResponseFormatter } from './response/defaultResponseFormatter'
 export class CrudmanService {
   private config: any
   private options: any
-  constructor() {}
+  constructor(private readonly moduleRef?: ModuleRef) {}
 
   private getSection(section: string) {
     if (!this.config) {
@@ -41,7 +42,31 @@ export class CrudmanService {
   }
 
   getDataSource() {
-    return CrudmanRegistry.get().getDataSource()
+    const reg = CrudmanRegistry.get()
+    const existing = reg.getDataSource()
+    if (existing) return existing
+    const ref = this.moduleRef || reg.getModuleRef()
+    if (!ref) return undefined
+    try {
+      const maybeTypeorm = (() => { try { return require('typeorm') } catch { return undefined } })()
+      const maybeNestTypeorm = (() => { try { return require('@nestjs/typeorm') } catch { return undefined } })()
+      const DataSourceClass = maybeTypeorm && maybeTypeorm.DataSource
+      const tokenCandidates: any[] = []
+      if (maybeNestTypeorm && typeof maybeNestTypeorm.getDataSourceToken === 'function') {
+        try { tokenCandidates.push(maybeNestTypeorm.getDataSourceToken()) } catch {}
+        try { tokenCandidates.push(maybeNestTypeorm.getDataSourceToken('default')) } catch {}
+      }
+      if (DataSourceClass) tokenCandidates.push(DataSourceClass)
+      tokenCandidates.push('DataSource', 'DEFAULT_DATA_SOURCE', 'TypeOrmDataSource')
+
+      for (const token of tokenCandidates) {
+        try {
+          const ds = ref.get(token as any, { strict: false })
+          if (ds) { reg.setDataSource(ds); return ds }
+        } catch {}
+      }
+    } catch {}
+    return undefined
   }
 
   private async applyHooks(cfg: any, hook: string, ...args: any[]) {

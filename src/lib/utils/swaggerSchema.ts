@@ -153,8 +153,13 @@ export function enhanceCrudSwaggerDocument(document: any) {
   const newPaths: Record<string, any> = {}
   for (const [path, item] of Object.entries<any>(document.paths || {})) {
     const section = getSectionFromPath(path)
-    const entityName = section ? sectionToEntityName[section] : undefined
+    let entityName = section ? sectionToEntityName[section] : undefined
     const selectionField = section ? sectionToSelectionField[section] || 'id' : 'id'
+    // Fallback: infer entity name from path segment when registry sections are unavailable
+    if (!entityName && section) {
+      const guess = capitalize(singularize(section))
+      if (guess && document.components?.schemas?.[guess]) entityName = guess
+    }
     if (!entityName) { newPaths[path] = item; continue }
 
     const ref = { $ref: `#/components/schemas/${entityName}` }
@@ -255,14 +260,35 @@ export function enhanceCrudSwaggerDocument(document: any) {
       {
         const sectionKey = section as string
         const sectionCfg: any = (sections as any)[sectionKey] || {}
-        const mpSchema = buildCombinedMultipartSchema(document, entityName, sectionKey, sectionCfg, 'update')
+        let mpSchema = buildCombinedMultipartSchema(document, entityName, sectionKey, sectionCfg, 'update')
         item.patch.requestBody = item.patch.requestBody || { required: false, content: {} }
         const content = item.patch.requestBody.content as any
         if (mpSchema) {
-          content['multipart/form-data'] = content['multipart/form-data'] || { schema: { type: 'object' } }
-          content['multipart/form-data'].schema = mpSchema
+          const allow = CrudmanRegistry.get().getSwaggerRequestBodyContentTypes()
+          if (allow.includes('multipart' as any)) {
+            content['multipart/form-data'] = content['multipart/form-data'] || { schema: { type: 'object' } }
+            content['multipart/form-data'].schema = stripRelationPropsFromSchema(mpSchema, document, entityName, (sections as any)[sectionKey])
+          }
         }
-        content['application/json'] = content['application/json'] || { schema: { $ref: `#/components/schemas/${entityName}` } }
+        const allow = CrudmanRegistry.get().getSwaggerRequestBodyContentTypes()
+          if (allow.includes('json' as any)) {
+          const existing = content['application/json']?.schema
+          const shouldOverride = !existing || isGenericObjectSchema(existing)
+          if (shouldOverride) {
+            const mode = (CrudmanRegistry.get().getOptions() as any)?.swagger?.requestBodySchemaMode || 'inline'
+            if (mode === 'ref') {
+              content['application/json'] = { schema: { $ref: `#/components/schemas/${entityName}` } }
+            } else {
+              const inline = buildInlineJsonSchema(document, entityName, (sections as any)[sectionKey], 'update')
+              if (inline) content['application/json'] = { schema: stripRelationPropsFromSchema(inline, document, entityName, (sections as any)[sectionKey]) }
+              else content['application/json'] = { schema: { $ref: `#/components/schemas/${entityName}` } }
+            }
+          }
+        }
+        if (allow.includes('form' as any)) {
+          const inline = buildInlineJsonSchema(document, entityName, (sections as any)[sectionKey], 'update')
+          if (inline) content['application/x-www-form-urlencoded'] = { schema: stripRelationPropsFromSchema(inline, document, entityName, (sections as any)[sectionKey]) }
+        }
       }
       item.patch.parameters = item.patch.parameters || []
       const hasParam = (item.patch.parameters as any[]).some((p) => p.name === selectionField)
@@ -279,14 +305,37 @@ export function enhanceCrudSwaggerDocument(document: any) {
       {
         const sectionKey = section as string
         const sectionCfg: any = (sections as any)[sectionKey] || {}
-        const mpSchema = buildCombinedMultipartSchema(document, entityName, sectionKey, sectionCfg, 'update')
+        let mpSchema = buildCombinedMultipartSchema(document, entityName, sectionKey, sectionCfg, 'update')
         item.put.requestBody = item.put.requestBody || { required: false, content: {} }
         const content = item.put.requestBody.content as any
         if (mpSchema) {
-          content['multipart/form-data'] = content['multipart/form-data'] || { schema: { type: 'object' } }
-          content['multipart/form-data'].schema = mpSchema
+          const allow = CrudmanRegistry.get().getSwaggerRequestBodyContentTypes()
+          if (allow.includes('multipart' as any)) {
+            content['multipart/form-data'] = content['multipart/form-data'] || { schema: { type: 'object' } }
+            content['multipart/form-data'].schema = stripRelationPropsFromSchema(mpSchema, document, entityName, (sections as any)[sectionKey])
+          }
         }
-        content['application/json'] = content['application/json'] || { schema: { $ref: `#/components/schemas/${entityName}` } }
+        {
+          const allow = CrudmanRegistry.get().getSwaggerRequestBodyContentTypes()
+          if (allow.includes('json' as any)) {
+            const existing = content['application/json']?.schema
+            const shouldOverride = !existing || isGenericObjectSchema(existing)
+            if (shouldOverride) {
+              const mode = (CrudmanRegistry.get().getOptions() as any)?.swagger?.requestBodySchemaMode || 'inline'
+              if (mode === 'ref') {
+                content['application/json'] = { schema: { $ref: `#/components/schemas/${entityName}` } }
+              } else {
+                const inline = buildInlineJsonSchema(document, entityName, (sections as any)[sectionKey], 'update')
+                if (inline) content['application/json'] = { schema: stripRelationPropsFromSchema(inline, document, entityName, (sections as any)[sectionKey]) }
+                else content['application/json'] = { schema: { $ref: `#/components/schemas/${entityName}` } }
+              }
+            }
+          }
+          if (allow.includes('form' as any)) {
+            const inline = buildInlineJsonSchema(document, entityName, (sections as any)[sectionKey], 'update')
+            if (inline) content['application/x-www-form-urlencoded'] = { schema: stripRelationPropsFromSchema(inline, document, entityName, (sections as any)[sectionKey]) }
+          }
+        }
       }
       item.put.parameters = item.put.parameters || []
       const hasParam = (item.put.parameters as any[]).some((p) => p.name === selectionField)
@@ -304,14 +353,37 @@ export function enhanceCrudSwaggerDocument(document: any) {
       {
         const sectionKey = section as string
         const sectionCfg: any = (sections as any)[sectionKey] || {}
-        const mpSchema = buildCombinedMultipartSchema(document, entityName, sectionKey, sectionCfg, 'create')
+        let mpSchema = buildCombinedMultipartSchema(document, entityName, sectionKey, sectionCfg, 'create')
         item.post.requestBody = item.post.requestBody || { required: false, content: {} }
         const content = item.post.requestBody.content as any
         if (mpSchema) {
-          content['multipart/form-data'] = content['multipart/form-data'] || { schema: { type: 'object' } }
-          content['multipart/form-data'].schema = mpSchema
+          const allow = CrudmanRegistry.get().getSwaggerRequestBodyContentTypes()
+          if (allow.includes('multipart' as any)) {
+            content['multipart/form-data'] = content['multipart/form-data'] || { schema: { type: 'object' } }
+            content['multipart/form-data'].schema = stripRelationPropsFromSchema(mpSchema, document, entityName, (sections as any)[sectionKey])
+          }
         }
-        content['application/json'] = content['application/json'] || { schema: { $ref: `#/components/schemas/${entityName}` } }
+        {
+          const allow = CrudmanRegistry.get().getSwaggerRequestBodyContentTypes()
+          if (allow.includes('json' as any)) {
+            const existing = content['application/json']?.schema
+            const shouldOverride = !existing || isGenericObjectSchema(existing)
+            if (shouldOverride) {
+              const mode = (CrudmanRegistry.get().getOptions() as any)?.swagger?.requestBodySchemaMode || 'inline'
+              if (mode === 'ref') {
+                content['application/json'] = { schema: { $ref: `#/components/schemas/${entityName}` } }
+              } else {
+                const inline = buildInlineJsonSchema(document, entityName, (sections as any)[sectionKey], 'create')
+                if (inline) content['application/json'] = { schema: stripRelationPropsFromSchema(inline, document, entityName, (sections as any)[sectionKey]) }
+                else content['application/json'] = { schema: { $ref: `#/components/schemas/${entityName}` } }
+              }
+            }
+          }
+          if (allow.includes('form' as any)) {
+            const inline = buildInlineJsonSchema(document, entityName, (sections as any)[sectionKey], 'create')
+            if (inline) content['application/x-www-form-urlencoded'] = { schema: stripRelationPropsFromSchema(inline, document, entityName, (sections as any)[sectionKey]) }
+          }
+        }
       }
     }
     if (item.delete) {
@@ -507,13 +579,22 @@ function buildCombinedMultipartSchema(document: any, entityName: string, section
     }
   } catch {}
   if (entityRef && entityRef.properties && typeof entityRef.properties === 'object') {
+    const relationNames = getRelationFieldNames(document, entityName, sectionCfg)
     for (const [name, prop] of Object.entries<any>(entityRef.properties)) {
-      if (readonlyFields.has(String(name))) continue
+      const n = String(name)
+      if (readonlyFields.has(n)) continue
+      // Exclude relations from write multipart fields by default
+      try {
+        const includeRelations = CrudmanRegistry.get().getIncludeRelationsInWriteBody()
+        const looksLikeRelation = !!(prop && (prop.$ref || (prop.items && (prop.items as any).$ref) || prop.type === 'object' || (prop.type === 'array' && (prop.items && (prop.items as any).type === 'object'))))
+        if (!includeRelations && (relationNames.has(n) || looksLikeRelation)) continue
+      } catch {}
+      if (!isWritableScalarProperty(prop)) continue
       // Swagger UI needs primitive types for multipart; map object/array to string by default
       const base = mapToMultipartFriendly(prop)
       // preserve description (e.g., unique labels)
       if (prop && prop.description) base.description = prop.description
-      properties[name] = base
+      properties[n] = base
     }
   }
   if (fileSchema && fileSchema.properties) {
@@ -532,6 +613,23 @@ function mapToMultipartFriendly(prop: any): any {
   return { type: 'string' }
 }
 
+function isWritableScalarProperty(prop: any): boolean {
+  try {
+    if (!prop || typeof prop !== 'object') return false
+    if (prop.$ref) return false
+    const t = prop.type
+    if (t === 'string' || t === 'number' || t === 'integer' || t === 'boolean') return true
+    if (prop.format === 'date-time') return true
+    if (t === 'array') {
+      const items = prop.items || {}
+      if ((items as any).$ref) return false
+      const it = (items as any).type
+      return it === 'string' || it === 'number' || it === 'integer' || it === 'boolean'
+    }
+    return false
+  } catch { return false }
+}
+
 function normalizeType(t: any): string {
   const s = typeof t === 'string' ? t.toLowerCase() : t
   if (s === String || s === 'varchar' || s === 'text' ) return 'string'
@@ -546,6 +644,107 @@ function safeGetMetadata(ds: any, entity: any): any | null {
     const all = (ds as any).entityMetadatas || []
     return all.find((m: any) => m.target === entity || m.name === entity?.name) || null
   }
+}
+
+// Build inline JSON schema (entity properties with readonly fields removed). For update, make all fields optional.
+function buildInlineJsonSchema(document: any, entityName: string, sectionCfg: any, mode: 'create' | 'update'): any | null {
+  try {
+    let comp = document?.components?.schemas?.[entityName]
+    if (!comp || typeof comp !== 'object' || !comp.properties) {
+      // Fallback: derive from ORM metadata directly
+      const derived = generateOpenApiSchemaFromEntity((sectionCfg as any)?.model)
+      if (!derived) return null
+      comp = derived
+    }
+    const properties: Record<string, any> = {}
+    const required: string[] = []
+    // Determine readonly fields using ORM metadata and upload targets like in multipart
+    const readonlyFields = new Set<string>()
+    const relationFields = new Set<string>()
+    try {
+      const ds = CrudmanRegistry.get().getDataSource?.()
+      const meta = ds ? safeGetMetadata(ds, (sectionCfg as any)?.model) : null
+      for (const col of meta?.columns || []) {
+        if (col.isPrimary || col.isGenerated || col.isCreateDate || col.isUpdateDate) readonlyFields.add(col.propertyName)
+      }
+      for (const rel of meta?.relations || []) {
+        relationFields.add(rel.propertyName)
+      }
+      const uploadCfg = (sectionCfg && sectionCfg.upload) || expandUploadableShorthandSafe(sectionCfg)
+      if (uploadCfg && Array.isArray(uploadCfg.map)) {
+        for (const rule of uploadCfg.map) {
+          const tf = rule?.targetField
+          if (typeof tf === 'string') readonlyFields.add(tf)
+          else if (tf && typeof tf === 'object') {
+            for (const v of Object.values(tf)) if (typeof v === 'string') readonlyFields.add(v as string)
+          }
+        }
+      }
+    } catch {}
+    const relationNames = getRelationFieldNames(document, entityName, sectionCfg)
+    for (const [name, prop] of Object.entries<any>(comp.properties)) {
+      const n = String(name)
+      if (readonlyFields.has(n)) continue
+      const includeRelations = CrudmanRegistry.get().getIncludeRelationsInWriteBody()
+      const looksLikeRelation = !!(prop && (prop.$ref || (prop.items && (prop.items as any).$ref)))
+      if (!includeRelations && (relationFields.has(n) || relationNames.has(n) || looksLikeRelation)) continue
+      if (!isWritableScalarProperty(prop)) continue
+      properties[name] = prop
+    }
+    if (mode === 'create') {
+      const baseReq = Array.isArray((comp as any).required) ? (comp as any).required : []
+      for (const r of baseReq) if (!readonlyFields.has(String(r)) && properties[r]) required.push(String(r))
+    }
+    return { type: 'object', properties, required: required.length ? required : undefined }
+  } catch { return null }
+}
+
+function isGenericObjectSchema(schema: any): boolean {
+  try {
+    if (!schema || typeof schema !== 'object') return false
+    if (schema.$ref) return false
+    const t = schema.type
+    const hasProps = !!schema.properties || !!schema.items
+    return t === 'object' && !hasProps
+  } catch { return false }
+}
+
+// Collect relation field names from ORM metadata and from component schema refs
+function getRelationFieldNames(document: any, entityName: string, sectionCfg: any): Set<string> {
+  const out = new Set<string>()
+  try {
+    const ds = CrudmanRegistry.get().getDataSource?.()
+    const meta = ds ? safeGetMetadata(ds, (sectionCfg as any)?.model) : null
+    for (const rel of meta?.relations || []) out.add(String(rel.propertyName))
+  } catch {}
+  try {
+    const comp = document?.components?.schemas?.[entityName]
+    for (const [k, v] of Object.entries<any>(comp?.properties || {})) {
+      if (!v) continue
+      if (v.$ref) out.add(String(k))
+      else if (v.type === 'array' && v.items && (v.items as any).$ref) out.add(String(k))
+      else if (v.type === 'object' && !v.properties) out.add(String(k))
+    }
+  } catch {}
+  return out
+}
+
+// Remove relation-like properties from a schema object (does not mutate original)
+function stripRelationPropsFromSchema(schema: any, document: any, entityName: string, sectionCfg: any): any {
+  try {
+    const include = CrudmanRegistry.get().getIncludeRelationsInWriteBody()
+    if (include) return schema
+    const rels = getRelationFieldNames(document, entityName, sectionCfg)
+    const copy = JSON.parse(JSON.stringify(schema))
+    const props = (copy && copy.properties && typeof copy.properties === 'object') ? copy.properties : null
+    if (!props) return copy
+    for (const [k, v] of Object.entries<any>(props)) {
+      const looksLikeRelation = !!(v && (v.$ref || (v.type === 'array' && v.items && (v.items as any).$ref) || v.type === 'object'))
+      if (rels.has(String(k)) || looksLikeRelation) delete (props as any)[k]
+    }
+    if (Array.isArray(copy.required)) copy.required = copy.required.filter((r: any) => !!props[r])
+    return copy
+  } catch { return schema }
 }
 
 function computeEffectiveUploadValidators(rule: any, sectionCfg: any): any {

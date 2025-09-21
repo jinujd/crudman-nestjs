@@ -23,12 +23,10 @@ export function CrudControllerBase(section: string | string[]): any {
 
       @Post()
       @UseInterceptors(AnyFilesInterceptor())
-      @ApiBody({ required: false, description: 'JSON body or multipart form with files', schema: { type: 'object' } } as any)
       create(@Req() req: any, @Res() res: any) { return this.crud.create(sec, req, res) }
 
       @(CrudmanRegistry.get().getUpdateMethod() === 'patch' ? Patch(':id') : Put(':id'))
       @UseInterceptors(AnyFilesInterceptor())
-      @ApiBody({ required: false, description: 'JSON body or multipart form with files', schema: { type: 'object' } } as any)
       update(@Req() req: any, @Res() res: any) { return this.crud.update(sec, req, res) }
 
       @Delete(':id')
@@ -93,7 +91,7 @@ export function CrudControllerBase(section: string | string[]): any {
       try { (Req() as any)(proto, createName, 0); (Res() as any)(proto, createName, 1) } catch {}
       decorate(createName, [
         UseInterceptors(AnyFilesInterceptor()) as any,
-        applyDecorators(SetMetadata('crudman:action', { section: sectionKey, action: 'create' }), ApiOperation({ summary: `${sectionKey}: create` }), ApiOkResponse({ description: 'Create response' }), ApiBody({ required: false, description: 'JSON body or multipart form with files', schema: { type: 'object' } } as any)),
+        applyDecorators(SetMetadata('crudman:action', { section: sectionKey, action: 'create' }), ApiOperation({ summary: `${sectionKey}: create` }), ApiOkResponse({ description: 'Create response' })),
         Post(sectionKey)
       ])
 
@@ -103,7 +101,7 @@ export function CrudControllerBase(section: string | string[]): any {
       try { (Req() as any)(proto, updateName, 0); (Res() as any)(proto, updateName, 1) } catch {}
       decorate(updateName, [
         UseInterceptors(AnyFilesInterceptor()) as any,
-        applyDecorators(SetMetadata('crudman:action', { section: sectionKey, action: 'update' }), ApiOperation({ summary: `${sectionKey}: update` }), ApiParam({ name: 'id', required: true }), ApiOkResponse({ description: 'Update response' }), ApiBody({ required: false, description: 'JSON body or multipart form with files', schema: { type: 'object' } } as any)),
+        applyDecorators(SetMetadata('crudman:action', { section: sectionKey, action: 'update' }), ApiOperation({ summary: `${sectionKey}: update` }), ApiParam({ name: 'id', required: true }), ApiOkResponse({ description: 'Update response' })),
         updateMethod === 'patch' ? Patch(`${sectionKey}/:id`) : Put(`${sectionKey}/:id`)
       ])
 

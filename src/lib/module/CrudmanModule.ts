@@ -14,6 +14,8 @@ export class CrudmanModule implements OnApplicationBootstrap {
 
   async onApplicationBootstrap() {
     const registry = CrudmanRegistry.get()
+    // Save ModuleRef in registry for late/lazy resolutions in service
+    registry.setModuleRef(this.moduleRef)
     if (registry.getDataSource()) return
 
     try {
@@ -22,10 +24,24 @@ export class CrudmanModule implements OnApplicationBootstrap {
       const maybeTypeorm = (() => {
         try { return require('typeorm') } catch { return undefined }
       })()
+      const maybeNestTypeorm = (() => {
+        try { return require('@nestjs/typeorm') } catch { return undefined }
+      })()
       const DataSourceClass = maybeTypeorm && maybeTypeorm.DataSource
-      if (DataSourceClass) {
-        const ds = this.moduleRef.get(DataSourceClass, { strict: false })
-        if (ds) setCrudmanDataSource(ds)
+      const tokenCandidates: any[] = []
+      if (maybeNestTypeorm && typeof maybeNestTypeorm.getDataSourceToken === 'function') {
+        try { tokenCandidates.push(maybeNestTypeorm.getDataSourceToken()) } catch {}
+        try { tokenCandidates.push(maybeNestTypeorm.getDataSourceToken('default')) } catch {}
+      }
+      if (DataSourceClass) tokenCandidates.push(DataSourceClass)
+      tokenCandidates.push('DataSource', 'DEFAULT_DATA_SOURCE', 'TypeOrmDataSource')
+
+      for (const token of tokenCandidates) {
+        if (registry.getDataSource()) break
+        try {
+          const ds = this.moduleRef.get(token as any, { strict: false })
+          if (ds) setCrudmanDataSource(ds)
+        } catch {}
       }
     } catch {
       // ignore – fallback to manual setCrudmanDataSource if user chooses

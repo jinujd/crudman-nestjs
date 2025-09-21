@@ -8,6 +8,7 @@ export class CrudmanRegistry {
   private static instance: CrudmanRegistry
   private options: CrudModuleOptions
   private cache?: CacheAdapter
+  private moduleRef?: any
 
   private constructor(options: CrudModuleOptions = {}) {
     this.options = options
@@ -33,8 +34,18 @@ export class CrudmanRegistry {
   getRoleChecker() { return this.options.roleChecker || ((identity: any, roles?: string[]) => !roles?.length || roles.includes(identity?.role)) }
   getDataSource() { return (this.options as any).dataSource }
   setDataSource(ds: any) { (this.options as any).dataSource = ds }
+  setModuleRef(ref: any) { this.moduleRef = ref }
+  getModuleRef() { return this.moduleRef }
   getUpdateMethod() { return this.options.updateMethod || 'patch' }
   getSwaggerMeta() { return (this.options as any).swaggerMeta || {} }
+  getSwaggerRequestBodyContentTypes(): Array<'json'|'form'|'multipart'> {
+    const ct = (this.options as any).swagger?.requestBodyContentTypes
+    return Array.isArray(ct) && ct.length ? ct as any : ['json','form','multipart']
+  }
+  getIncludeRelationsInWriteBody(): boolean {
+    const v = (this.options as any).swagger?.includeRelationsInWriteBody
+    return v === true
+  }
   getExportContentTypes(): Array<'json'|'csv'|'excel'> {
     const list = (this.options as any).exportContentTypes
     return Array.isArray(list) && list.length ? list : ['json','csv','excel']
