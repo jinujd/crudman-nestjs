@@ -9,6 +9,7 @@ import { enhanceCrudSwaggerDocument } from 'crudman-nestjs'
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule)
+  await app.init()
 
   // Serve uploads folder for local development
   const up = join(process.cwd(), 'uploads')
