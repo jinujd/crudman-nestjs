@@ -1,6 +1,6 @@
 {
   "name": "crudman-nestjs",
-  "version": "1.0.1-next.4",
+  "version": "1.0.1-next.5",
   "description": "Zero-boilerplate CRUD for NestJS with TypeORM, Swagger, validation, uploads.",
   "main": "dist/index.cjs",
   "scripts": {
