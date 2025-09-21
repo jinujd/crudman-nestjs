@@ -277,6 +277,40 @@ details(@Req() req) { /* custom logic */ }
 
 CrudMan supports files in requests via a simple, pluggable system. You can accept files as multipart/form-data, base64 strings (in JSON), or even blobs, and choose how they are stored per field.
 
+### Quick start: enable avatar upload in `users` (minimal)
+
+```ts
+@UseCrud({ sections: {
+  users: {
+    model: User,
+    common: {
+      // one-field image preset → adds avatarKey + avatarUrl columns with filename storage
+      uploadable: { avatar: 'image' },
+      uploadDefaults: { storage: 'local' }
+    }
+  }
+}})
+@Controller('api/users')
+export class UsersController extends CrudControllerBase('users') {}
+```
+
+Requests you can send:
+- Multipart: form-data with field `avatar` as file
+- JSON (base64): `{ "avatar": "data:image/png;base64,iVBORw0..." }`
+
+Entity columns created/expected (filename mode):
+- `avatarKey: string | null`, `avatarUrl: string | null`
+
+List response excerpt (avatar URL in data; base URLs under meta):
+```json
+{
+  "data": [{ "id": 1, "name": "Alice", "avatarUrl": "/uploads/avatars/1.png" }],
+  "success": true,
+  "meta": { "baseUrls": { "uploads": "http://localhost:3000" } },
+  "pagination": { "page": 1, "perPage": 20 }
+}
+```
+
 - Sources: `multipart` (form-data), `base64` (JSON); streams/presigned (advanced)
 - Storage modes:
   - `filename` (recommended): upload using a storage adapter (Local/S3/etc.), store only key/filename and optional URL in your entity
@@ -324,6 +358,86 @@ sections: {
   }
 }
 ```
+
+### Direct-field storage (no keys)
+
+Store the uploaded filename directly into an existing column (no `...Key`/`...Url` fields).
+
+```ts
+sections: {
+  users: {
+    model: User,
+    common: {
+      upload: {
+        sources: ['multipart'],
+        map: [
+          {
+            sourceField: 'avatar',
+            storageMode: 'filename_in_field', // write relative filename directly to the target field
+            storage: 'local',
+            targetField: 'avatar', // your entity must have `avatar: string | null`
+            typeHint: 'image-jpg',
+            validators: { maxSizeMB: 2 }
+          }
+        ]
+      }
+    }
+  }
+}
+``;
+
+Result:
+- Multipart field `avatar` → stored via `local` storage → entity `avatar` receives a relative filename (e.g. `uploads/u1/avatar.jpg`).
+- No extra key/url columns are created or used.
+
+### Preset examples (image-jpg, image-png, avatar)
+
+```ts
+// JPEG only
+uploadable: { avatar: 'image-jpg' }
+
+// PNG only
+uploadable: { logo: 'image-png' }
+
+// Avatar constraints (min/max dimensions, ~1:1)
+uploadable: { avatar: 'image-avatar' }
+
+// Array of images (JPEG)
+upload: {
+  sources: ['multipart'],
+  map: [
+    { sourceField: 'gallery', isArray: true, storageMode: 'filename', storage: 'local',
+      targetField: { keys: 'galleryKeys', urls: 'galleryUrls' }, typeHint: 'image-jpg' }
+  ]
+}
+```
+
+### Upload options reference
+
+- `uploadable: Record<string, string | string[]>`
+  - Shorthand that expands to an `upload.map` entry per field.
+  - Value is a preset/typeHint (e.g., `'image' | 'image-jpg' | 'image-png' | 'pdf' | 'doc' | 'video' | ...`).
+  - Array value indicates multiple files for that field.
+- `upload: { sources?: ('multipart'|'base64')[]; map: UploadMapEntry[] }`
+  - `sources`: allowed input sources. Default often `['multipart','base64']` depending on context.
+  - `map`: array of rules mapping incoming fields to entity fields.
+- `UploadMapEntry` fields:
+  - `sourceField: string` (form/base64 field name)
+  - `targetField: string | { key?: string; url?: string; keys?: string; urls?: string }`
+  - `isArray?: boolean` → multiple files under the same field
+  - `storageMode: 'filename' | 'filename_in_field' | 'blob' | 'base64'`
+    - `filename`: upload via storage adapter, keep only key/url in entity (recommended)
+    - `filename_in_field`: write relative filename directly into a single string column
+    - `blob`: store Buffer in a BLOB/bytea column (set `targetField` to the blob column; consider also storing mime)
+    - `base64`: keep base64 as text in the target field
+  - `storage?: string` → name of a configured storage (e.g., `'local'`, `'s3'`)
+  - `typeHint?: string` → preset that sets default validators (e.g., `image`, `image-jpg`, `pdf`)
+  - `validators?: { maxSizeMB?: number; allowedMimeTypes?: string[]; allowedExtensions?: string[] }`
+  - `sources?: ('multipart'|'base64')[]` → narrow sources per entry
+
+Response notes:
+- Create/Update responses include `meta.baseUrls` (when configured) and merged extra metadata.
+- Swagger shows three request body tabs (json/form/multipart) by default; file fields appear as binary in multipart.
 
 ### Validation and rules
 - Uploads are processed into `req.body` first; then your validator runs.
