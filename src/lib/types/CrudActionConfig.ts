@@ -63,6 +63,10 @@ export interface CrudActionConfig {
   upload?: import('./Upload').UploadConfig
   uploadable?: Record<string, string>
   uploadDefaults?: { storage?: string; dir?: string; keyPrefix?: string; deleteOnReplace?: boolean; imageMaxSizeMB?: number; fileMaxSizeMB?: number }
+
+  // Uniqueness validation (optional overrides per action)
+  fieldsForUniquenessValidation?: string[]
+  conditionTypeForUniquenessValidation?: 'or' | 'and'
 }
 
 

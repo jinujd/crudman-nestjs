@@ -8,6 +8,19 @@ export function generateOpenApiSchemaFromEntity(entity: any): any | null {
     if (!meta) return null
     const properties: Record<string, any> = {}
     const required: string[] = []
+    // Determine section-level uniqueness config by scanning global sections for this model
+    const globalMeta = (global as any).__crudman_global_meta || { config: { sections: {} } }
+    const sections: Record<string, any> = globalMeta.config?.sections || {}
+    const uniquenessMap: Record<string, boolean> = {}
+    try {
+      for (const [, cfg] of Object.entries(sections)) {
+        if ((cfg as any)?.model === entity) {
+          const gather = (a: any) => Array.isArray(a?.fieldsForUniquenessValidation) ? a.fieldsForUniquenessValidation : []
+          const fields = new Set<string>([...gather(cfg), ...gather((cfg as any).create), ...gather((cfg as any).update), ...gather((cfg as any).save)])
+          for (const f of fields) uniquenessMap[f] = true
+        }
+      }
+    } catch {}
     for (const col of meta.columns) {
       const name = col.propertyName
       const typ = normalizeType(col.type)
@@ -16,6 +29,9 @@ export function generateOpenApiSchemaFromEntity(entity: any): any | null {
       if (typ === 'integer' || typ === 'number') {}
       if (typ === 'string' && (String(col.type).toLowerCase().includes('date') || col.isCreateDate || col.isUpdateDate)) {
         prop.type = 'string'; prop.format = 'date-time'
+      }
+      if (uniquenessMap[name]) {
+        prop.description = prop.description ? `${prop.description} | Should be unique` : 'Should be unique'
       }
       properties[name] = prop
       if (col.isNullable === false && !col.isPrimary && !col.isGenerated && !col.isCreateDate && !col.isUpdateDate) required.push(name)
@@ -495,6 +511,8 @@ function buildCombinedMultipartSchema(document: any, entityName: string, section
       if (readonlyFields.has(String(name))) continue
       // Swagger UI needs primitive types for multipart; map object/array to string by default
       const base = mapToMultipartFriendly(prop)
+      // preserve description (e.g., unique labels)
+      if (prop && prop.description) base.description = prop.description
       properties[name] = base
     }
   }

@@ -12,8 +12,9 @@ export function usersSection() {
       pagination: { isPaginationEnabled: true, isDisableAllowed: true, maxPerPage: 100 }
     },
     details: {},
-    create: {},
-    update: {},
+    // Enforce uniqueness on email and phone (OR semantics by default)
+    create: { fieldsForUniquenessValidation: ['email','phone'] },
+    update: { fieldsForUniquenessValidation: ['email','phone'] },
     delete: {}
   }
 }

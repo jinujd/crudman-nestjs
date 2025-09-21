@@ -592,6 +592,67 @@ Parameter details:
 - conditionTypeForUniquenessValidation (optional)
   - Type: 'or'|'and'; default 'or'.
   - Use: Controls whether multiple uniqueness fields must be unique together ('and') or any of them ('or').
+  
+Uniqueness behavior:
+- By default, no uniqueness is enforced unless you specify `fieldsForUniquenessValidation` (per section or per action).
+- On create: checks if a record exists matching the field(s). If found, returns fastest-validator style errors: `{ type: 'unique', field, message: '<field> must be unique' }` with HTTP 400.
+- On update: same, but excludes the current record by primary key (uses `recordSelectionField` when provided, fallback `id`).
+- Override per action: set `fieldsForUniquenessValidation` and optionally `conditionTypeForUniquenessValidation`.
+
+Example (section):
+```ts
+export function companiesSection(repo: Repository<Company>) {
+  return {
+    model: Company,
+    create: { fieldsForUniquenessValidation: ['name'], additionalSettings: { repo } },
+    update: { fieldsForUniquenessValidation: ['name'], additionalSettings: { repo } },
+  }
+}
+```
+
+### Unique validation (create/update/save)
+
+Configure server-side uniqueness checks without requiring DB-level unique constraints. Works with TypeORM adapter via repository lookups.
+
+Basic: make `slug` unique (even if DB column isn’t unique):
+```ts
+@UseCrud({
+  sections: {
+    posts: {
+      model: Post,
+      create: { fieldsForUniquenessValidation: ['slug'] },
+      update: { fieldsForUniquenessValidation: ['slug'] }
+    }
+  }
+})
+```
+
+Multiple unique fields (default OR semantics: error if any duplicates):
+```ts
+create: { fieldsForUniquenessValidation: ['email','username'] },
+update: { fieldsForUniquenessValidation: ['email','username'] }
+```
+
+Compound uniqueness (AND semantics: the pair must be unique together):
+```ts
+create: {
+  fieldsForUniquenessValidation: ['tenantId','slug'],
+  conditionTypeForUniquenessValidation: 'and'
+},
+update: {
+  fieldsForUniquenessValidation: ['tenantId','slug'],
+  conditionTypeForUniquenessValidation: 'and'
+}
+```
+
+Per-action override (e.g., enforce only on create):
+```ts
+create: { fieldsForUniquenessValidation: ['slug'] },
+update: { /* no uniqueness */ }
+```
+
+Update behavior:
+- The check automatically excludes the current record using the primary key. If you update a record but keep the same `slug`, no error is raised. Changing `slug` to a value used by a different record returns 400 with `{ type: 'unique', field: 'slug', message: 'slug must be unique' }`.
 - hooks (optional)
   - onBeforeAction(req,res,service): early allow/deny; return false to abort.
   - onAfterAction(result,req,service): mutate/replace formatted response before sending/caching.

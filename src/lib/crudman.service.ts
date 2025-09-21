@@ -351,6 +351,27 @@ export class CrudmanService {
     if (proceed === false) return { valid: false, errors: [{ message: 'Validation stopped by onBeforeValidate' }] }
     const input = { ...req.body }
     const result = validator.validate(input, rules)
+    // Uniqueness validation (DB-level check; adapter-agnostic via orm.exists)
+    try {
+      const fields = actionCfg.fieldsForUniquenessValidation || actionCfg.fieldsForUniquenessValidation === undefined
+        ? (this.getSection(actionCfg?.name || '')?.fieldsForUniquenessValidation || [])
+        : actionCfg.fieldsForUniquenessValidation
+      const conditionType: 'or'|'and' = actionCfg.conditionTypeForUniquenessValidation || 'or'
+      if (Array.isArray(fields) && fields.length) {
+        const orm = this.getOrm(actionCfg)
+        if (orm && typeof orm.exists === 'function' && typeof (orm as any).buildUniquenessWhere === 'function') {
+          const idField = actionCfg.recordSelectionField || 'id'
+          const idValue = isUpdate ? (req.params?.[idField] ?? req.body?.[idField]) : undefined
+          const where = (orm as any).buildUniquenessWhere(idValue, fields, input, conditionType)
+          const exists = await orm.exists(where, actionCfg)
+          if (exists) {
+            const errs = fields.map((f: string) => ({ type: 'unique', field: f, message: `${f} must be unique` }))
+            result.valid = false
+            result.errors = [...(result.errors || []), ...errs]
+          }
+        }
+      }
+    } catch {}
     const proceedAfter = await this.applyHooks(actionCfg, 'onAfterValidate', req, res, result.errors, validator, this)
     if (proceedAfter === false) return { valid: false, errors: result.errors }
     return result
