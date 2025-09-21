@@ -884,6 +884,26 @@ onBeforeAction: async (req) => {
   if (!req.identity?.id) return false // block anonymous
 }
 ```
+
+Restrict a list to the logged-in user’s company (inject condition before the query):
+```ts
+// In the users section
+list: {
+  filtersWhitelist: ['companyId','email','createdAt'],
+  onBeforeAction: async (req) => {
+    // Assume req.identity is populated by your auth middleware/guard
+    const companyId = req.identity?.companyId
+    if (!companyId) return false // no company → block
+    // Inject an equals filter so only users from this company are listed
+    req.query = req.query || {}
+    req.query.companyId = String(companyId)
+    return true
+  }
+}
+```
+Notes:
+- Ensure the field you inject (e.g., `companyId`) is present in `filtersWhitelist` for the list action.
+- You can alternatively implement this with `onBeforeQuery` to modify ORM options directly.
 Blocking access early means: the action will not hit the database or do any work; the service simply stops. You can also send a response yourself:
 ```ts
 onBeforeAction: async (req, res) => {
