@@ -11,6 +11,12 @@
 
 > Creating CRUD is so simple. See how a simple States CRUD is defined:
 
+> Note: This is a beta release (version 1.0.1-beta.0). Install with the beta tag:
+>
+> ```bash
+> npm i crudman-nestjs@beta
+> ```
+
 ```ts
 // states.controller.ts
 import { Controller } from '@nestjs/common'
@@ -999,7 +1005,7 @@ Examples:
 // Create action: name and email required; phone optional
 create: {
   getFinalValidationRules: (rules) => ({
-    ...rules,
+  ...rules,
     name:  { type: 'string', empty: false, min: 2 },
     email: { type: 'email',  empty: false },
     phone: { type: 'string', optional: true }
