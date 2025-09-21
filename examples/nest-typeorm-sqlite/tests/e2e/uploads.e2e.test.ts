@@ -71,7 +71,7 @@ it('POST /api/uploads-image-png should reject non-png by extension/mime', async 
   const res = await request(app.getHttpServer())
     .post('/api/uploads-image-png')
     .attach('file', txtPath)
-  expect([200,201]).toContain(res.status)
+    .expect(400)
   expect(res.body.success).toBe(false)
   const errStr = JSON.stringify(res.body.errors || [])
   expect(errStr).toMatch(/Invalid (extension|MIME)/)

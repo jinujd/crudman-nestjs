@@ -1,18 +1,14 @@
 import 'reflect-metadata'
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
-import { DataSource } from 'typeorm'
-import { setCrudmanDataSource, enhanceCrudSwaggerDocument } from 'crudman-nestjs'
 import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger"
 import { join } from 'path'
 import { existsSync } from 'fs'
 import { NestExpressApplication } from '@nestjs/platform-express'
+import { enhanceCrudSwaggerDocument } from 'crudman-nestjs'
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule)
-  // Provide DataSource to the registry so the adapter can auto-resolve repositories
-  const ds = app.get(DataSource)
-  setCrudmanDataSource(ds)
 
   // Serve uploads folder for local development
   const up = join(process.cwd(), 'uploads')
