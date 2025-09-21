@@ -305,7 +305,13 @@ export const TypeormAdapter: OrmAdapter = {
   buildUniquenessWhere(id, fields, values, type) {
     const clauses = fields.map((f: string) => ({ [f]: values[f] }))
     const where: any = type === 'and' ? { AND: clauses } : { OR: clauses }
-    if (id) where.id = { not: id }
+    if (id !== undefined && id !== null) {
+      // Exclude current record by primary key for update paths
+      const primaryField = Array.isArray((this as any)?.metadata?.primaryColumns) && (this as any).metadata.primaryColumns[0]
+        ? (this as any).metadata.primaryColumns[0].propertyName
+        : 'id'
+      where[primaryField] = { not: id }
+    }
     return where
   }
 }
