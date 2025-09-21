@@ -399,6 +399,19 @@ crudman-nestjs is a plug-and-play CRUD layer for NestJS. It auto-generates REST 
 npm i crudman-nestjs
 ```
 
+### Zero-config TypeORM DataSource
+
+From v1.0.0+, Crudman auto-discovers your TypeORM `DataSource` at app startup. You no longer need to call `setCrudmanDataSource()` or add a custom provider. If discovery fails in unusual setups, you can still set it manually:
+
+```ts
+import { DataSource } from 'typeorm'
+import { setCrudmanDataSource } from 'crudman-nestjs'
+
+// e.g., in main.ts after app.init()
+const ds = app.get(DataSource)
+setCrudmanDataSource(ds)
+```
+
 ## Swagger Configuration
 
 Crudman automatically generates comprehensive Swagger documentation for all your CRUD endpoints. Here's how to configure it:
@@ -1189,9 +1202,9 @@ const doc = SwaggerModule.createDocument(app, config)
 doc.components = doc.components || { schemas: {} }
 doc.components.schemas = {
   ...doc.components.schemas,
-  Company: generateOpenApiSchemaFromEntity(Company)!,
-  User: generateOpenApiSchemaFromEntity(User)!
-}
+    Company: generateOpenApiSchemaFromEntity(Company)!,
+    User: generateOpenApiSchemaFromEntity(User)!
+  }
 // Enhance: add list/detail/create/update/delete response envelopes and entity refs
 enhanceCrudSwaggerDocument(doc)
 SwaggerModule.setup('docs', app, doc)
