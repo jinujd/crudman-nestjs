@@ -304,12 +304,14 @@ Entity columns created/expected (filename mode):
 List response excerpt (avatar URL in data; base URLs under meta):
 ```json
 {
-  "data": [{ "id": 1, "name": "Alice", "avatarUrl": "/uploads/avatars/1.png" }],
+  "data": [{ "id": 1, "name": "Alice", "avatarUrl": "uploads/avatars/1.png" }],
   "success": true,
   "meta": { "baseUrls": { "uploads": "http://localhost:3000" } },
   "pagination": { "page": 1, "perPage": 20 }
 }
 ```
+
+Note: Full image URL = `meta.baseUrls.uploads + '/' + data[i].avatarUrl` → e.g., `http://localhost:3000/uploads/avatars/1.png`.
 
 - Sources: `multipart` (form-data), `base64` (JSON); streams/presigned (advanced)
 - Storage modes:
