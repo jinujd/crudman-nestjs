@@ -11,11 +11,7 @@
 
 > Creating CRUD is so simple. See how a simple States CRUD is defined:
 
-> Note: This is a beta release (version 1.0.1-beta.0). Install with the beta tag:
->
-> ```bash
-> npm i crudman-nestjs
-> ```
+
 
 ```ts
 // states.controller.ts
