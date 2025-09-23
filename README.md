@@ -14,7 +14,7 @@
 > Note: This is a beta release (version 1.0.1-beta.0). Install with the beta tag:
 >
 > ```bash
-> npm i crudman-nestjs@beta
+> npm i crudman-nestjs
 > ```
 
 ```ts
