@@ -757,6 +757,98 @@ Routes available:
 
 To override any one, add your own method and decorate it with `@CrudList`, `@CrudDetails`, etc.
 
+### List APIs and pagination (quick reference)
+
+The list endpoint is available at `GET /api/{section}` (e.g., `GET /api/companies`).
+
+- **Pagination params**
+  - `page` (default: 1)
+  - `perPage` (default: 30; alias `per_page` supported)
+  - `paginate` = `false|0|no` to disable pagination (when allowed by config)
+- **Sorting**
+  - `sort.<field>=asc|desc` (repeatable for multi-sort)
+- **Filters**
+  - Equals: `field=value`
+  - Like: `field.like=value`
+  - Ranges: `field.min=value`, `field.max=value`, `field.gt=value`, `field.lt=value`
+  - Between: `field.between=start,end`
+
+Examples:
+
+```text
+# Page 2 with 20 items per page
+GET /api/companies?page=2&perPage=20
+
+# Multi-sort: newest first, then name ascending
+GET /api/companies?sort.createdAt=desc&sort.name=asc&page=1&perPage=25
+
+# Disable pagination (returns all when allowed)
+GET /api/companies?paginate=false
+```
+
+Response excerpt (pagination meta):
+
+```json
+{
+  "data": [/* ...items... */],
+  "success": true,
+  "pagination": {
+    "page": 2,
+    "perPage": 25,
+    "totalItemsCount": 137,
+    "totalPagesCount": 6,
+    "isHavingNextPage": true,
+    "isHavingPreviousPage": true
+  },
+  "filters": [],
+  "sorting": []
+}
+```
+
+Notes:
+- Snake_case aliases are accepted and normalized (e.g., `per_page` → `perPage`).
+- Allowed filter/sort fields are controlled by `filtersWhitelist`/`sortingWhitelist` (or all columns by default).
+
+### Release notes
+
+- **Current version**: beta
+- **Known issue**: Swagger UI may not show individual input fields for `multipart/form-data` in create/update endpoints in some setups. JSON and form-urlencoded render inline correctly; multipart fallback may appear as a generic object. Work in progress.
+
+## Example project (TypeORM + SQLite)
+
+A ready-to-run example lives in `examples/nest-typeorm-sqlite`. It wires multiple entities, uploads, and Swagger.
+
+Run it locally:
+
+```bash
+cd examples/nest-typeorm-sqlite
+npm install
+npm run build
+npm start
+# Swagger: http://localhost:3001/docs
+# API base: http://localhost:3001/api
+```
+
+Developer mode:
+
+```bash
+cd examples/nest-typeorm-sqlite
+npm install
+npm run start:dev
+```
+
+Optional seed:
+
+```bash
+cd examples/nest-typeorm-sqlite
+npm run seed
+```
+
+Notes:
+- SQLite files and `uploads/` are Git-ignored inside the example project.
+- The example serves `/uploads/*` statically when the folder exists.
+- Swagger is initialized before `app.init()` and enhanced via `enhanceCrudSwaggerDocument` to avoid `/docs` 404.
+
 ## Module registration
 
 Register the module once with sensible defaults:

@@ -13,10 +13,23 @@ export function generateOpenApiSchemaFromEntity(entity: any): any | null {
     let meta = ds ? safeGetMetadata(ds, entity) : null
     // Fallback: use TypeORM global metadata args storage when DataSource is not available
     if (!meta) {
-      const storage = getTypeormArgsStorage()
+      // Use globally installed typeorm first; if empty, try resolving storage relative to the entity's module
+      let storage = getTypeormArgsStorage()
+      if (storage && (!Array.isArray(storage.columns) || storage.columns.length === 0)) {
+        const alt = getTypeormStorageFromEntityModule(entity)
+        if (alt) storage = alt
+      }
       if (storage) {
-        const cols = (storage.columns || []).filter((c: any) => c.target === entity)
-        const rels = (storage.relations || []).filter((r: any) => r.target === entity)
+        const matches = (t: any, ent: any) => {
+          try {
+            if (t === ent) return true
+            const tName = typeof t === 'function' ? t.name : String(t)
+            const eName = typeof ent === 'function' ? ent.name : String(ent)
+            return !!tName && !!eName && tName === eName
+          } catch { return false }
+        }
+        const cols = (storage.columns || []).filter((c: any) => matches(c.target, entity))
+        const rels = (storage.relations || []).filter((r: any) => matches(r.target, entity))
         meta = {
           columns: cols.map((c: any) => ({ propertyName: c.propertyName, type: c.options?.type || 'string', length: c.options?.length, isNullable: c.options?.nullable !== false ? true : false, isPrimary: !!c.options?.primary, isGenerated: !!c.options?.generated, isCreateDate: c.options?.type === 'timestamp' && c.propertyName?.toLowerCase()?.includes('created'), isUpdateDate: c.options?.type === 'timestamp' && c.propertyName?.toLowerCase()?.includes('updated') })),
           relations: rels.map((r: any) => ({ propertyName: r.propertyName, type: r.type, inverseEntityMetadata: { name: (typeof r.type === 'function' ? (r.type as any).name : String(r.type)) } }))
@@ -198,7 +211,8 @@ export function enhanceCrudSwaggerDocument(document: any) {
     // Fallback: infer entity name from path segment when registry sections are unavailable
     if (!entityName && sectionFromPath) {
       const guess = capitalize(singularize(sectionFromPath))
-      if (guess && document.components?.schemas?.[guess]) entityName = guess
+      // Allow guessing even if the schema isn't registered yet; we'll ensure the schema below
+      if (guess) entityName = guess
     }
     // Try deriving from operation summaries before giving up
     if (!entityName) {
@@ -209,6 +223,23 @@ export function enhanceCrudSwaggerDocument(document: any) {
       }
     }
     if (!entityName) { newPaths[path] = item; continue }
+
+    // Ensure a component schema exists before creating a $ref to it. If missing, try to derive and register.
+    const ensureComponentSchema = (name: string | undefined, sectionKeyGuess?: string | null) => {
+      try {
+        if (!name) return
+        if (!document.components) document.components = {}
+        if (!document.components.schemas) document.components.schemas = {}
+      if (document.components.schemas[name] && !isGenericObjectSchema(document.components.schemas[name])) return
+      const cfg: any = (sections as any)[String(sectionKeyGuess || '')] || {}
+      let derived = generateOpenApiSchemaFromEntity(cfg?.model)
+      if (!derived) derived = deriveOpenApiSchemaByEntityName(name)
+      document.components.schemas[name] = derived || { type: 'object', additionalProperties: true }
+      } catch {}
+    }
+
+    const sectionKeyGuess: string | null = (sectionFromPath as string) || getSectionFromOperation(item.post || item.put || item.patch || item.get)
+    ensureComponentSchema(entityName, sectionKeyGuess)
 
     const ref = { $ref: `#/components/schemas/${entityName}` }
 
@@ -412,7 +443,7 @@ export function enhanceCrudSwaggerDocument(document: any) {
           schema: buildDetailEnvelopeSchema(ref)
         }
       }
-      // Add multipart requestBody hint for create with uploads
+      // Add multipart requestBody hint for create with uploads or entity fields
       {
         const sectionKey = (section as string) || (sectionFromPath as string)
         const sectionCfg: any = (sections as any)[sectionKey] || {}
@@ -440,6 +471,11 @@ export function enhanceCrudSwaggerDocument(document: any) {
                 if (inline) content['application/json'] = { schema: stripRelationPropsFromSchema(inline, document, entityName, (sections as any)[sectionKey]) }
                 else content['application/json'] = { schema: { $ref: `#/components/schemas/${entityName}` } }
               }
+            }
+            // Add example payload for JSON body
+            const example: any = buildExampleForEntity(document, entityName, (sections as any)[sectionKey])
+            if (example) {
+              content['application/json'].example = example
             }
           }
           if (allow.includes('form' as any)) {
@@ -619,8 +655,11 @@ function buildCombinedMultipartSchema(document: any, entityName: string, section
   const fileSchema = buildMultipartUploadSchema(sectionKey, sectionCfg)
   let entityRef = document?.components?.schemas?.[entityName]
   // Fallback: derive entity schema directly from ORM metadata if component ref is missing
-  if (!entityRef) {
-    const derived = generateOpenApiSchemaFromEntity((sectionCfg as any)?.model)
+  if (!entityRef || isGenericObjectSchema(entityRef)) {
+    let derived = generateOpenApiSchemaFromEntity((sectionCfg as any)?.model)
+    if (!derived || !derived.properties) {
+      derived = deriveOpenApiSchemaByEntityName(entityName)
+    }
     if (derived && derived.properties) entityRef = derived
   }
   if (!fileSchema && !entityRef) return null
@@ -722,6 +761,70 @@ function getTypeormArgsStorage(): any | null {
   } catch { return null }
 }
 
+// Try to resolve the same TypeORM instance that defined the entity decorators
+function getTypeormStorageFromEntityModule(entity: any): any | null {
+  try {
+    if (!entity) return null
+    const cache: Record<string, any> = (require as any).cache || {}
+    let entityModulePath: string | null = null
+    for (const [id, mod] of Object.entries<any>(cache)) {
+      const exp = mod && mod.exports
+      if (!exp) continue
+      if (exp === entity) { entityModulePath = id; break }
+      if (typeof exp === 'object') {
+        for (const [k, v] of Object.entries<any>(exp)) {
+          if (v === entity) { entityModulePath = id; break }
+        }
+        if (entityModulePath) break
+      }
+    }
+    if (!entityModulePath) return null
+    const mod = require('module')
+    const createRequire = (mod as any).createRequire || (mod as any).createRequireFromPath
+    if (!createRequire) return null
+    const r = createRequire(entityModulePath)
+    const typeorm = r('typeorm')
+    return typeof typeorm.getMetadataArgsStorage === 'function' ? typeorm.getMetadataArgsStorage() : null
+  } catch { return null }
+}
+
+// Derive OpenAPI schema using TypeORM global storage by matching entity class name
+function deriveOpenApiSchemaByEntityName(entityName: string): any | null {
+  try {
+    const storage = getTypeormArgsStorage()
+    if (!storage) return null
+    const cols = (storage.columns || []).filter((c: any) => {
+      const t = c.target
+      const n = typeof t === 'function' ? t.name : String(t)
+      return n === entityName
+    })
+    const rels = (storage.relations || []).filter((r: any) => {
+      const t = r.target
+      const n = typeof t === 'function' ? t.name : String(t)
+      return n === entityName
+    })
+    if (!cols.length && !rels.length) return null
+    const properties: Record<string, any> = {}
+    const required: string[] = []
+    for (const c of cols) {
+      const name = c.propertyName
+      const typ = normalizeType(c.options?.type || 'string')
+      const prop: any = { type: typ }
+      if (c.options?.length) prop.maxLength = Number(c.options.length)
+      if (typ === 'string' && (String(c.options?.type).toLowerCase().includes('date'))) prop.format = 'date-time'
+      properties[name] = prop
+      if (c.options?.nullable === false && !c.options?.primary && !c.options?.generated) required.push(name)
+    }
+    for (const r of rels) {
+      const relName = r.propertyName
+      const inv = r.type
+      const relSchemaName = typeof inv === 'function' ? inv.name : String(inv)
+      properties[relName] = { $ref: `#/components/schemas/${relSchemaName}` }
+    }
+    return { type: 'object', properties, required: required.length ? required : undefined }
+  } catch { return null }
+}
+
 function lazyResolveDataSourceFromModuleRef() {
   try {
     const reg = CrudmanRegistry.get()
@@ -751,8 +854,9 @@ function buildInlineJsonSchema(document: any, entityName: string, sectionCfg: an
   try {
     let comp = document?.components?.schemas?.[entityName]
     if (!comp || typeof comp !== 'object' || !comp.properties) {
-      // Fallback: derive from ORM metadata directly
-      const derived = generateOpenApiSchemaFromEntity((sectionCfg as any)?.model)
+      // Fallback: derive from ORM metadata directly (no app.init required)
+      let derived = generateOpenApiSchemaFromEntity((sectionCfg as any)?.model)
+      if (!derived) derived = deriveOpenApiSchemaByEntityName(entityName)
       if (!derived) return null
       comp = derived
     }
@@ -807,6 +911,34 @@ function isGenericObjectSchema(schema: any): boolean {
     const hasProps = !!schema.properties || !!schema.items
     return t === 'object' && !hasProps
   } catch { return false }
+}
+
+// Build an example JSON object for the given entity from its schema (component or derived)
+function buildExampleForEntity(document: any, entityName: string, sectionCfg: any): any | null {
+  try {
+    let comp = document?.components?.schemas?.[entityName]
+    if (!comp || typeof comp !== 'object' || !comp.properties || isGenericObjectSchema(comp)) {
+      const derived = generateOpenApiSchemaFromEntity((sectionCfg as any)?.model)
+      if (!derived || !derived.properties) return null
+      comp = derived
+    }
+    const example: Record<string, any> = {}
+    for (const [name, prop] of Object.entries<any>(comp.properties || {})) {
+      if (prop?.readOnly) continue
+      const n = String(name)
+      const t = prop?.type || 'string'
+      // Simple heuristics for realistic samples
+      if (prop?.format === 'date-time') example[n] = new Date().toISOString()
+      else if (/email/i.test(n)) example[n] = 'user@example.com'
+      else if (/name/i.test(n)) example[n] = 'John Doe'
+      else if (/phone|mobile|contact/i.test(n)) example[n] = '+1-555-123-4567'
+      else if (t === 'integer' || t === 'number') example[n] = 123
+      else if (t === 'boolean') example[n] = true
+      else if (t === 'array') example[n] = []
+      else example[n] = 'string'
+    }
+    return Object.keys(example).length ? example : null
+  } catch { return null }
 }
 
 // Collect relation field names from ORM metadata and from component schema refs

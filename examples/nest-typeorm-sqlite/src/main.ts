@@ -16,6 +16,7 @@ async function bootstrap() {
 
   const config = new DocumentBuilder().setTitle("Example").setVersion("1.0").build()
   const document = SwaggerModule.createDocument(app, config)
+
   try {
     enhanceCrudSwaggerDocument(document)
   } catch (e) {
