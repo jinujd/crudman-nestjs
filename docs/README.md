@@ -54,6 +54,57 @@ Routes available:
 
 To override any one, add your own method and decorate it with `@CrudList`, `@CrudDetails`, etc.
 
+### List APIs and pagination (quick reference)
+
+List endpoints are exposed as `GET /api/{section}` (e.g., `GET /api/companies`).
+
+- Pagination
+  - `page` (default: 1)
+  - `perPage` (default: 30; alias `per_page` supported)
+  - `paginate=false|0|no` to return all when allowed
+- Sorting
+  - `sort.<field>=asc|desc` (repeatable)
+- Filters
+  - Equals: `field=value`
+  - Like: `field.like=value`
+  - Ranges: `field.min=value`, `field.max=value`, `field.gt=value`, `field.lt=value`
+  - Between: `field.between=start,end`
+
+Examples:
+
+```text
+# Page 3, 50 per page
+GET /api/companies?page=3&perPage=50
+
+# Newest then name asc
+GET /api/companies?sort.createdAt=desc&sort.name=asc&page=1&perPage=25
+
+# Disable pagination (if enabled)
+GET /api/companies?paginate=false
+```
+
+Response pagination meta:
+
+```json
+{
+  "pagination": {
+    "page": 2,
+    "perPage": 25,
+    "totalItemsCount": 137,
+    "totalPagesCount": 6,
+    "isHavingNextPage": true,
+    "isHavingPreviousPage": true
+  }
+}
+```
+
+Notes: snake_case aliases are normalized (e.g., `per_page` → `perPage`). Allowed fields are governed by whitelists or entity columns by default.
+
+### Release notes
+
+- **Current version**: beta
+- **Known issue**: In some environments, Swagger UI may not display individual `multipart/form-data` fields for create/update; it can show a generic object. JSON and x-www-form-urlencoded render inline as expected. This is being improved.
+
 ## Module registration
 
 Register the module once with sensible defaults:

@@ -16,8 +16,17 @@ async function bootstrap() {
 
   const config = new DocumentBuilder().setTitle("Example").setVersion("1.0").build()
   const document = SwaggerModule.createDocument(app, config)
-  enhanceCrudSwaggerDocument(document)
-  SwaggerModule.setup("docs", app, document)
+
+  try {
+    enhanceCrudSwaggerDocument(document)
+  } catch (e) {
+    // Ensure docs still mount even if enhancement throws in dev
+    console.error('enhanceCrudSwaggerDocument failed:', e)
+  }
+  SwaggerModule.setup('docs', app, document)
+  console.log('Swagger docs available at http://localhost:3001/docs')
+
+  await app.init()
   await app.listen(3001)
   console.log('Example app running at http://localhost:3001')
 }

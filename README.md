@@ -11,6 +11,12 @@
 
 > Creating CRUD is so simple. See how a simple States CRUD is defined:
 
+> Note: This is a beta release (version 1.0.1-beta.0). Install with the beta tag:
+>
+> ```bash
+> npm i crudman-nestjs@beta
+> ```
+
 ```ts
 // states.controller.ts
 import { Controller } from '@nestjs/common'
@@ -241,6 +247,63 @@ With shorthand models:
 })
 ```
 
+### Attribute inclusion/exclusion examples
+
+Global defaults (apply to all actions unless overridden):
+
+```ts
+CrudmanModule.forRoot({
+  // keep all fields readable, but protect system fields from writes globally
+  defaults: { attributes: { read: '*', write: { exclude: ['id','createdAt','updatedAt'] } } }
+})
+```
+
+Per-section defaults:
+
+```ts
+@UseCrud({ sections: {
+  users: {
+    model: User,
+    // only expose a minimal public profile across list/details
+    attributes: { read: { include: ['id','firstName','lastName','avatarUrl'] } }
+  }
+}})
+```
+
+Per-action read narrowing (exclude sensitive columns on list only):
+
+```ts
+list:   { attributes: { read: { exclude: ['internalNotes','lastLoginIp'] } } },
+details:{ attributes: { read: '*' } }
+```
+
+Per-action write allow-list (create allows only safe inputs):
+
+```ts
+create: { attributes: { write: { include: ['name','email','role'] } } },
+update: { attributes: { write: { exclude: ['id','createdAt','updatedAt'] } } }
+```
+
+Combine include/exclude (exclude wins outside include scope):
+
+```ts
+attributes: {
+  read:  { include: ['id','name','email','profile'], exclude: ['email'] }, // → effectively ['id','name','profile']
+  write: { include: ['name','email','role'], exclude: ['role'] }            // → effectively ['name','email']
+}
+```
+
+Shorthand models (per-model override):
+
+```ts
+@UseCrud({
+  models: [
+    [Company, { attributes: { read: { exclude: ['secret'] }, write: { exclude: ['id','createdAt'] } } }],
+    [User,    { attributes: { read: { include: ['id','firstName','lastName','avatarUrl'] } } }]
+  ]
+})
+```
+
 ## CrudControllerBase explained
 
 `CrudControllerBase(sectionName: string)` is a tiny base class that auto-binds the five standard routes for a single section:
@@ -270,6 +333,42 @@ details(@Req() req) { /* custom logic */ }
 ## File uploads (create/update/save)
 
 CrudMan supports files in requests via a simple, pluggable system. You can accept files as multipart/form-data, base64 strings (in JSON), or even blobs, and choose how they are stored per field.
+
+### Quick start: enable avatar upload in `users` (minimal)
+
+```ts
+@UseCrud({ sections: {
+  users: {
+    model: User,
+    common: {
+      // one-field image preset → adds avatarKey + avatarUrl columns with filename storage
+      uploadable: { avatar: 'image' },
+      uploadDefaults: { storage: 'local' }
+    }
+  }
+}})
+@Controller('api/users')
+export class UsersController extends CrudControllerBase('users') {}
+```
+
+Requests you can send:
+- Multipart: form-data with field `avatar` as file
+- JSON (base64): `{ "avatar": "data:image/png;base64,iVBORw0..." }`
+
+Entity columns created/expected (filename mode):
+- `avatarKey: string | null`, `avatarUrl: string | null`
+
+List response excerpt (avatar URL in data; base URLs under meta):
+```json
+{
+  "data": [{ "id": 1, "name": "Alice", "avatarUrl": "uploads/avatars/1.png" }],
+  "success": true,
+  "meta": { "baseUrls": { "uploads": "http://localhost:3000" } },
+  "pagination": { "page": 1, "perPage": 20 }
+}
+```
+
+Note: Full image URL = `meta.baseUrls.uploads + '/' + data[i].avatarUrl` → e.g., `http://localhost:3000/uploads/avatars/1.png`.
 
 - Sources: `multipart` (form-data), `base64` (JSON); streams/presigned (advanced)
 - Storage modes:
@@ -318,6 +417,86 @@ sections: {
   }
 }
 ```
+
+### Direct-field storage (no keys)
+
+Store the uploaded filename directly into an existing column (no `...Key`/`...Url` fields).
+
+```ts
+sections: {
+  users: {
+    model: User,
+    common: {
+      upload: {
+        sources: ['multipart'],
+        map: [
+          {
+            sourceField: 'avatar',
+            storageMode: 'filename_in_field', // write relative filename directly to the target field
+            storage: 'local',
+            targetField: 'avatar', // your entity must have `avatar: string | null`
+            typeHint: 'image-jpg',
+            validators: { maxSizeMB: 2 }
+          }
+        ]
+      }
+    }
+  }
+}
+``;
+
+Result:
+- Multipart field `avatar` → stored via `local` storage → entity `avatar` receives a relative filename (e.g. `uploads/u1/avatar.jpg`).
+- No extra key/url columns are created or used.
+
+### Preset examples (image-jpg, image-png, avatar)
+
+```ts
+// JPEG only
+uploadable: { avatar: 'image-jpg' }
+
+// PNG only
+uploadable: { logo: 'image-png' }
+
+// Avatar constraints (min/max dimensions, ~1:1)
+uploadable: { avatar: 'image-avatar' }
+
+// Array of images (JPEG)
+upload: {
+  sources: ['multipart'],
+  map: [
+    { sourceField: 'gallery', isArray: true, storageMode: 'filename', storage: 'local',
+      targetField: { keys: 'galleryKeys', urls: 'galleryUrls' }, typeHint: 'image-jpg' }
+  ]
+}
+```
+
+### Upload options reference
+
+- `uploadable: Record<string, string | string[]>`
+  - Shorthand that expands to an `upload.map` entry per field.
+  - Value is a preset/typeHint (e.g., `'image' | 'image-jpg' | 'image-png' | 'pdf' | 'doc' | 'video' | ...`).
+  - Array value indicates multiple files for that field.
+- `upload: { sources?: ('multipart'|'base64')[]; map: UploadMapEntry[] }`
+  - `sources`: allowed input sources. Default often `['multipart','base64']` depending on context.
+  - `map`: array of rules mapping incoming fields to entity fields.
+- `UploadMapEntry` fields:
+  - `sourceField: string` (form/base64 field name)
+  - `targetField: string | { key?: string; url?: string; keys?: string; urls?: string }`
+  - `isArray?: boolean` → multiple files under the same field
+  - `storageMode: 'filename' | 'filename_in_field' | 'blob' | 'base64'`
+    - `filename`: upload via storage adapter, keep only key/url in entity (recommended)
+    - `filename_in_field`: write relative filename directly into a single string column
+    - `blob`: store Buffer in a BLOB/bytea column (set `targetField` to the blob column; consider also storing mime)
+    - `base64`: keep base64 as text in the target field
+  - `storage?: string` → name of a configured storage (e.g., `'local'`, `'s3'`)
+  - `typeHint?: string` → preset that sets default validators (e.g., `image`, `image-jpg`, `pdf`)
+  - `validators?: { maxSizeMB?: number; allowedMimeTypes?: string[]; allowedExtensions?: string[] }`
+  - `sources?: ('multipart'|'base64')[]` → narrow sources per entry
+
+Response notes:
+- Create/Update responses include `meta.baseUrls` (when configured) and merged extra metadata.
+- Swagger shows three request body tabs (json/form/multipart) by default; file fields appear as binary in multipart.
 
 ### Validation and rules
 - Uploads are processed into `req.body` first; then your validator runs.
@@ -577,6 +756,98 @@ Routes available:
 - DELETE /api/users/:id
 
 To override any one, add your own method and decorate it with `@CrudList`, `@CrudDetails`, etc.
+
+### List APIs and pagination (quick reference)
+
+The list endpoint is available at `GET /api/{section}` (e.g., `GET /api/companies`).
+
+- **Pagination params**
+  - `page` (default: 1)
+  - `perPage` (default: 30; alias `per_page` supported)
+  - `paginate` = `false|0|no` to disable pagination (when allowed by config)
+- **Sorting**
+  - `sort.<field>=asc|desc` (repeatable for multi-sort)
+- **Filters**
+  - Equals: `field=value`
+  - Like: `field.like=value`
+  - Ranges: `field.min=value`, `field.max=value`, `field.gt=value`, `field.lt=value`
+  - Between: `field.between=start,end`
+
+Examples:
+
+```text
+# Page 2 with 20 items per page
+GET /api/companies?page=2&perPage=20
+
+# Multi-sort: newest first, then name ascending
+GET /api/companies?sort.createdAt=desc&sort.name=asc&page=1&perPage=25
+
+# Disable pagination (returns all when allowed)
+GET /api/companies?paginate=false
+```
+
+Response excerpt (pagination meta):
+
+```json
+{
+  "data": [/* ...items... */],
+  "success": true,
+  "pagination": {
+    "page": 2,
+    "perPage": 25,
+    "totalItemsCount": 137,
+    "totalPagesCount": 6,
+    "isHavingNextPage": true,
+    "isHavingPreviousPage": true
+  },
+  "filters": [],
+  "sorting": []
+}
+```
+
+Notes:
+- Snake_case aliases are accepted and normalized (e.g., `per_page` → `perPage`).
+- Allowed filter/sort fields are controlled by `filtersWhitelist`/`sortingWhitelist` (or all columns by default).
+
+### Release notes
+
+- **Current version**: beta
+- **Known issue**: Swagger UI may not show individual input fields for `multipart/form-data` in create/update endpoints in some setups. JSON and form-urlencoded render inline correctly; multipart fallback may appear as a generic object. Work in progress.
+
+## Example project (TypeORM + SQLite)
+
+A ready-to-run example lives in `examples/nest-typeorm-sqlite`. It wires multiple entities, uploads, and Swagger.
+
+Run it locally:
+
+```bash
+cd examples/nest-typeorm-sqlite
+npm install
+npm run build
+npm start
+# Swagger: http://localhost:3001/docs
+# API base: http://localhost:3001/api
+```
+
+Developer mode:
+
+```bash
+cd examples/nest-typeorm-sqlite
+npm install
+npm run start:dev
+```
+
+Optional seed:
+
+```bash
+cd examples/nest-typeorm-sqlite
+npm run seed
+```
+
+Notes:
+- SQLite files and `uploads/` are Git-ignored inside the example project.
+- The example serves `/uploads/*` statically when the folder exists.
+- Swagger is initialized before `app.init()` and enhanced via `enhanceCrudSwaggerDocument` to avoid `/docs` 404.
 
 ## Module registration
 
@@ -999,7 +1270,7 @@ Examples:
 // Create action: name and email required; phone optional
 create: {
   getFinalValidationRules: (rules) => ({
-    ...rules,
+  ...rules,
     name:  { type: 'string', empty: false, min: 2 },
     email: { type: 'email',  empty: false },
     phone: { type: 'string', optional: true }
