@@ -582,7 +582,7 @@ npm i crudman-nestjs
 
 From v1.0.0+, Crudman attempts to auto-discover your TypeORM `DataSource` at app startup.
 
-Note: in the current beta (1.0.1-beta.x), auto-discovery may not initialize early enough in some apps. We’re improving this; until then, please set the `DataSource` manually as shown below.
+Note: in the current beta (1.0.1-beta.x), auto-discovery may not initialize early enough in some apps. We're improving this; until then, please set the `DataSource` manually as shown below.
 
 ```ts
 import { DataSource } from 'typeorm'
