@@ -126,6 +126,7 @@ title: CRUDMan NestJS
     <p>A minimal, adapter-driven CRUD layer for <strong>NestJS</strong>. From zero to production in minutes—no boilerplate, no fuss. Decorate, ship, scale.</p>
     <div class="cta">
       <a class="btn primary" href="https://github.com/jinujd/crudman-nestjs#readme">Get Started</a>
+      <a class="btn" href="https://www.npmjs.com/package/crudman-nestjs">NPM</a>
       <a class="btn" href="https://github.com/jinujd/crudman-nestjs">GitHub</a>
     </div>
   </div>

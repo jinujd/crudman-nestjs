@@ -5,7 +5,7 @@
   <br/>
 <sub style="color:#3F4C70">Minimal, adapter-driven CRUD layer for <strong>NestJS</strong>.</sub>
   <br/>
-  <a href="https://jinujd.github.io/crudman-nestjs">Website</a> · <a href="https://github.com/jinujd/crudman-nestjs">GitHub</a>
+  <a href="https://jinujd.github.io/crudman-nestjs">Website</a> · <a href="https://www.npmjs.com/package/crudman-nestjs">NPM</a> · <a href="https://github.com/jinujd/crudman-nestjs">GitHub</a>
   <br/>
 </p>
 
