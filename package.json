@@ -1,6 +1,6 @@
 {
   "name": "crudman-nestjs",
-  "version": "1.0.1-beta.0",
+  "version": "1.0.1-beta.1",
   "description": "Zero-boilerplate CRUD for NestJS with TypeORM, Swagger, validation, uploads.",
   "main": "dist/index.cjs",
   "scripts": {
@@ -60,8 +60,12 @@
     "rxjs": "^7"
   },
   "peerDependenciesMeta": {
-    "@nestjs/swagger": { "optional": true },
-    "swagger-ui-express": { "optional": true }
+    "@nestjs/swagger": {
+      "optional": true
+    },
+    "swagger-ui-express": {
+      "optional": true
+    }
   },
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
