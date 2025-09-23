@@ -35,6 +35,11 @@ That single snippet gives you:
 - PATCH /api/states/:id
 - DELETE /api/states/:id
 
+And built-in bulk and export capabilities:
+- Bulk import (JSON or CSV)
+- Bulk delete (JSON list or CSV ids)
+- CSV and Excel export (set `x-content-type: csv` or `excel`)
+
 We believe everyone building RESTful services with NestJS—especially CRUD‑heavy backends—will find this library helpful. It gives you out‑of‑the‑box CRUD endpoints, a clear configuration model, and the freedom to override anything when you need custom behavior. The design centers on adapters (ORM and validator), safe query handling, and simple developer ergonomics so you can start fast and customize when needed.
 
 ## Features
