@@ -64,11 +64,11 @@ We believe everyone building RESTful services with NestJS—especially CRUD‑he
 | Hooks | Before/after action, query, validation to extend behavior |
 | Swagger enhancer | Auto envelopes for list/details/create/update/delete; entity schemas from metadata |
 | Save (upsert) | Single endpoint that creates or updates based on id presence |
-| Programmatic calls | Safely call other sections’ actions from hooks/services |
+| Programmatic calls | Safely call other sections' actions from hooks/services |
 
 ## UseCrud and sections (quick overview)
 
-`UseCrud` is a class decorator that wires your controller to one or more CRUD “sections”. A section is just a named configuration object that points to a model (entity) and optional per-action settings. Each section name becomes the logical key you use in decorators or in the base controller.
+`UseCrud` is a class decorator that wires your controller to one or more CRUD "sections". A section is just a named configuration object that points to a model (entity) and optional per-action settings. Each section name becomes the logical key you use in decorators or in the base controller.
 
 - A section maps to a resource (e.g., `users`, `companies`).
 - `UseCrud({ sections: { companies: { model: Company, ... } } })` registers the section and its options.
@@ -133,7 +133,7 @@ How it links together:
 
 - `UseCrud` stores the sections configuration once on the controller class.
 - The library reads that config inside `CrudmanService` and the ORM adapter to resolve repositories, relations, attributes, filters, etc.
-- Decorators like `@CrudList('companies')` or the base `CrudControllerBase('companies')` tell the library which section’s settings to apply for a given route.
+- Decorators like `@CrudList('companies')` or the base `CrudControllerBase('companies')` tell the library which section's settings to apply for a given route.
 
 ## Shorthand: UseCrud({ models })
 
@@ -322,7 +322,7 @@ You pass the section name you registered in `UseCrud`:
 export class UsersController extends CrudControllerBase('users') {}
 ```
 
-This is ideal when one controller maps to one resource (section) and you don’t need custom method bodies. If you later need to override one route, you can add a method and use the decorator variant, e.g.:
+This is ideal when one controller maps to one resource (section) and you don't need custom method bodies. If you later need to override one route, you can add a method and use the decorator variant, e.g.:
 
 ```ts
 @Get(':id')
@@ -580,7 +580,9 @@ npm i crudman-nestjs
 
 ### Zero-config TypeORM DataSource
 
-From v1.0.0+, Crudman auto-discovers your TypeORM `DataSource` at app startup. You no longer need to call `setCrudmanDataSource()` or add a custom provider. If discovery fails in unusual setups, you can still set it manually:
+From v1.0.0+, Crudman attempts to auto-discover your TypeORM `DataSource` at app startup.
+
+Note: in the current beta (1.0.1-beta.x), auto-discovery may not initialize early enough in some apps. We’re improving this; until then, please set the `DataSource` manually as shown below.
 
 ```ts
 import { DataSource } from 'typeorm'
@@ -1008,7 +1010,7 @@ export function companiesSection(repo: Repository<Company>) {
 
 Configure server-side uniqueness checks without requiring DB-level unique constraints. Works with TypeORM adapter via repository lookups.
 
-Basic: make `slug` unique (even if DB column isn’t unique):
+Basic: make `slug` unique (even if DB column isn't unique):
 ```ts
 @UseCrud({
   sections: {
@@ -1069,7 +1071,7 @@ Default relations/attributes behavior:
 - You can also use `relations: { include: ['relA','relB'] }` to include only specific relations.
 - Attributes default to all columns. Use `attributes: { exclude: [...] }` or an explicit list to narrow select.
 - You can also use `attributes: { include: ['id','name'] }` (or `['id','name']`) to include only specific columns.
-- When `filtersWhitelist` or `sortingWhitelist` are omitted, the library resolves allowed fields from the TypeORM repository’s columns (`repo.metadata.columns`). This enables filter/sort on all fields by default while staying strictly model-scoped.
+- When `filtersWhitelist` or `sortingWhitelist` are omitted, the library resolves allowed fields from the TypeORM repository's columns (`repo.metadata.columns`). This enables filter/sort on all fields by default while staying strictly model-scoped.
 
 Keyword search (list):
 - Query param: `keyword` (rename via `keywordParamName`).
@@ -1156,7 +1158,7 @@ onBeforeAction: async (req) => {
 }
 ```
 
-Restrict a list to the logged-in user’s company (inject condition before the query):
+Restrict a list to the logged-in user's company (inject condition before the query):
 ```ts
 // In the users section
 list: {
@@ -1448,7 +1450,7 @@ export class ApiController {
 ```
 
 ## Organizing sections in separate files
-For better organization, keep each section’s configuration in its own file under a `crud/` directory. Import and compose sections in your controllers (or a factory/provider) instead of inlining all the config.
+For better organization, keep each section's configuration in its own file under a `crud/` directory. Import and compose sections in your controllers (or a factory/provider) instead of inlining all the config.
 
 ### Suggested structure
 ```text
@@ -1529,7 +1531,7 @@ export class ApiController {
 ```
 
 ### Why this helps
-- Clear separation of concerns: each domain’s CRUD config lives next to its entity logic.
+- Clear separation of concerns: each domain's CRUD config lives next to its entity logic.
 - Reusability: import the same section into multiple controllers or modules.
 - Scalability: large apps avoid monolithic controller files.
 - Testability: unit-test section configs (hooks, rules) in isolation.
@@ -1829,7 +1831,7 @@ Supported filters (root fields):
 ```
 Notes:
 - Field names are camelCase by default; snake_case aliases are also accepted and normalized.
-- Filters apply only to whitelisted fields (`filtersWhitelist`), or all entity columns if a whitelist isn’t provided.
+- Filters apply only to whitelisted fields (`filtersWhitelist`), or all entity columns if a whitelist isn't provided.
 
 Sorting:
 - `sort.field=asc|desc` (repeat for multi-sort)
@@ -1885,7 +1887,7 @@ Each response includes a `filters` array echoing the parsed filters. Items now a
   ]
 }
 ```
-Use `param` to display or rebuild the user’s query in UIs/logs.
+Use `param` to display or rebuild the user's query in UIs/logs.
 
 #### Pagination examples
 - Defaults: `page=1`, `per_page=30` (if not provided)
@@ -1956,7 +1958,7 @@ export class ZodValidatorAdapter implements ValidatorAdapter {
 `getFinalValidationRules` works with any adapter: receive generated rules/schema, return the final one.
 
 ## Programmatic cross-section calls (callAction)
-Sometimes you need to call another section’s action during a hook (e.g., create a related entity first). Use `CrudmanService.callAction(section, action, req, res, isResponseToBeSent)`.
+Sometimes you need to call another section's action during a hook (e.g., create a related entity first). Use `CrudmanService.callAction(section, action, req, res, isResponseToBeSent)`.
 
 Signature:
 ```ts
@@ -2063,3 +2065,33 @@ list: {
   - Disable: `?paginate=false` or `?perPage=0`
   - Custom names: `?pg=false` (with paginate renamed to 'pg')
 - When disabled, the response includes all matching items and a minimal pagination snapshot without COUNT overhead.
+
+@@
+ ### Global Swagger Configuration
+@@
+ You can set global Swagger metadata via the module options:
+@@
+ ```ts
+ CrudmanModule.forRoot({
+   swagger: { enabled: true },
+   swaggerMeta: { 
+     title: 'My Awesome API', 
+     version: '2.0.0', 
+     description: 'Internal platform APIs' 
+   }
+ })
+ ```
++
++### TypeORM DataSource (manual set, if needed)
++
++Crudman auto-detects the TypeORM DataSource in most setups. If your app initializes it later or uses a custom pattern, set it once after bootstrap:
++
++```ts
++import { DataSource } from 'typeorm'
++import { setCrudmanDataSource } from 'crudman-nestjs'
++
++// in main.ts
++await app.init()
++setCrudmanDataSource(app.get(DataSource))
++```
++This enables the library to resolve repositories without passing them explicitly in each section.
