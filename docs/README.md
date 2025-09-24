@@ -102,7 +102,6 @@ Notes: snake_case aliases are normalized (e.g., `per_page` → `perPage`). Allow
 
 ### Release notes
 
-- **Current version**: beta
 - **Known issue**: In some environments, Swagger UI may not display individual `multipart/form-data` fields for create/update; it can show a generic object. JSON and x-www-form-urlencoded render inline as expected. This is being improved.
 
 ## Module registration

@@ -5,7 +5,7 @@
   <br/>
 <sub style="color:#3F4C70">Minimal, adapter-driven CRUD layer for <strong>NestJS</strong>.</sub>
   <br/>
-  <a href="https://jinujd.github.io/crudman-nestjs">Website</a> · <a href="https://www.npmjs.com/package/crudman-nestjs">NPM</a> · <a href="https://github.com/jinujd/crudman-nestjs">GitHub</a>
+  <a href="https://crudman.dev">Website</a> · <a href="https://www.npmjs.com/package/crudman-nestjs">NPM</a> · <a href="https://github.com/jinujd/crudman-nestjs">GitHub</a>
   <br/>
 </p>
 
@@ -583,13 +583,13 @@ npm i crudman-nestjs
 
 From v1.0.0+, Crudman attempts to auto-discover your TypeORM `DataSource` at app startup.
 
-Note: in the current beta (1.0.1-beta.x), auto-discovery may not initialize early enough in some apps. We're improving this; until then, please set the `DataSource` manually as shown below.
+If auto-discovery doesn't initialize early enough in your app, set the `DataSource` manually as shown below.
 
 ```ts
 import { DataSource } from 'typeorm'
 import { setCrudmanDataSource } from 'crudman-nestjs'
 
-// e.g., in main.ts after app.init()
+// In your bootstrap function (after await app.init())
 const ds = app.get(DataSource)
 setCrudmanDataSource(ds)
 ```
@@ -733,7 +733,7 @@ If you're using TypeORM, make sure to set the DataSource:
 import { DataSource } from 'typeorm'
 import { setCrudmanDataSource } from 'crudman-nestjs'
 
-// In your bootstrap function:
+// In your bootstrap function (after await app.init()):
 const ds = app.get(DataSource)
 setCrudmanDataSource(ds)
 ```
@@ -814,7 +814,6 @@ Notes:
 
 ### Release notes
 
-- **Current version**: beta
 - **Known issue**: Swagger UI may not show individual input fields for `multipart/form-data` in create/update endpoints in some setups. JSON and form-urlencoded render inline correctly; multipart fallback may appear as a generic object. Work in progress.
 
 ## Example project (TypeORM + SQLite)
@@ -1557,7 +1556,9 @@ import { Company } from './company.entity'
 import { User } from './user.entity'
 
 const app = await NestFactory.create(AppModule)
-// ... setCrudmanDataSource(app.get(DataSource)) ...
+// After init, set the DataSource for Crudman
+await app.init()
+setCrudmanDataSource(app.get(DataSource))
 
 const swagger = require('@nestjs/swagger')
 const config = new DocumentBuilder().setTitle('Example').setVersion('1.0').build()

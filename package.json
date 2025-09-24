@@ -29,7 +29,7 @@
   "bugs": {
     "url": "https://github.com/jinujd/crudman-nestjs/issues"
   },
-  "homepage": "https://github.com/jinujd/crudman-nestjs#readme",
+  "homepage": "https://crudman.dev",
   "type": "module",
   "devDependencies": {
     "@nestjs/common": "^10",
