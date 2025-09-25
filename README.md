@@ -939,10 +939,10 @@ Keys (per action, unless noted):
 - recordSelectionField (optional): string, default "id".
 - fieldsForUniquenessValidation (optional): string[].
 - conditionTypeForUniquenessValidation (optional): "or"|"and".
-- hooks (optional): onBeforeAction, onAfterAction, onBeforeQuery, afterFetch, onBeforeValidate, onAfterValidate.
+- hooks (optional): onBeforeAction, onAfterAction, onBeforeQuery, onAfterFetch, onBeforeValidate, onAfterValidate.
 - additionalResponse (optional): object or function `(req, res, currentResponse) => object` whose returned properties are merged into the response `meta`.
 - getAdditionalResponse (optional): function `(req, res, currentResponse) => object | Promise<object>`; evaluated after `additionalResponse` and merged into the same `meta`.
-- getFinalValidationRules(generatedRules, req, res, validator) (optional): returns new rules.
+- getFinalValidationRules(generatedRules, ctx, req, res, validator) (optional): returns new rules.
 - enableCache (optional): boolean | { ttl?: number; key?:(ctx)=>string }.
 - additionalSettings.repo (required for TypeORM adapter): repository instance.
  - attributes (optional): '*' | string[] | { include?: string[]; exclude?: string[] }. Defaults to all columns. Narrow for performance or privacy.
@@ -1050,12 +1050,12 @@ update: { /* no uniqueness */ }
 Update behavior:
 - The check automatically excludes the current record using the primary key. If you update a record but keep the same `slug`, no error is raised. Changing `slug` to a value used by a different record returns 400 with `{ type: 'unique', field: 'slug', message: 'slug must be unique' }`.
 - hooks (optional)
-  - onBeforeAction(req,res,service): early allow/deny; return false to abort.
-  - onAfterAction(result,req,service): mutate/replace formatted response before sending/caching.
-  - onBeforeQuery(opts, model, req, res, service): adjust TypeORM find options; return modified options.
-  - afterFetch(data, req, res, service): transform DB results before formatting.
-  - onBeforeValidate(req, res, rules, validator, service): adjust rules or return false to abort.
-  - onAfterValidate(req, res, errors, validator, service): return false to abort when custom checks fail.
+- onBeforeAction(req,res,ctx): early allow/deny; return false to abort.
+- onAfterAction(result,req,ctx): mutate/replace formatted response before sending/caching.
+- onBeforeQuery(opts, model, ctx, req, res): adjust TypeORM find options; return modified options.
+- onAfterFetch(data, req, ctx, res): transform DB results before formatting. Renamed to onAfterFetch.
+- onBeforeValidate(req, res, ctx, rules, validator): adjust rules or return false to abort.
+- onAfterValidate(req, res, ctx, errors, validator): return false to abort when custom checks fail.
 - getFinalValidationRules(generatedRules, req, res, validator) (optional)
   - Type: function returning final rules/schema.
   - Use: Replace/extend auto-generated rules from the model (e.g., add Joi/Zod/fastest-validator constraints).
@@ -1238,16 +1238,66 @@ onBeforeQuery: async (opts) => {
 }
 ```
 
-### afterFetch(data, req, res, service)
+### onAfterFetch(data, req, res, service)
 - Type: `(data: any[] | any, req: RequestLike, res: ResponseLike, service: CrudmanService) => any[] | any | Promise<any[] | any>`
 - Use: Transform DB results after fetch but before formatting.
 - Returns: Transformed array/object.
 - Example:
 ```ts
-afterFetch: async (items) => Array.isArray(items) ? items.map(i => ({ ...i, tag: 'USER' })) : { ...items, tag: 'USER' }
+onAfterFetch: async (items) => Array.isArray(items) ? items.map(i => ({ ...i, tag: 'USER' })) : { ...items, tag: 'USER' }
+
+### Hook Context (ctx)
+- Auto-injected on every request/action:
+  - ctx.service: Crud service instance
+  - ctx.repository: repository for the current entity (when resolvable)
+  - ctx.moduleRef: current ModuleRef (when available)
+  - ctx.dataSource: TypeORM DataSource (when available)
+  - ctx.section, ctx.action, ctx.model
+- User additions:
+  - ctx.services: Record<string, any>
+  - ctx.repositories: Record<string, any>
+
+Provide context at section or action level. Context can be:
+1) Function form (recommended)
+```ts
+context: async (req, res, cfg, moduleRef) => ({
+  services: { billing: app.get(BillingService) },
+  repositories: { audit: ds.getRepository(AuditLog) },
+  tenantId: req.headers['x-tenant-id']
+})
+```
+2) Object form (shorthand)
+```ts
+context: {
+  services: { flags: new FlagService() },
+  repositories: (req, res, cfg, moduleRef) => ({ audit: ds.getRepository(AuditLog) })
+}
 ```
 
-### onBeforeValidate(req, res, rules, validator, service)
+Hook usage examples
+```ts
+list: {
+  onBeforeQuery: async (opts, model, ctx, req) => {
+    if (ctx.tenantId) opts.where = { ...opts.where, tenantId: ctx.tenantId }
+    return opts
+  },
+  onAfterFetch: async (items, req, ctx) => {
+    return Array.isArray(items) ? items.map(i => ({ ...i, flag: ctx.services.flags.get() })) : items
+  },
+  onAfterAction: async (resp, req, ctx) => {
+    await ctx.repositories.audit.save({ type: 'LIST', notes: String(ctx.tenantId || '') })
+    return resp
+  }
+},
+create: {
+  getFinalValidationRules: (rules, ctx) => ({ ...rules, __ctx: !!ctx.moduleRef }),
+  onBeforeValidate: (req, res, ctx, rules, validator) => true,
+  onAfterValidate: (req, res, ctx, errors, validator) => true
+}
+```
+```
+
+### onBeforeValidate(req, res, ctx, rules, validator)
 - Type: `(req: RequestLike, res: ResponseLike, rules: any, validator: ValidatorAdapter, service: CrudmanService) => boolean | void | Promise<boolean | void>`
 - Use: Adjust rules just before validation runs.
 - Returns: `false` to abort validation/action.
@@ -1259,7 +1309,7 @@ onBeforeValidate: async (req, _res, rules) => {
 }
 ```
 
-### getFinalValidationRules(generatedRules, req, res, validator)
+### getFinalValidationRules(generatedRules, ctx, req, res, validator)
 - Type: `(generatedRules: any, req: RequestLike, res: ResponseLike, validator: ValidatorAdapter) => any | Promise<any>`
 - Use: Replace or extend the auto-generated rules from the model.
 - Returns: The final rules object/schema used for validation.
@@ -1298,7 +1348,7 @@ getFinalValidationRules: (rules) => ({
 })
 ```
 
-### onAfterValidate(req, res, errors, validator, service)
+### onAfterValidate(req, res, ctx, errors, validator)
 - Type: `(req: RequestLike, res: ResponseLike, errors: any[], validator: ValidatorAdapter, service: CrudmanService) => boolean | void | Promise<boolean | void>`
 - Use: Inspect validation errors and stop flow on custom conditions.
 - Returns: `false` to abort when errors exist.
@@ -1328,7 +1378,7 @@ The exact order depends on the action. The library also integrates caching on li
   3) Cache check (if enabled) – returns cached result if present
   4) onBeforeQuery (modify find options)
   5) DB fetch (repo.findAndCount)
-  6) afterFetch (transform items)
+  6) onAfterFetch (transform items)
   7) Format response (defaultResponseFormatter or responseHandler)
   8) onAfterAction (last chance to mutate response)
   9) Store in cache (if enabled)
@@ -1340,7 +1390,7 @@ The exact order depends on the action. The library also integrates caching on li
   3) Cache check (if enabled) – returns cached result if present
   4) onBeforeQuery (modify find options)
   5) DB fetch (repo.findOne)
-  6) afterFetch (transform entity)
+  6) onAfterFetch (transform entity)
   7) Format response
   8) onAfterAction
   9) Store in cache (if enabled)
@@ -1671,7 +1721,7 @@ export function buildCompaniesSection(companyRepository: Repository<Company>) {
         opts.where = { ...(opts.where || {}), isActive: true }
         return opts
       },
-      afterFetch: async (items) => items,
+      onAfterFetch: async (items) => items,
     },
     details: { additionalSettings: { repo: companyRepository } },
     create: {

@@ -1,13 +1,13 @@
 export type SortOrder = 'ASC' | 'DESC'
 
 export interface CrudActionConfig {
-  onBeforeAction?: (req: any, res: any, service: any) => Promise<boolean | void> | boolean | void
-  onAfterAction?: (result: any, req: any, service: any) => Promise<any | void> | any | void
-  onBeforeQuery?: (builderOrOpts: any, model: any, req: any, res: any, service: any) => Promise<any> | any
-  afterFetch?: (data: any, req: any, res: any, service: any) => Promise<any> | any
-  onBeforeValidate?: (req: any, res: any, rules: any, validator: any, service: any) => Promise<boolean | void> | boolean | void
-  onAfterValidate?: (req: any, res: any, errors: any[], validator: any, service: any) => Promise<boolean | void> | boolean | void
-  getFinalValidationRules?: (generatedRules: any, req: any, res: any, validator: any) => Promise<any> | any
+  onBeforeAction?: (req: any, res: any, ctx: import('./HookContext').HookContext) => Promise<boolean | void> | boolean | void
+  onAfterAction?: (result: any, req: any, ctx: import('./HookContext').HookContext) => Promise<any | void> | any | void
+  onBeforeQuery?: (builderOrOpts: any, model: any, ctx: import('./HookContext').HookContext, req: any, res: any) => Promise<any> | any
+  onAfterFetch?: (data: any, req: any, ctx: import('./HookContext').HookContext, res: any) => Promise<any> | any
+  onBeforeValidate?: (req: any, res: any, ctx: import('./HookContext').HookContext, rules: any, validator: any) => Promise<boolean | void> | boolean | void
+  onAfterValidate?: (req: any, res: any, ctx: import('./HookContext').HookContext, errors: any[], validator: any) => Promise<boolean | void> | boolean | void
+  getFinalValidationRules?: (generatedRules: any, ctx: import('./HookContext').HookContext, req: any, res: any, validator: any) => Promise<any> | any
 
   recordSelectionField?: string
   additionalSettings?: any
@@ -67,6 +67,13 @@ export interface CrudActionConfig {
   // Uniqueness validation (optional overrides per action)
   fieldsForUniquenessValidation?: string[]
   conditionTypeForUniquenessValidation?: 'or' | 'and'
+
+  // Optional hook context configuration (user-provided additions)
+  context?: import('./HookContext').CrudActionContext | {
+    services?: import('./HookContext').ServicesInput
+    repositories?: import('./HookContext').RepositoriesInput
+    getHookContext?: import('./HookContext').HookContextBuilder
+  }
 }
 
 

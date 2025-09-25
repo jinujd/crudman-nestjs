@@ -5,12 +5,29 @@ import { OrmAdapter } from '../types/OrmAdapter'
 // It operates on a minimal repository interface: find, findOne, save, update, delete, count, createQueryBuilder
 
 function resolveRepository(cfg: any): any {
+  const hasRepoBasics = (r: any) => r && typeof r.find === 'function' && (typeof r.findAndCount === 'function' || typeof r.findOne === 'function')
+  // 1) Prefer ctx.repository if present (trust the provided instance)
+  const ctxRepo = (cfg as any)._ctx?.repository
+  if (ctxRepo) return ctxRepo
+  // 2) Evaluate additionalSettings.repo (function or object) and trust if provided
   let repo = cfg?.additionalSettings?.repo
-  if (!repo) {
-    const ds = (cfg.service && (cfg.service as any).getDataSource?.()) || undefined
-    const regDs = (require('../module/CrudmanRegistry') as any).CrudmanRegistry.get().getDataSource()
-    const dataSource = ds || regDs
-    if (dataSource) repo = dataSource.getRepository(cfg.model)
+  if (typeof repo === 'function') {
+    try { repo = (repo as any)(cfg, (cfg as any)._ctx) } catch { repo = undefined }
+  }
+  if (repo) return repo
+  // 3) Derive from any available DataSource
+  const ctxDs = (cfg as any)._ctx?.dataSource
+  let ds = ctxDs || ((cfg.service && (cfg.service as any).getDataSource?.()) || undefined)
+  if (!ds) {
+    try {
+      const mr = (cfg as any)._ctx?.moduleRef
+      if (mr) ds = mr.get('DataSource', { strict: false }) || mr.get((require('typeorm') as any).DataSource, { strict: false })
+    } catch {}
+  }
+  const regDs = (require('../module/CrudmanRegistry') as any).CrudmanRegistry.get().getDataSource()
+  const dataSource = ds || regDs
+  if (dataSource) {
+    try { repo = dataSource.getRepository(cfg.model) } catch { repo = undefined }
   }
   return repo
 }
@@ -18,7 +35,17 @@ function resolveRepository(cfg: any): any {
 export const TypeormAdapter: OrmAdapter = {
   async list(req, cfg) {
     let repo = resolveRepository(cfg)
-    if (!repo) throw new Error('Repository not provided (additionalSettings.repo or module dataSource needed)')
+    if (!repo) {
+      const dbg = {
+        hasCtx: !!(cfg as any)._ctx,
+        hasCtxRepo: !!((cfg as any)._ctx?.repository),
+        hasAddRepo: !!(cfg?.additionalSettings?.repo),
+        model: !!cfg?.model,
+        hasCtxDs: !!((cfg as any)._ctx?.dataSource),
+        hasRegDs: !!(require('../module/CrudmanRegistry').CrudmanRegistry.get().getDataSource())
+      }
+      throw new Error('RepoMissing-X ' + JSON.stringify(dbg))
+    }
     const qn = cfg.queryParamNames || {}
     const pageNames = { page: qn.page || 'page', perPage: qn.perPage || 'perPage', paginate: qn.paginate || 'paginate' }
     const pagOpts = cfg.pagination || {}
@@ -107,7 +134,7 @@ export const TypeormAdapter: OrmAdapter = {
     const hasRangeFilter = filters.some((f) => f.op === 'gte' || f.op === 'lte' || f.op === 'gt' || f.op === 'lt' || f.op === 'between')
     let findOptions: any = { where: convertToTypeormWhere(whereFinal), relations, order: toTypeormOrder(effectiveSorting), skip, take, select: normalizeSelect(cfg.attributes, repo) }
     if (cfg.onBeforeQuery) {
-      const mod = await cfg.onBeforeQuery(findOptions, cfg.model, req, null, cfg.service)
+      const mod = await cfg.onBeforeQuery(findOptions, cfg.model, (cfg as any)._ctx, req, null)
       if (mod) findOptions = mod
     }
     let items: any[] = []
@@ -180,8 +207,8 @@ export const TypeormAdapter: OrmAdapter = {
         paginationInfo.isHavingNextPage = take ? paginationInfo.page < totalPagesCount : false
       }
     }
-    if (cfg.afterFetch) {
-      const mod = await cfg.afterFetch(items, req, null, cfg.service)
+    if (cfg.onAfterFetch) {
+      const mod = await cfg.onAfterFetch(items, req, (cfg as any)._ctx, null)
       if (mod) items = mod
     }
 
@@ -201,8 +228,8 @@ export const TypeormAdapter: OrmAdapter = {
       if (mod) findOptions = mod
     }
     let entity = await repo.findOne(findOptions)
-    if (cfg.afterFetch && entity) {
-      const mod = await cfg.afterFetch(entity, req, null, cfg.service)
+    if (cfg.onAfterFetch && entity) {
+      const mod = await cfg.onAfterFetch(entity, req, (cfg as any)._ctx, null)
       if (mod) entity = mod
     }
     return entity

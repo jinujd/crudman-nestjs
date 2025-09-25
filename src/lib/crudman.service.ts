@@ -13,6 +13,7 @@ import { LocalDiskAdapter } from './utils/localFileStorage'
 import * as csv from './utils/csv'
 import { CrudmanRegistry } from './module/CrudmanRegistry'
 import { defaultResponseFormatter } from './response/defaultResponseFormatter'
+import type { HookContext, AdditionalContext, HookContextBuilder } from './types/HookContext'
 
 @Injectable()
 export class CrudmanService {
@@ -67,6 +68,100 @@ export class CrudmanService {
       }
     } catch {}
     return undefined
+  }
+
+  private async buildHookContext(section: string, action: 'list'|'details'|'create'|'update'|'save'|'delete', actionCfg: any, req: any, res: any): Promise<HookContext> {
+    const registry = CrudmanRegistry.get()
+    const moduleRef = registry.getModuleRef?.() || this.moduleRef
+    const dataSource = this.getDataSource()
+    // Base auto context (repository will be finalized after user context merge)
+    const base: HookContext = {
+      service: this,
+      repository: undefined,
+      moduleRef,
+      section,
+      action,
+      model: actionCfg?.model,
+      dataSource,
+      services: {},
+      repositories: {}
+    }
+
+    // Helper to merge user objects without overriding reserved keys
+    const mergeUserCtx = (target: HookContext, incoming?: AdditionalContext) => {
+      if (!incoming || typeof incoming !== 'object') return
+      // merge services
+      if (incoming.services && typeof incoming.services === 'object') {
+        target.services = { ...(target.services || {}), ...incoming.services }
+      }
+      // merge repositories
+      if (incoming.repositories && typeof incoming.repositories === 'object') {
+        target.repositories = { ...(target.repositories || {}), ...incoming.repositories }
+      }
+      // allow setting repo/ds only if not already set by auto
+      if (!target.repository && (incoming as any).repository) (target as any).repository = (incoming as any).repository
+      if (!target.dataSource && (incoming as any).dataSource) (target as any).dataSource = (incoming as any).dataSource
+      // copy any other non-reserved keys
+      for (const k of Object.keys(incoming)) {
+        if ((['services','repositories'] as string[]).includes(k)) continue
+        if ((['service','repository','moduleRef','section','action','model','dataSource'] as string[]).includes(k)) continue
+        ;(target as any)[k] = (incoming as any)[k]
+      }
+    }
+
+    const resolveCtxPiece = async (cfgLevel: any) => {
+      if (!cfgLevel || typeof cfgLevel !== 'object') return
+      const raw = cfgLevel.context
+      if (!raw) return
+      // Smart form: function or object
+      if (typeof raw === 'function') {
+        const extra = await Promise.resolve((raw as HookContextBuilder)(req, res, actionCfg, moduleRef as any))
+        mergeUserCtx(base, extra)
+        return
+      }
+      if (typeof raw === 'object') {
+        // Legacy/object form: honor services/repositories as function-or-object, then getHookContext
+        const sv = raw.services
+        if (sv) {
+          const val = typeof sv === 'function' ? await Promise.resolve((sv as any)(req, res, actionCfg, moduleRef)) : sv
+          if (val && typeof val === 'object') base.services = { ...(base.services || {}), ...val }
+        }
+        const rp = raw.repositories
+        if (rp) {
+          const val = typeof rp === 'function' ? await Promise.resolve((rp as any)(req, res, actionCfg, moduleRef)) : rp
+          if (val && typeof val === 'object') base.repositories = { ...(base.repositories || {}), ...val }
+        }
+        const ghc = raw.getHookContext
+        if (ghc && typeof ghc === 'function') {
+          const extra = await Promise.resolve((ghc as HookContextBuilder)(req, res, actionCfg, moduleRef as any))
+          mergeUserCtx(base, extra)
+        }
+        // Also allow extra top-level keys on object shorthand
+        mergeUserCtx(base, raw as any)
+      }
+    }
+
+    // Merge from section then action (action overrides)
+    const sectionCfg = this.getSection(section) || {}
+    await resolveCtxPiece(sectionCfg)
+    await resolveCtxPiece(actionCfg)
+    // Finalize repository resolution priority:
+    // 1) explicit additionalSettings.repo (function or object)
+    // 2) ctx.repository already set by user context
+    // 3) derive from dataSource & model
+    try {
+      const repoSpec = actionCfg?.additionalSettings?.repo
+      if (!base.repository && typeof repoSpec === 'function') {
+        const maybe = await Promise.resolve(repoSpec(actionCfg, base))
+        if (maybe) (base as any).repository = maybe
+      } else if (!base.repository && repoSpec && typeof repoSpec === 'object') {
+        (base as any).repository = repoSpec
+      }
+    } catch {}
+    if (!base.repository && base.dataSource && base.model) {
+      try { (base as any).repository = (base.dataSource as any).getRepository(base.model) } catch {}
+    }
+    return base
   }
 
   private async applyHooks(cfg: any, hook: string, ...args: any[]) {
@@ -369,10 +464,12 @@ export class CrudmanService {
     const validator = this.getValidator(actionCfg)
     let rules = validator.generateSchemaFromModel(actionCfg.model, isUpdate)
     if (actionCfg.getFinalValidationRules) {
-      const mod = await Promise.resolve(actionCfg.getFinalValidationRules(rules, req, res, validator))
+      const ctx = await this.buildHookContext(actionCfg?.name || '', (req?.params?.id ? 'update' : 'create') as any, actionCfg, req, res)
+      const mod = await Promise.resolve(actionCfg.getFinalValidationRules(rules, ctx, req, res, validator))
       if (mod) rules = mod
     }
-    const proceed = await this.applyHooks(actionCfg, 'onBeforeValidate', req, res, rules, validator, this)
+    const ctxForVal = await this.buildHookContext(actionCfg?.name || '', (req?.params?.id ? 'update' : 'create') as any, actionCfg, req, res)
+    const proceed = await this.applyHooks(actionCfg, 'onBeforeValidate', req, res, ctxForVal, rules, validator)
     if (proceed === false) return { valid: false, errors: [{ message: 'Validation stopped by onBeforeValidate' }] }
     const input = { ...req.body }
     const result = validator.validate(input, rules)
@@ -397,7 +494,7 @@ export class CrudmanService {
         }
       }
     } catch {}
-    const proceedAfter = await this.applyHooks(actionCfg, 'onAfterValidate', req, res, result.errors, validator, this)
+    const proceedAfter = await this.applyHooks(actionCfg, 'onAfterValidate', req, res, ctxForVal, result.errors, validator)
     if (proceedAfter === false) return { valid: false, errors: result.errors }
     return result
   }
@@ -530,7 +627,26 @@ export class CrudmanService {
     const actionCfg = this.getActionCfg(section, 'list')
     const orm = this.getOrm(actionCfg)
     if (!sectionCfg || !orm) return this.send(res, { success: false, errors: [{ message: 'Invalid section' }] })
-    const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, this)
+    const ctx = await this.buildHookContext(section, 'list', actionCfg, req, res)
+    // Ensure registry has DS for adapter fallback
+    try { if (ctx.dataSource) CrudmanRegistry.get().setDataSource(ctx.dataSource) } catch {}
+    const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, ctx)
+    // After onBeforeAction, finalize ctx dataSource/repository and update registry
+    try {
+      if (!ctx.dataSource) ctx.dataSource = this.getDataSource()
+      if (ctx.dataSource) CrudmanRegistry.get().setDataSource(ctx.dataSource)
+      if (!ctx.repository && ctx.dataSource && actionCfg?.model) {
+        try { ctx.repository = (ctx.dataSource as any).getRepository(actionCfg.model) } catch {}
+      }
+      // Hard fallback to registry DS if still missing
+      if (!ctx.dataSource) {
+        const regDs = CrudmanRegistry.get().getDataSource()
+        if (regDs) ctx.dataSource = regDs
+      }
+      if (!ctx.repository && ctx.dataSource && actionCfg?.model) {
+        try { ctx.repository = (ctx.dataSource as any).getRepository(actionCfg.model) } catch {}
+      }
+    } catch {}
     if (beforeAction === false) return
 
     // Default: include all relations unless excluded/overridden
@@ -538,23 +654,31 @@ export class CrudmanService {
     const relations = baseRels
     const cache = CrudmanRegistry.get().getCache()
     const cacheCfg = this.getCacheCfg(actionCfg)
+    const additionalSettingsBase: any = actionCfg?.additionalSettings || {}
+    // Guarantee a concrete repository is passed to the adapter
+    try {
+      const dsPref = (ctx as any).dataSource || this.getDataSource()
+      const hardRepo = (ctx as any).repository || (dsPref && actionCfg?.model ? (dsPref as any).getRepository(actionCfg.model) : undefined)
+      if (hardRepo) additionalSettingsBase.repo = hardRepo
+    } catch {}
+    const cfgForOrmBase = { ...actionCfg, relations, service: this, _ctx: ctx, additionalSettings: additionalSettingsBase }
     if (cache && cacheCfg) {
       const key = this.cacheKey(section, 'list', req, relations)
       const hit = cache.get<any>(key)
       if (hit) return await this.sendNegotiated(res, 'list', hit, req)
-      const payload = await orm.list(req, { ...actionCfg, relations, service: this })
+      const payload = await orm.list(req, cfgForOrmBase)
       const fmt = this.getResponseFormatter()
       const body = fmt({ action: 'list', payload, errors: [], success: true, meta: { pagination: payload.pagination, filters: payload.filters, sorting: payload.sorting }, req, res })
-      await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
+      await this.applyHooks(actionCfg, 'onAfterAction', body, req, ctx)
       cache.set(key, body, typeof cacheCfg === 'object' ? cacheCfg.ttl : undefined)
       return await this.sendNegotiated(res, 'list', body, req)
     }
-    const payload = await orm.list(req, { ...actionCfg, relations, service: this })
+    const payload = await orm.list(req, cfgForOrmBase)
     const fmt = this.getResponseFormatter()
     const body = fmt({ action: 'list', payload, errors: [], success: true, meta: { pagination: payload.pagination, filters: payload.filters, sorting: payload.sorting }, req, res })
     const extra = await this.computeAdditionalResponse(section, 'list', actionCfg, body, req, res)
     if (extra) (body as any).meta = { ...(body as any).meta, ...(extra || {}) }
-    await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
+    await this.applyHooks(actionCfg, 'onAfterAction', body, req, ctx)
     return this.sendNegotiated(res, 'list', body, req)
   }
 
@@ -562,7 +686,9 @@ export class CrudmanService {
     const actionCfg = this.getActionCfg(section, 'details')
     const orm = this.getOrm(actionCfg)
     if (!orm) return this.send(res, { success: false, errors: [{ message: 'Invalid section' }] })
-    const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, this)
+    const ctx = await this.buildHookContext(section, 'details', actionCfg, req, res)
+    try { if (ctx.dataSource) CrudmanRegistry.get().setDataSource(ctx.dataSource) } catch {}
+    const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, ctx)
     if (beforeAction === false) return
     // Default: include all relations unless excluded/overridden
     const baseRels = actionCfg.getRelations ? await actionCfg.getRelations(req, res, actionCfg) : (actionCfg.relations ?? '*')
@@ -573,19 +699,19 @@ export class CrudmanService {
       const key = this.cacheKey(section, 'details', req, relations)
       const hit = cache.get<any>(key)
       if (hit) return await this.sendNegotiated(res, 'details', hit, req)
-      const entity = await orm.details(req, { ...actionCfg, relations, service: this })
+      const entity = await orm.details(req, { ...actionCfg, relations, service: this, _ctx: ctx })
       const fmt = this.getResponseFormatter()
       const body = fmt({ action: 'details', payload: entity, errors: [], success: !!entity, meta: {}, req, res })
-      await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
+      await this.applyHooks(actionCfg, 'onAfterAction', body, req, ctx)
       cache.set(key, body, typeof cacheCfg === 'object' ? cacheCfg.ttl : undefined)
       return await this.sendNegotiated(res, 'details', body, req)
     }
-    const entity = await orm.details(req, { ...actionCfg, relations, service: this })
+    const entity = await orm.details(req, { ...actionCfg, relations, service: this, _ctx: ctx })
     const fmt = this.getResponseFormatter()
     const body = fmt({ action: 'details', payload: entity, errors: [], success: !!entity, meta: {}, req, res })
     const extra = await this.computeAdditionalResponse(section, 'details', actionCfg, body, req, res)
     if (extra) (body as any).meta = { ...(body as any).meta, ...(extra || {}) }
-    await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
+    await this.applyHooks(actionCfg, 'onAfterAction', body, req, ctx)
     return this.sendNegotiated(res, 'details', body, req)
   }
 
@@ -600,14 +726,16 @@ export class CrudmanService {
       try { if (res?.status) res.status(400) } catch {}
       return this.send(res, this.getResponseFormatter()({ action: 'create', payload: null, errors: combinedErrors, success: false, meta: {}, req, res }))
     }
-    const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, this)
+    const ctx = await this.buildHookContext(section, 'create', actionCfg, req, res)
+    try { if (ctx.dataSource) CrudmanRegistry.get().setDataSource(ctx.dataSource) } catch {}
+    const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, ctx)
     if (beforeAction === false) return
-    const saved = await orm.create(req, { ...actionCfg, service: this })
+    const saved = await orm.create(req, { ...actionCfg, service: this, _ctx: ctx })
     this.invalidateSection(section)
     const body = this.getResponseFormatter()({ action: 'create', payload: saved, errors: [], success: true, meta: {}, req, res })
     const extra = await this.computeAdditionalResponse(section, 'create', actionCfg, body, req, res)
     if (extra) (body as any).meta = { ...(body as any).meta, ...(extra || {}) }
-    await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
+    await this.applyHooks(actionCfg, 'onAfterAction', body, req, ctx)
     return this.send(res, body)
   }
 
@@ -622,14 +750,16 @@ export class CrudmanService {
       try { if (res?.status) res.status(400) } catch {}
       return this.send(res, this.getResponseFormatter()({ action: 'update', payload: null, errors: combinedErrors, success: false, meta: {}, req, res }))
     }
-    const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, this)
+    const ctx = await this.buildHookContext(section, 'update', actionCfg, req, res)
+    try { if (ctx.dataSource) CrudmanRegistry.get().setDataSource(ctx.dataSource) } catch {}
+    const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, ctx)
     if (beforeAction === false) return
-    const saved = await orm.update(req, { ...actionCfg, service: this })
+    const saved = await orm.update(req, { ...actionCfg, service: this, _ctx: ctx })
     this.invalidateSection(section)
     const body = this.getResponseFormatter()({ action: 'update', payload: saved, errors: [], success: true, meta: {}, req, res })
     const extra = await this.computeAdditionalResponse(section, 'update', actionCfg, body, req, res)
     if (extra) (body as any).meta = { ...(body as any).meta, ...(extra || {}) }
-    await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
+    await this.applyHooks(actionCfg, 'onAfterAction', body, req, ctx)
     return this.send(res, body)
   }
 
@@ -645,14 +775,16 @@ export class CrudmanService {
       try { if (res?.status) res.status(400) } catch {}
       return this.send(res, this.getResponseFormatter()({ action: 'save', payload: null, errors: combinedErrors, success: false, meta: {}, req, res }))
     }
-    const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, this)
+    const ctx = await this.buildHookContext(section, 'save', actionCfg, req, res)
+    try { if (ctx.dataSource) CrudmanRegistry.get().setDataSource(ctx.dataSource) } catch {}
+    const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, ctx)
     if (beforeAction === false) return
-    const saved = orm.save ? await orm.save(req, { ...actionCfg, service: this }) : (isUpdate ? await orm.update(req, { ...actionCfg, service: this }) : await orm.create(req, { ...actionCfg, service: this }))
+    const saved = orm.save ? await orm.save(req, { ...actionCfg, service: this, _ctx: ctx }) : (isUpdate ? await orm.update(req, { ...actionCfg, service: this, _ctx: ctx }) : await orm.create(req, { ...actionCfg, service: this, _ctx: ctx }))
     this.invalidateSection(section)
     const body = this.getResponseFormatter()({ action: 'save', payload: saved, errors: [], success: true, meta: {}, req, res })
     const extra = await this.computeAdditionalResponse(section, 'save', actionCfg, body, req, res)
     if (extra) (body as any).meta = { ...(body as any).meta, ...(extra || {}) }
-    await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
+    await this.applyHooks(actionCfg, 'onAfterAction', body, req, ctx)
     return this.send(res, body)
   }
 
@@ -660,12 +792,14 @@ export class CrudmanService {
     const actionCfg = this.getActionCfg(section, 'delete')
     const orm = this.getOrm(actionCfg)
     if (!orm) return this.send(res, { success: false, errors: [{ message: 'Invalid section' }] })
-    const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, this)
+    const ctx = await this.buildHookContext(section, 'delete', actionCfg, req, res)
+    try { if (ctx.dataSource) CrudmanRegistry.get().setDataSource(ctx.dataSource) } catch {}
+    const beforeAction = await this.applyHooks(actionCfg, 'onBeforeAction', req, res, this, ctx)
     if (beforeAction === false) return
-    await orm.delete(req, { ...actionCfg, service: this })
+    await orm.delete(req, { ...actionCfg, service: this, _ctx: ctx })
     this.invalidateSection(section)
     const body = this.getResponseFormatter()({ action: 'delete', payload: { message: 'Successfully deleted' }, errors: [], success: true, meta: {}, req, res })
-    await this.applyHooks(actionCfg, 'onAfterAction', body, req, this)
+    await this.applyHooks(actionCfg, 'onAfterAction', body, req, this, ctx)
     return this.send(res, body)
   }
 

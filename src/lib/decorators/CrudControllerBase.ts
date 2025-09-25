@@ -16,21 +16,21 @@ export function CrudControllerBase(section: string | string[]): any {
       constructor() { this.crud = new CrudmanService() }
 
       @Get()
-      list(@Req() req: any, @Res() res: any) { return this.crud.list(sec, req, res) }
+      list(@Req() req: any, @Res() res: any) { const s = this.crud || new CrudmanService(); return s.list(sec, req, res) }
 
       @Get(':id')
-      details(@Req() req: any, @Res() res: any) { return this.crud.details(sec, req, res) }
+      details(@Req() req: any, @Res() res: any) { const s = this.crud || new CrudmanService(); return s.details(sec, req, res) }
 
       @Post()
       @UseInterceptors(AnyFilesInterceptor())
-      create(@Req() req: any, @Res() res: any) { return this.crud.create(sec, req, res) }
+      create(@Req() req: any, @Res() res: any) { const s = this.crud || new CrudmanService(); return s.create(sec, req, res) }
 
       @(CrudmanRegistry.get().getUpdateMethod() === 'patch' ? Patch(':id') : Put(':id'))
       @UseInterceptors(AnyFilesInterceptor())
-      update(@Req() req: any, @Res() res: any) { return this.crud.update(sec, req, res) }
+      update(@Req() req: any, @Res() res: any) { const s = this.crud || new CrudmanService(); return s.update(sec, req, res) }
 
       @Delete(':id')
-      remove(@Req() req: any, @Res() res: any) { return this.crud.delete(sec, req, res) }
+      remove(@Req() req: any, @Res() res: any) { const s = this.crud || new CrudmanService(); return s.delete(sec, req, res) }
     }
     try {
       const proto: any = (BaseController as any).prototype
