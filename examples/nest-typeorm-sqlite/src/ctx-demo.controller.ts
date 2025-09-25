@@ -25,8 +25,8 @@ export function ctxDemoSection() {
         const maybe = moduleRef && (moduleRef.get('DataSource', { strict: false }) || moduleRef.get(DataSource, { strict: false }))
         if (maybe) ds = maybe
 
-        console.log(`Data source is`, ds)
-        console.log(`Module ref is`, moduleRef)
+        // console.log(`Data source is`, ds)
+        // console.log(`Module ref is`, moduleRef)
       } catch {}
       return {
         services: { flags },
@@ -45,24 +45,35 @@ export function ctxDemoSection() {
         fromAction: true
       } as any),
       onBeforeAction: async (req: any, _res: any, ctx: any) => {
+        console.log(`On before action`)
         // Ensure repository/dataSource present before adapter
-        console.log(`Context found is`)
+       // console.log(`Context found is`)
         if (!ctx.moduleRef) ctx.moduleRef = {}
         if (!ctx.dataSource && ctx.moduleRef) {
           try {
             const ds = ctx.moduleRef.get('DataSource', { strict: false }) || ctx.moduleRef.get(DataSource, { strict: false }) || getCrudmanDataSource()
+            console.log(`Data source found`, ds)
             if (ds) ctx.dataSource = ds
-          } catch {}
+          } catch {
+            console.log(`Data source not found`)
+          }
+        } else {
+          console.log(`Data moduleRef found in context`, ctx.moduleRef)
         }
         if (!ctx.repository && ctx.dataSource) {
           try { ctx.repository = ctx.dataSource.getRepository(Company) } catch {}
           
+        } else {
+          // console.log(`Data repository found in context`, ctx.repository)
+          // console.log( `Data source found in context`, ctx.dataSource)
         }
         // Use injected company repository pre-action if header provided
-        const companyName = (req.headers?.['x-company'] || req.headers?.['X-Company']) as string | undefined
+        const companyName = `Acme Air`
+        console.log(`Company name`, companyName)
         if (companyName && ctx.repositories?.company?.findOne) {
           try {
             const found = await ctx.repositories.company.findOne({ where: { name: String(companyName) } })
+            console.log(`Company found`, found)
             ;(ctx as any).preCompanyFoundId = found?.id ?? null
           } catch {}
         }
