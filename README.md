@@ -1244,20 +1244,22 @@ onBeforeQuery: async (opts) => {
 - Returns: Transformed array/object.
 - Example:
 ```ts
-onAfterFetch: async (items, _req, ctx) => Array.isArray(items)
-  ? items.map(i => ({ ...i, tag: ctx.services?.flags?.get?.() || 'USER' }))
-  : { ...items, tag: ctx.services?.flags?.get?.() || 'USER' }
+onAfterFetch: async (items, _req, context) => Array.isArray(items)
+  ? items.map(i => ({ ...i, tag: context.services?.flags?.get?.() || 'USER' }))
+  : { ...items, tag: context.services?.flags?.get?.() || 'USER' }
 
-## Context injection (ctx)
+## Context injection (context)
+- What is context?
+  - The context object is a per-request container passed to every hook. It aggregates auto-injected dependencies (service, repository, ModuleRef, DataSource) and request-scoped data you provide (custom services, repositories, flags). Use it to avoid global lookups and to keep hooks pure and testable.
 - Auto-injected on every request/action:
-  - ctx.service: Crud service instance
-  - ctx.repository: repository for the current entity (when resolvable)
-  - ctx.moduleRef: current ModuleRef (when available)
-  - ctx.dataSource: TypeORM DataSource (when available)
-  - ctx.section, ctx.action, ctx.model
+  - context.service: Crud service instance
+  - context.repository: repository for the current entity (when resolvable)
+  - context.moduleRef: current ModuleRef (when available)
+  - context.dataSource: TypeORM DataSource (when available)
+  - context.section, context.action, context.model
 - User additions:
-  - ctx.services: Record<string, any>
-  - ctx.repositories: Record<string, any>
+  - context.services: Record<string, any>
+  - context.repositories: Record<string, any>
 
 Context type (shape)
 ```ts
@@ -1288,7 +1290,7 @@ Merging/precedence
 - Action-level context merges over section-level context.
 - services and repositories are shallow-merged (action-level extends/overrides section-level entries).
 
-### How to inject into ctx (services, repositories, ModuleRef/DataSource)
+### How to inject into context (services, repositories, ModuleRef/DataSource)
 
 You can inject dependencies into ctx from your section or action configuration. Prefer the function form, which runs per request and has access to `req`, `res`, section `cfg`, and the current `moduleRef`.
 
@@ -1328,7 +1330,7 @@ context: async (_req, _res, _cfg, moduleRef) => {
 Inject current ModuleRef and DataSource explicitly
 ```ts
 context: async (_req, _res, _cfg, moduleRef) => ({
-  moduleRef,                            // available to hooks via ctx.moduleRef
+  moduleRef,                            // available to hooks via context.moduleRef
   dataSource: getCrudmanDataSource()    // or resolve via moduleRef as above
 })
 ```
@@ -1345,10 +1347,10 @@ list: {
 ```
 
 Precedence for repository resolution (TypeORM adapter)
-1) `ctx.repository` if provided
+1) `context.repository` if provided
 2) `additionalSettings.repo`
    - If a function, it’s evaluated with `(cfg, ctx)` per request
-3) `ctx.dataSource.getRepository(model)` when available
+3) `context.dataSource.getRepository(model)` when available
 4) Global/registry DataSource fallback
 
 Provide context at section or action level. Context can be:
@@ -1371,22 +1373,22 @@ context: {
 Hook usage examples
 ```ts
 list: {
-  onBeforeQuery: async (opts, model, ctx, req) => {
-    if (ctx.tenantId) opts.where = { ...opts.where, tenantId: ctx.tenantId }
+  onBeforeQuery: async (opts, model, context, req) => {
+    if (context.tenantId) opts.where = { ...opts.where, tenantId: context.tenantId }
     return opts
   },
-  onAfterFetch: async (items, req, ctx) => {
-    return Array.isArray(items) ? items.map(i => ({ ...i, flag: ctx.services.flags.get() })) : items
+  onAfterFetch: async (items, req, context) => {
+    return Array.isArray(items) ? items.map(i => ({ ...i, flag: context.services.flags.get() })) : items
   },
-  onAfterAction: async (resp, req, ctx) => {
-    await ctx.repositories.audit.save({ type: 'LIST', notes: String(ctx.tenantId || '') })
+  onAfterAction: async (resp, req, context) => {
+    await context.repositories.audit.save({ type: 'LIST', notes: String(context.tenantId || '') })
     return resp
   }
 },
 create: {
-  getFinalValidationRules: (rules, ctx) => ({ ...rules, __ctx: !!ctx.moduleRef }),
-  onBeforeValidate: (req, res, ctx, rules, validator) => true,
-  onAfterValidate: (req, res, ctx, errors, validator) => true
+  getFinalValidationRules: (rules, context) => ({ ...rules, __ctx: !!context.moduleRef }),
+  onBeforeValidate: (req, res, context, rules, validator) => true,
+  onAfterValidate: (req, res, context, errors, validator) => true
 }
 ```
 ```
