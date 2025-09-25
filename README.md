@@ -1288,6 +1288,69 @@ Merging/precedence
 - Action-level context merges over section-level context.
 - services and repositories are shallow-merged (action-level extends/overrides section-level entries).
 
+### How to inject into ctx (services, repositories, ModuleRef/DataSource)
+
+You can inject dependencies into ctx from your section or action configuration. Prefer the function form, which runs per request and has access to `req`, `res`, section `cfg`, and the current `moduleRef`.
+
+Inject services (Nest providers)
+```ts
+import { ModuleRef } from '@nestjs/core'
+
+context: async (_req, _res, _cfg, moduleRef: ModuleRef) => {
+  const billing = moduleRef.get(BillingService, { strict: false })
+  const mailer = moduleRef.get(MailerService, { strict: false })
+  return {
+    services: { billing, mailer }
+  }
+}
+```
+
+Inject repositories/entities (TypeORM)
+```ts
+import { DataSource } from 'typeorm'
+
+context: async (_req, _res, _cfg, moduleRef) => {
+  // Try ModuleRef → fall back to library registry DataSource
+  const ds = moduleRef.get('DataSource', { strict: false })
+         || moduleRef.get(DataSource, { strict: false })
+         || getCrudmanDataSource()
+  return ds ? {
+    repositories: {
+      audit: ds.getRepository(AuditLog),
+      company: ds.getRepository(Company)
+    },
+    repository: ds.getRepository(Company), // current entity’s repo (optional; auto-resolved if omitted)
+    dataSource: ds
+  } : {}
+}
+```
+
+Inject current ModuleRef and DataSource explicitly
+```ts
+context: async (_req, _res, _cfg, moduleRef) => ({
+  moduleRef,                            // available to hooks via ctx.moduleRef
+  dataSource: getCrudmanDataSource()    // or resolve via moduleRef as above
+})
+```
+
+Action-level overrides (merge over section-level)
+```ts
+// Section-level
+context: async () => ({ services: { flags: new FlagService() } })
+
+// Action-level (list) – override/extend
+list: {
+  context: async () => ({ services: { flags: { get: () => 'action' }, aux: { v: 2 } } })
+}
+```
+
+Precedence for repository resolution (TypeORM adapter)
+1) `ctx.repository` if provided
+2) `additionalSettings.repo`
+   - If a function, it’s evaluated with `(cfg, ctx)` per request
+3) `ctx.dataSource.getRepository(model)` when available
+4) Global/registry DataSource fallback
+
 Provide context at section or action level. Context can be:
 1) Function form (recommended)
 ```ts
