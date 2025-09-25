@@ -14,15 +14,15 @@ const normalizeKeysCamel = (obj: any): any => {
 
 export const parsePagination = (
   rawQuery: any,
-  names: { page: string; perPage: string; paginate: string },
+  names?: { page?: string; perPage?: string; paginate?: string },
   opts?: { isPaginationEnabled?: boolean; allowDisable?: boolean; defaultEnabled?: boolean; maxPerPage?: number },
   defaults: { page?: number; perPage?: number } = {}
 ): { info: PaginationInfo; skip?: number; take?: number; disabled: boolean } => {
   const raw = rawQuery || {}
   const query = normalizeKeysCamel(raw)
-  const pageKey = names.page || 'page'
-  const perPageKey = names.perPage || 'perPage'
-  const paginateKey = names.paginate || 'paginate'
+  const pageKey = (names && names.page) || 'page'
+  const perPageKey = (names && names.perPage) || 'perPage'
+  const paginateKey = (names && names.paginate) || 'paginate'
   const enabled = opts?.isPaginationEnabled !== undefined ? opts.isPaginationEnabled : true
   let disabled = false
   let page = Math.max(1, parseInt(query[pageKey] ?? String(defaults.page ?? 1), 10) || 1)
