@@ -391,13 +391,15 @@ onBeforeQuery: async (opts) => {
 }
 ```
 
-### onAfterFetch(data, req, res, service)
-- Type: `(data: any[] | any, req: RequestLike, res: ResponseLike, service: CrudmanService) => any[] | any | Promise<any[] | any>`
+### onAfterFetch(data, req, ctx, res)
+- Type: `(data: any[] | any, req: RequestLike, ctx: HookContext, res: ResponseLike) => any[] | any | Promise<any[] | any>`
 - Use: Transform DB results after fetch but before formatting.
 - Returns: Transformed array/object.
 - Example:
 ```ts
-onAfterFetch: async (items) => Array.isArray(items) ? items.map(i => ({ ...i, tag: 'USER' })) : { ...items, tag: 'USER' }
+onAfterFetch: async (items, _req, ctx) => Array.isArray(items)
+  ? items.map(i => ({ ...i, tag: ctx.services?.flags?.get?.() || 'USER' }))
+  : { ...items, tag: ctx.services?.flags?.get?.() || 'USER' }
 
 ### Hook Context (ctx)
 - Auto-injected on every request/action:

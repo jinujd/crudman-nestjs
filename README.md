@@ -1147,8 +1147,8 @@ list: {
 
 All hooks are optional and async-capable.
 
-### onBeforeAction(req, res, service)
-- Type: `(req: RequestLike, res: ResponseLike, service: CrudmanService) => boolean | void | Promise<boolean | void>`
+### onBeforeAction(req, res, ctx)
+- Type: `(req: RequestLike, res: ResponseLike, ctx: HookContext) => boolean | void | Promise<boolean | void>`
 - Use: Run before doing the action (list/details/create/update/save/delete). Return `false` to abort (block access early).
 - Returns: `false` to stop; anything else continues.
 - Example:
@@ -1189,8 +1189,8 @@ onBeforeAction: async (req, res) => {
 ```
 If you return `true` (or nothing), the action proceeds. If you return `false`, nothing else runs for that request.
 
-### onAfterAction(result, req, service)
-- Type: `(result: any, req: RequestLike, service: CrudmanService) => any | void | Promise<any | void>`
+### onAfterAction(result, req, ctx)
+- Type: `(result: any, req: RequestLike, ctx: HookContext) => any | void | Promise<any | void>`
 - Use: Mutate or replace the formatted response just before sending.
 - Returns: Return a new result to replace, or nothing to keep the original.
 - Example:
@@ -1205,8 +1205,8 @@ onAfterAction: (result, req) => ({
 })
 ```
 
-### onBeforeQuery(builderOrOpts, model, req, res, service)
-- Type: `(builderOrOpts: FindOptionsLike | QueryBuilderLike, model: any, req: RequestLike, res: ResponseLike, service: CrudmanService) => any | Promise<any>`
+### onBeforeQuery(builderOrOpts, model, ctx, req, res)
+- Type: `(builderOrOpts: FindOptionsLike | QueryBuilderLike, model: any, ctx: HookContext, req: RequestLike, res: ResponseLike) => any | Promise<any>`
 - Use: Modify repository find options (TypeORM) before executing DB call.
 - Returns: The modified options/builder.
 - Example (TypeORM FindOptions):
@@ -1238,13 +1238,15 @@ onBeforeQuery: async (opts) => {
 }
 ```
 
-### onAfterFetch(data, req, res, service)
-- Type: `(data: any[] | any, req: RequestLike, res: ResponseLike, service: CrudmanService) => any[] | any | Promise<any[] | any>`
+### onAfterFetch(data, req, ctx, res)
+- Type: `(data: any[] | any, req: RequestLike, ctx: HookContext, res: ResponseLike) => any[] | any | Promise<any[] | any>`
 - Use: Transform DB results after fetch but before formatting.
 - Returns: Transformed array/object.
 - Example:
 ```ts
-onAfterFetch: async (items) => Array.isArray(items) ? items.map(i => ({ ...i, tag: 'USER' })) : { ...items, tag: 'USER' }
+onAfterFetch: async (items, _req, ctx) => Array.isArray(items)
+  ? items.map(i => ({ ...i, tag: ctx.services?.flags?.get?.() || 'USER' }))
+  : { ...items, tag: ctx.services?.flags?.get?.() || 'USER' }
 
 ### Hook Context (ctx)
 - Auto-injected on every request/action:
@@ -1298,7 +1300,7 @@ create: {
 ```
 
 ### onBeforeValidate(req, res, ctx, rules, validator)
-- Type: `(req: RequestLike, res: ResponseLike, rules: any, validator: ValidatorAdapter, service: CrudmanService) => boolean | void | Promise<boolean | void>`
+- Type: `(req: RequestLike, res: ResponseLike, ctx: HookContext, rules: any, validator: ValidatorAdapter) => boolean | void | Promise<boolean | void>`
 - Use: Adjust rules just before validation runs.
 - Returns: `false` to abort validation/action.
 - Example:
@@ -1310,7 +1312,7 @@ onBeforeValidate: async (req, _res, rules) => {
 ```
 
 ### getFinalValidationRules(generatedRules, ctx, req, res, validator)
-- Type: `(generatedRules: any, req: RequestLike, res: ResponseLike, validator: ValidatorAdapter) => any | Promise<any>`
+- Type: `(generatedRules: any, ctx: HookContext, req: RequestLike, res: ResponseLike, validator: ValidatorAdapter) => any | Promise<any>`
 - Use: Replace or extend the auto-generated rules from the model.
 - Returns: The final rules object/schema used for validation.
 - Rules format: fastest-validator schema. Use fields like `type`, `min`, `max`, `empty`, `optional`, `enum`, etc.
@@ -1349,7 +1351,7 @@ getFinalValidationRules: (rules) => ({
 ```
 
 ### onAfterValidate(req, res, ctx, errors, validator)
-- Type: `(req: RequestLike, res: ResponseLike, errors: any[], validator: ValidatorAdapter, service: CrudmanService) => boolean | void | Promise<boolean | void>`
+- Type: `(req: RequestLike, res: ResponseLike, ctx: HookContext, errors: any[], validator: ValidatorAdapter) => boolean | void | Promise<boolean | void>`
 - Use: Inspect validation errors and stop flow on custom conditions.
 - Returns: `false` to abort when errors exist.
 - Example:
