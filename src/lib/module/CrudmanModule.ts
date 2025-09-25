@@ -36,12 +36,16 @@ export class CrudmanModule implements OnApplicationBootstrap {
       if (DataSourceClass) tokenCandidates.push(DataSourceClass)
       tokenCandidates.push('DataSource', 'DEFAULT_DATA_SOURCE', 'TypeOrmDataSource')
 
+      const ref: any = this.moduleRef as any
+      if (!ref || typeof ref.get !== 'function') return
       for (const token of tokenCandidates) {
         if (registry.getDataSource()) break
         try {
-          const ds = this.moduleRef.get(token as any, { strict: false })
+          const ds = ref.get(token as any, { strict: false })
           if (ds) setCrudmanDataSource(ds)
-        } catch {}
+        } catch {
+          // ignore lookup errors; other tokens may resolve
+        }
       }
     } catch {
       // ignore – fallback to manual setCrudmanDataSource if user chooses

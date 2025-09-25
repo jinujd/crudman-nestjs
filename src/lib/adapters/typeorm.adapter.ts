@@ -27,7 +27,7 @@ function resolveRepository(cfg: any): any {
   const regDs = (require('../module/CrudmanRegistry') as any).CrudmanRegistry.get().getDataSource()
   const dataSource = ds || regDs
   if (dataSource) {
-    try { repo = dataSource.getRepository(cfg.model) } catch { repo = undefined }
+    try { repo = dataSource.getRepository(cfg.model) } catch (err) { throw err }
   }
   return repo
 }
