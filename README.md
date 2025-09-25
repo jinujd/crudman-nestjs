@@ -1248,7 +1248,7 @@ onAfterFetch: async (items, _req, ctx) => Array.isArray(items)
   ? items.map(i => ({ ...i, tag: ctx.services?.flags?.get?.() || 'USER' }))
   : { ...items, tag: ctx.services?.flags?.get?.() || 'USER' }
 
-### Hook Context (ctx)
+## Context injection (ctx)
 - Auto-injected on every request/action:
   - ctx.service: Crud service instance
   - ctx.repository: repository for the current entity (when resolvable)
@@ -1258,6 +1258,35 @@ onAfterFetch: async (items, _req, ctx) => Array.isArray(items)
 - User additions:
   - ctx.services: Record<string, any>
   - ctx.repositories: Record<string, any>
+
+Context type (shape)
+```ts
+interface HookContext<
+  TServices extends Record<string, unknown> = Record<string, unknown>,
+  TRepos extends Record<string, unknown> = Record<string, unknown>
+> {
+  // auto (reserved)
+  service: any
+  repository?: any
+  moduleRef?: any
+  section: string
+  action: 'list'|'details'|'create'|'update'|'save'|'delete'
+  model: any
+  dataSource?: any
+
+  // user-provided
+  services?: TServices
+  repositories?: TRepos
+
+  // any additional user keys
+  [key: string]: unknown
+}
+```
+
+Merging/precedence
+- Reserved keys (service, repository, moduleRef, section, action, model, dataSource) are auto-set; user context won’t overwrite them unless they are not already set.
+- Action-level context merges over section-level context.
+- services and repositories are shallow-merged (action-level extends/overrides section-level entries).
 
 Provide context at section or action level. Context can be:
 1) Function form (recommended)
