@@ -581,9 +581,7 @@ npm i crudman-nestjs
 
 ### Zero-config TypeORM DataSource
 
-From v1.0.0+, Crudman attempts to auto-discover your TypeORM `DataSource` at app startup.
-
-If auto-discovery doesn't initialize early enough in your app, set the `DataSource` manually as shown below.
+From v1.0.0+, Crudman attempts to auto-discover your TypeORM `DataSource` at app startup. In most apps this is enough. If your app initializes the DataSource later or uses a custom pattern, set it manually once after bootstrap as shown below. We also recommend registering `ModuleRef` and `DataSource` explicitly in your `main.ts` for determinism.
 
 ```ts
 import { DataSource } from 'typeorm'
@@ -592,6 +590,20 @@ import { setCrudmanDataSource } from 'crudman-nestjs'
 // In your bootstrap function (after await app.init())
 const ds = app.get(DataSource)
 setCrudmanDataSource(ds)
+
+// Optionally (recommended): also register ModuleRef and DataSource
+import { setCrudmanModuleRef } from 'crudman-nestjs'
+setCrudmanModuleRef(app)
+
+### Error handling mode
+
+You can choose between thrown HttpExceptions (default) or JSON envelopes for errors.
+
+```ts
+CrudmanModule.forRoot({
+  throwOnError: true // default true; set false to keep envelope-style error bodies
+})
+```
 ```
 
 ## Swagger Configuration

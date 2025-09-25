@@ -63,6 +63,11 @@ export class CrudmanRegistry {
   getUploadResponseOptions(): { fileFieldMode?: 'filename_in_field'|'key_url_fields'; includeBaseUrlsOn?: Array<'list'|'details'|'create'|'update'|'save'>; allowRequestOverride?: boolean } {
     return (this.options as any).uploadResponse || {}
   }
+
+  getThrowOnError(): boolean {
+    const v = (this.options as any).throwOnError
+    return v !== false
+  }
 }
 
 

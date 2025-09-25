@@ -224,7 +224,7 @@ export const TypeormAdapter: OrmAdapter = {
     const relations = resolveRelations(repo, relationsBaseRaw, [])
     let findOptions: any = { where: { [field]: castId(value) } as any, relations, select: normalizeSelect(cfg.attributes, repo) }
     if (cfg.onBeforeQuery) {
-      const mod = await cfg.onBeforeQuery(findOptions, cfg.model, req, null, cfg.service)
+      const mod = await cfg.onBeforeQuery(findOptions, cfg.model, (cfg as any)._ctx, req, null)
       if (mod) findOptions = mod
     }
     let entity = await repo.findOne(findOptions)

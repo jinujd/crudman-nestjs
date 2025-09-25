@@ -5,7 +5,8 @@ import { SwaggerModule, DocumentBuilder } from "@nestjs/swagger"
 import { join } from 'path'
 import { existsSync } from 'fs'
 import { NestExpressApplication } from '@nestjs/platform-express'
-import { enhanceCrudSwaggerDocument, setCrudmanModuleRef } from 'crudman-nestjs'
+import { enhanceCrudSwaggerDocument, setCrudmanModuleRef, setCrudmanDataSource } from 'crudman-nestjs'
+import { DataSource } from 'typeorm'
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule)
@@ -26,8 +27,9 @@ async function bootstrap() {
   SwaggerModule.setup('docs', app, document)
   console.log('Swagger docs available at http://localhost:3001/docs')
 
-  // Expose ModuleRef to the library registry for ctx builder
+  // Expose ModuleRef and DataSource to the Crudman registry for runtime resolutions
   try { setCrudmanModuleRef((app as any).getHttpAdapter?.().getInstance?.()?.get?.('ModuleRef') || app) } catch {}
+  try { setCrudmanDataSource(app.get(DataSource)) } catch {}
   await app.init()
   await app.listen(3001)
   console.log('Example app running at http://localhost:3001')

@@ -27,6 +27,7 @@ import { ImageUploadsController } from './image-uploads.controller'
   imports: [
     TypeOrmModule.forRoot({ type: 'sqlite', database: 'test.sqlite', entities: [Company, User, Country, State, Tag, Category, Profile, UploadDemo, Blog, AuditLog], synchronize: true }),
     CrudmanModule.forRoot({
+      throwOnError: false,
       swaggerMeta: { title: 'Example API', version: '1.2.3' },
       defaultFileStorage: 'local',
       fileStorages: { local: { type: 'local', dest: 'uploads', publicBaseUrl: 'http://localhost:3001/uploads' } }

@@ -24,6 +24,9 @@ export function ctxDemoSection() {
       try {
         const maybe = moduleRef && (moduleRef.get('DataSource', { strict: false }) || moduleRef.get(DataSource, { strict: false }))
         if (maybe) ds = maybe
+
+        console.log(`Data source is`, ds)
+        console.log(`Module ref is`, moduleRef)
       } catch {}
       return {
         services: { flags },
@@ -43,6 +46,7 @@ export function ctxDemoSection() {
       } as any),
       onBeforeAction: async (req: any, _res: any, ctx: any) => {
         // Ensure repository/dataSource present before adapter
+        console.log(`Context found is`)
         if (!ctx.moduleRef) ctx.moduleRef = {}
         if (!ctx.dataSource && ctx.moduleRef) {
           try {
@@ -52,6 +56,7 @@ export function ctxDemoSection() {
         }
         if (!ctx.repository && ctx.dataSource) {
           try { ctx.repository = ctx.dataSource.getRepository(Company) } catch {}
+          
         }
         // Use injected company repository pre-action if header provided
         const companyName = (req.headers?.['x-company'] || req.headers?.['X-Company']) as string | undefined

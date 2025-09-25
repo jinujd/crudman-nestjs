@@ -9,6 +9,7 @@ export interface CrudModuleOptions {
   defaultResponseFormatter?: ResponseFormatter<any>
   identityAccessor?: IdentityAccessor
   roleChecker?: RoleChecker
+  throwOnError?: boolean
   swagger?: { enabled?: boolean; requestBodySchemaMode?: 'inline' | 'ref'; requestBodyContentTypes?: Array<'json' | 'form' | 'multipart'>; includeRelationsInWriteBody?: boolean }
   swaggerMeta?: { title?: string; version?: string; description?: string }
   exportContentTypes?: Array<'json' | 'csv' | 'excel'>
