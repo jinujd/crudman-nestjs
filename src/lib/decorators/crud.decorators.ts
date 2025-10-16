@@ -37,7 +37,24 @@ export const UseCrud = (config: any, options?: any): ClassDecorator => {
       }
       return out
     }
-    const mergedSections = { ...(existing.config?.sections || {}), ...(config?.sections || {}), ...shorthandToSections() }
+    // Deep merge sections to avoid overwriting existing detailed configurations with empty objects
+    const deepMergeSections = (existing: any, incoming: any) => {
+      const result = { ...existing }
+      for (const [key, value] of Object.entries(incoming || {})) {
+        if (value && typeof value === 'object' && !Array.isArray(value)) {
+          // If the incoming value is an object (not empty), merge it
+          if (Object.keys(value).length > 0) {
+            result[key] = { ...(result[key] || {}), ...value }
+          }
+          // If it's an empty object, don't overwrite existing configuration
+        } else {
+          result[key] = value
+        }
+      }
+      return result
+    }
+    
+    const mergedSections = deepMergeSections(existing.config?.sections || {}, { ...(config?.sections || {}), ...shorthandToSections() })
     const mergedConfig = { ...existing.config, ...config, sections: mergedSections }
     const mergedOptions = { ...existing.options, ...opts }
     const meta = { config: mergedConfig, options: mergedOptions }
