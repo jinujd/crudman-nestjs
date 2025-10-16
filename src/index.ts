@@ -20,6 +20,7 @@ export * from './lib/types/Identity'
 export * from './lib/types/CrudModuleOptions'
 export * from './lib/types/Upload'
 export * from './lib/utils/localFileStorage'
+export { TypeormAdapter } from './lib/adapters/typeorm.adapter'
 
 // Utilities
 export * from './lib/utils/swaggerSchema'
