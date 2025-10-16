@@ -22,11 +22,12 @@ export class CrudmanService {
   constructor(private readonly moduleRef?: ModuleRef) {}
 
   private getSection(section: string) {
+    
     if (!this.config) {
       const meta = (global as any).__crudman_global_meta
       this.config = meta?.config || { sections: {} }
       this.options = meta?.options || {}
-    }
+    }  
     return this.config.sections[section]
   }
 
@@ -181,7 +182,7 @@ export class CrudmanService {
   }
 
   private getActionCfg(section: string, action: string) {
-    const sectionCfg = this.getSection(section) || {}
+    const sectionCfg = this.getSection(section) || {} 
     const base = { model: sectionCfg.model, ...sectionCfg }
     const specific = sectionCfg[action] || {}
     return { ...base, ...specific }
@@ -461,7 +462,8 @@ export class CrudmanService {
   }
 
   private async validateIfNeeded(actionCfg: any, req: any, res: any, isUpdate: boolean) {
-    const validator = this.getValidator(actionCfg)
+
+    const validator = this.getValidator(actionCfg) 
     let rules = validator.generateSchemaFromModel(actionCfg.model, isUpdate)
     if (actionCfg.getFinalValidationRules) {
       const ctx = await this.buildHookContext(actionCfg?.name || '', (req?.params?.id ? 'update' : 'create') as any, actionCfg, req, res)
@@ -475,22 +477,26 @@ export class CrudmanService {
     const result = validator.validate(input, rules)
     // Uniqueness validation (DB-level check; adapter-agnostic via orm.exists)
     try {
-      const fields = actionCfg.fieldsForUniquenessValidation || actionCfg.fieldsForUniquenessValidation === undefined
-        ? (this.getSection(actionCfg?.name || '')?.fieldsForUniquenessValidation || [])
-        : actionCfg.fieldsForUniquenessValidation
+     
+      
+      // const fields = actionCfg.fieldsForUniquenessValidation || actionCfg.fieldsForUniquenessValidation === undefined
+      //   ? (this.getSection(actionCfg?.name || '')?.fieldsForUniquenessValidation || [])
+      //   : actionCfg.fieldsForUniquenessValidation
+      const fields = actionCfg.fieldsForUniquenessValidation  || []
+
       const conditionType: 'or'|'and' = actionCfg.conditionTypeForUniquenessValidation || 'or'
       if (Array.isArray(fields) && fields.length) {
         const orm = this.getOrm(actionCfg)
         if (orm && typeof orm.exists === 'function' && typeof (orm as any).buildUniquenessWhere === 'function') {
           const idField = actionCfg.recordSelectionField || 'id'
           const idValue = isUpdate ? (req.params?.[idField] ?? req.body?.[idField]) : undefined
-          const where = (orm as any).buildUniquenessWhere(idValue, fields, input, conditionType)
+          const where = (orm as any).buildUniquenessWhere(idValue, fields, input, conditionType) 
           const exists = await orm.exists(where, actionCfg)
-          if (exists) {
+          if (exists) { 
             const errs = fields.map((f: string) => ({ type: 'unique', field: f, message: `${f} must be unique` }))
             result.valid = false
             result.errors = [...(result.errors || []), ...errs]
-          }
+          }  
         }
       }
     } catch {}

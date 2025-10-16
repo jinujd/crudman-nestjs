@@ -1,5 +1,6 @@
 import { parseFilters, parsePagination, parseSorting } from '../query/query-utils'
 import { OrmAdapter } from '../types/OrmAdapter'
+import { Not } from 'typeorm'
 
 // This adapter expects the consumer app to inject repositories via config.additionalSettings.repo
 // It operates on a minimal repository interface: find, findOne, save, update, delete, count, createQueryBuilder
@@ -318,15 +319,45 @@ export const TypeormAdapter: OrmAdapter = {
   },
 
   buildUniquenessWhere(id, fields, values, type) {
-    const clauses = fields.map((f: string) => ({ [f]: values[f] }))
-    const where: any = type === 'and' ? { AND: clauses } : { OR: clauses }
+    let where: any
+    
+    if (fields.length === 1) {
+      // Single field - return direct condition
+      const field = fields[0]
+      where = { [field]: values[field] }
+    } else {
+      // Multiple fields - use AND/OR logic
+      if (type === 'and') {
+        // AND: combine all fields in single object
+        where = {}
+        fields.forEach((f: string) => {
+          where[f] = values[f]
+        })
+      } else {
+        // OR: array of objects, each with one field
+        where = fields.map((f: string) => ({ [f]: values[f] }))
+      }
+    }
+    
     if (id !== undefined && id !== null) {
       // Exclude current record by primary key for update paths
       const primaryField = Array.isArray((this as any)?.metadata?.primaryColumns) && (this as any).metadata.primaryColumns[0]
         ? (this as any).metadata.primaryColumns[0].propertyName
         : 'id'
-      where[primaryField] = { not: id }
+      
+      // Add primary key condition to existing where
+      if (Array.isArray(where)) {
+        // OR case: add primary key condition to each clause
+        where = where.map(clause => ({
+          ...clause,
+          [primaryField]: Not(id)
+        }))
+      } else {
+        // AND case: add primary key condition to single object
+        where[primaryField] = Not(id)
+      }
     }
+    
     return where
   }
 }
