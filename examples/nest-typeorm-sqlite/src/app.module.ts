@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { CrudmanModule, setCrudmanModuleRef } from 'crudman-nestjs'
+import { CrudmanModule, setCrudmanModuleRef, TypeormAdapter } from 'crudman-nestjs'
 import { Company } from './company.entity'
 import { User } from './user.entity'
 import { Country } from './country.entity'
@@ -30,7 +30,8 @@ import { ImageUploadsController } from './image-uploads.controller'
       throwOnError: false,
       swaggerMeta: { title: 'Example API', version: '1.2.3' },
       defaultFileStorage: 'local',
-      fileStorages: { local: { type: 'local', dest: 'uploads', publicBaseUrl: 'http://localhost:3001/uploads' } }
+      fileStorages: { local: { type: 'local', dest: 'uploads', publicBaseUrl: 'http://localhost:3001/uploads' } },
+      defaultOrm: TypeormAdapter
     }),
   ],
   controllers: [CompaniesController, UsersController, CountriesController, StatesController, CustomController, ShorthandController, ProfilesController, FileUploadsController, ImageUploadsController, BlogsController, CtxDemoController]
