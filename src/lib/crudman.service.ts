@@ -461,8 +461,7 @@ export class CrudmanService {
     return extra
   }
 
-  private async validateIfNeeded(actionCfg: any, req: any, res: any, isUpdate: boolean) {
-
+  private async validateIfNeeded(actionCfg: any, req: any, res: any, isUpdate: boolean) { 
     const validator = this.getValidator(actionCfg) 
     let rules = validator.generateSchemaFromModel(actionCfg.model, isUpdate)
     if (actionCfg.getFinalValidationRules) {
@@ -489,8 +488,9 @@ export class CrudmanService {
         const orm = this.getOrm(actionCfg)
         if (orm && typeof orm.exists === 'function' && typeof (orm as any).buildUniquenessWhere === 'function') {
           const idField = actionCfg.recordSelectionField || 'id'
-          const idValue = isUpdate ? (req.params?.[idField] ?? req.body?.[idField]) : undefined
+          const idValue = isUpdate ? (req.params?.[idField] ?? req.body?.[idField]) : undefined 
           const where = (orm as any).buildUniquenessWhere(idValue, fields, input, conditionType) 
+
           const exists = await orm.exists(where, actionCfg)
           if (exists) { 
             const errs = fields.map((f: string) => ({ type: 'unique', field: f, message: `${f} must be unique` }))
@@ -498,7 +498,7 @@ export class CrudmanService {
             result.errors = [...(result.errors || []), ...errs]
           }  
         }
-      }
+      }  
     } catch {}
     const proceedAfter = await this.applyHooks(actionCfg, 'onAfterValidate', req, res, ctxForVal, result.errors, validator)
     if (proceedAfter === false) return { valid: false, errors: result.errors }
@@ -735,7 +735,7 @@ export class CrudmanService {
     return this.sendNegotiated(res, 'details', body, req)
   }
 
-  async create(section: string, req: any, res: any) {
+  async create(section: string, req: any, res: any) { 
     const actionCfg = this.getActionCfg(section, 'create')
     const orm = this.getOrm(actionCfg)
     if (!orm) {

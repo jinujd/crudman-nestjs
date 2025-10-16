@@ -357,6 +357,7 @@ export const TypeormAdapter: OrmAdapter = {
         where[primaryField] = Not(id)
       }
     }
+    console.log("Where is", JSON.stringify(where, null, 2))
     
     return where
   }
