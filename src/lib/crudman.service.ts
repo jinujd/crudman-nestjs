@@ -461,8 +461,7 @@ export class CrudmanService {
     return extra
   }
 
-  private async validateIfNeeded(actionCfg: any, req: any, res: any, isUpdate: boolean) {
-    console.log(`Validate if needed called.`)
+  private async validateIfNeeded(actionCfg: any, req: any, res: any, isUpdate: boolean) { 
     const validator = this.getValidator(actionCfg) 
     let rules = validator.generateSchemaFromModel(actionCfg.model, isUpdate)
     if (actionCfg.getFinalValidationRules) {
