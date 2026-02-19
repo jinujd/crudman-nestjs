@@ -138,13 +138,25 @@ export const TypeormAdapter: OrmAdapter = {
       const mod = await cfg.onBeforeQuery(findOptions, cfg.model, (cfg as any)._ctx, req, null)
       if (mod) findOptions = mod
     }
+    // Normalize any nulls added in onBeforeQuery to IsNull() for consistent behavior
+    if (findOptions && findOptions.where) {
+      findOptions.where = normalizeNullsToIsNull(findOptions.where)
+    }
     let items: any[] = []
     let total = 0
     if (hasLikeFilter || hasRangeFilter) {
       // Use QueryBuilder for robust LIKE behavior across drivers
       const qb = repo.createQueryBuilder('t')
       // Ensure default relations are included (left join + select) when using QB path
-      const relsForJoin: string[] = Array.isArray(relations) ? relations : []
+      let relsForJoin: string[] = Array.isArray(relations) ? relations : []
+      // Also include relations referenced by findOptions.where
+      if (findOptions && findOptions.where) {
+        const neededFromWhere = extractRelationPathsFromWhere(findOptions.where)
+        if (neededFromWhere.length) {
+          const merged = Array.from(new Set([ ...relsForJoin, ...neededFromWhere ]))
+          relsForJoin = merged
+        }
+      }
       if (relsForJoin.length) joinRelationsIntoQueryBuilder(qb, relsForJoin)
       // Apply simple filters
       for (const f of filters) {
@@ -164,6 +176,10 @@ export const TypeormAdapter: OrmAdapter = {
         } else if (f.op === 'lt') {
           qb.andWhere(`t.${f.field} < :p_${f.field}`, { [`p_${f.field}`]: f.value })
         }
+      }
+      // Additionally apply equality/null constraints coming from findOptions.where
+      if (findOptions && findOptions.where) {
+        applyFindWhereToQueryBuilder(qb, findOptions.where, 't')
       }
       // Sorting (apply default when none specified)
       for (const s of effectiveSorting) {
@@ -445,6 +461,19 @@ function convertToTypeormWhere(where: any): any {
   const out: any = {}
   for (const key of Object.keys(where)) {
     const value = where[key]
+    // Map explicit nulls to IS NULL for consistent behavior across drivers and paths
+    if (value === null) {
+      // If nested path with dot, propagate into nested object and apply IsNull at leaf
+      if (key.includes('.')) {
+        const [rel, ...rest] = key.split('.')
+        const nestedKey = rest.join('.')
+        out[rel] = out[rel] || {}
+        out[rel][nestedKey] = convertToTypeormWhere({ [nestedKey]: null })[nestedKey]
+      } else {
+        out[key] = IsNull()
+      }
+      continue
+    }
     if (value && typeof value === 'object' && !Array.isArray(value)) {
       if ('like' in value) {
         const raw = String((value as any).like)
@@ -484,6 +513,7 @@ function convertToTypeormWhere(where: any): any {
 
 // Helpers that defer importing from typeorm to runtime to avoid hard deps at import time
 function Like(pattern: string): any { return dynamicTypeormOperator('Like', pattern) }
+function IsNull(): any { return dynamicTypeormOperator('IsNull') }
 function Between(a: any, b: any): any { return dynamicTypeormOperator('Between', a, b) }
 function MoreThan(v: any): any { return dynamicTypeormOperator('MoreThan', v) }
 function MoreThanOrEqual(v: any): any { return dynamicTypeormOperator('MoreThanOrEqual', v) }
@@ -505,6 +535,149 @@ function dynamicTypeormOperator(name: string, ...args: any[]): any {
   } catch {
     // If typeorm isn't available at import time, just return a shape TypeORM understands minimally
     return { __op: name, __args: args }
+  }
+}
+
+// Replace any raw nulls with IsNull() in a where structure (object or array), preserving operators
+function normalizeNullsToIsNull(input: any): any {
+  if (input === null) return IsNull()
+  if (Array.isArray(input)) return input.map(normalizeNullsToIsNull)
+  if (input && typeof input === 'object') {
+    // Respect operator objects coming from dynamicTypeormOperator
+    if ('__op' in input) return input
+    const out: any = Array.isArray(input) ? [] : {}
+    for (const k of Object.keys(input)) {
+      const v = (input as any)[k]
+      if (v === null) {
+        // if key has dots, push null down to leaf and convert there
+        if (k.includes('.')) {
+          const [rel, ...rest] = k.split('.')
+          const nestedKey = rest.join('.')
+          out[rel] = normalizeNullsToIsNull({ ...(out[rel] || {}), [nestedKey]: null })
+        } else {
+          out[k] = IsNull()
+        }
+      } else {
+        out[k] = normalizeNullsToIsNull(v)
+      }
+    }
+    return out
+  }
+  return input
+}
+
+// Create alias used in QueryBuilder joins: 't' + '_' + path segments separated by '_'
+function qbAliasForRelationPath(baseAlias: string, relationPath: string): string {
+  const clean = String(relationPath || '').trim()
+  if (!clean) return baseAlias
+  return `${baseAlias}_${clean.replace(/\./g, '_')}`
+}
+
+// Extract relation paths referenced by where (object/array), excluding final column leafs
+function extractRelationPathsFromWhere(where: any, basePath: string[] = []): string[] {
+  const paths: Set<string> = new Set()
+  const visit = (node: any, curPath: string[]) => {
+    if (node === null || node === undefined) return
+    if (Array.isArray(node)) {
+      for (const item of node) visit(item, curPath)
+      return
+    }
+    if (node && typeof node === 'object' && !('__op' in node)) {
+      for (const k of Object.keys(node)) {
+        const v = node[k]
+        // dotted key case
+        if (k.includes('.')) {
+          const segs = k.split('.')
+          for (let i = 0; i < segs.length - 1; i++) {
+            const path = [...curPath, ...segs.slice(0, i + 1)].join('.')
+            if (path) paths.add(path)
+          }
+          // dive deeper for remainder
+          visit({ [segs.slice(1).join('.')]: v }, [...curPath, segs[0]])
+        } else if (v && typeof v === 'object' && !('__op' in v)) {
+          // treat as nested relation
+          const path = [...curPath, k].join('.')
+          if (path) paths.add(path)
+          visit(v, [...curPath, k])
+        } else {
+          // leaf column under current relation path - no new relation to add
+        }
+      }
+    }
+  }
+  visit(where, basePath)
+  return Array.from(paths)
+}
+
+// Apply equality and IS NULL parts of findOptions.where into QueryBuilder
+function applyFindWhereToQueryBuilder(qb: any, where: any, baseAlias: string) {
+  const state = { paramIndex: 0 }
+  const buildExpr = (node: any, curAlias: string, curPath: string[]): { expr: string; params: Record<string, any> } => {
+    // Arrays represent OR of contained nodes
+    if (Array.isArray(node)) {
+      const parts = node.map(n => buildExpr(n, curAlias, curPath)).filter(p => p.expr)
+      if (!parts.length) return { expr: '', params: {} }
+      const expr = parts.map(p => `(${p.expr})`).join(' OR ')
+      const params = Object.assign({}, ...parts.map(p => p.params))
+      return { expr, params }
+    }
+    if (!node || typeof node !== 'object' || ('__op' in node)) {
+      // unsupported shapes here; ignore
+      return { expr: '', params: {} }
+    }
+    // Object: AND of its fields
+    const fieldExprs: string[] = []
+    let params: Record<string, any> = {}
+    for (const k of Object.keys(node)) {
+      const v = (node as any)[k]
+      if (k.includes('.')) {
+        // Dotted path: split into relation and remainder
+        const segs = k.split('.')
+        const relPath = segs.slice(0, -1).join('.')
+        const col = segs[segs.length - 1]
+        const alias = qbAliasForRelationPath(baseAlias, relPath)
+        const res = buildLeaf(alias, [...curPath, ...segs], col, v)
+        if (res) {
+          fieldExprs.push(res.expr)
+          params = { ...params, ...res.params }
+        }
+      } else if (v && typeof v === 'object' && !('__op' in v)) {
+        // Nested relation object
+        const alias = qbAliasForRelationPath(baseAlias, [...curPath, k].join('.'))
+        const sub = buildExpr(v, alias, [...curPath, k])
+        if (sub.expr) {
+          fieldExprs.push(sub.expr)
+          params = { ...params, ...sub.params }
+        }
+      } else {
+        // Leaf under current alias
+        const res = buildLeaf(baseAlias, [...curPath, k], k, v)
+        if (res) {
+          fieldExprs.push(res.expr)
+          params = { ...params, ...res.params }
+        }
+      }
+    }
+    const expr = fieldExprs.filter(Boolean).map(e => `(${e})`).join(' AND ')
+    return { expr, params }
+  }
+  const buildLeaf = (alias: string, fullPath: string[], column: string, value: any): { expr: string; params: Record<string, any> } | null => {
+    // Support IsNull operator and raw nulls
+    const isIsNull = value && typeof value === 'object' && value.__op === 'IsNull'
+    if (value === null || isIsNull) {
+      return { expr: `${alias}.${column} IS NULL`, params: {} }
+    }
+    // Primitive equality
+    if (typeof value !== 'object' || value instanceof Date) {
+      const pname = `w_${fullPath.join('_')}_${state.paramIndex++}`.replace(/[^\w]/g, '_')
+      return { expr: `${alias}.${column} = :${pname}`, params: { [pname]: value } }
+    }
+    // Other operators are ignored here (handled elsewhere)
+    return null
+  }
+  const root = buildExpr(where, baseAlias, [])
+  if (root.expr) {
+    qb.andWhere(`(${root.expr})`, root.params)
   }
 }
 
